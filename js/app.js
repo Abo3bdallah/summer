@@ -64,7 +64,10 @@
   function renderPointStudentOptions() {
     var sel = $('#ppStudent');
     var cur = sel.value;
-    var students = Store.getStudents().sort(function (a, b) { return a.name.localeCompare(b.name, 'ar'); });
+    var q = ($('#ppSearch').value || '').trim().toLowerCase();
+    var students = Store.getStudents()
+      .filter(function (s) { return !q || s.name.toLowerCase().indexOf(q) !== -1; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name, 'ar'); });
     sel.innerHTML = '<option value="">— اختر طالبًا —</option>' + students.map(function (s) {
       var g = Store.getGroup(s.groupId);
       return '<option value="' + s.id + '">' + esc(s.name) + ' — ' + esc(g ? g.name : '') + '</option>';
@@ -72,6 +75,22 @@
     if (cur && Store.getStudent(cur)) sel.value = cur;
     updatePreview();
   }
+  $('#ppSearch').addEventListener('input', renderPointStudentOptions);
+
+  // اختصارات سريعة لعدد النقاط
+  $$('#ppQuick .chip').forEach(function (b) {
+    b.addEventListener('click', function () { $('#ppAmount').value = b.dataset.amt; });
+  });
+  // أسباب جاهزة
+  $$('#ppReasons .chip').forEach(function (b) {
+    b.addEventListener('click', function () { $('#ppReason').value = b.dataset.reason; });
+  });
+  // حفظ بمفتاح Enter
+  ['ppAmount', 'ppReason'].forEach(function (id) {
+    $('#' + id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('#ppSave').click(); }
+    });
+  });
 
   function updatePreview() {
     var id = $('#ppStudent').value;
@@ -108,6 +127,31 @@
       toast(err.message, 'err');
     }
   });
+
+  // تراجع عن آخر عملية فعّالة
+  $('#ppUndoLast').addEventListener('click', function () {
+    var last = Store.getLastActiveEntry();
+    if (!last) { toast('لا توجد عملية للتراجع عنها', 'err'); return; }
+    var label = (last.type === 'add' ? 'إضافة ' : 'خصم ') + last.amount + ' لـ ' + last.studentName;
+    if (confirm('التراجع عن آخر عملية؟\n' + label)) {
+      Store.undoEntry(last.id, Store.getSupervisor());
+      toast('تم التراجع عن العملية', 'ok');
+    }
+  });
+
+  function renderLastInfo() {
+    var last = Store.getLastActiveEntry();
+    var el = $('#ppLastInfo');
+    var btn = $('#ppUndoLast');
+    if (!last) {
+      el.textContent = 'لا توجد عمليات بعد';
+      btn.disabled = true; btn.style.opacity = '.5';
+    } else {
+      el.textContent = 'الأخيرة: ' + (last.type === 'add' ? '+' : '−') + last.amount +
+        ' — ' + last.studentName + ' (' + last.groupName + ')';
+      btn.disabled = false; btn.style.opacity = '';
+    }
+  }
 
   function renderBars(container) {
     var summaries = Store.getGroupSummaries();
@@ -159,6 +203,23 @@
   });
   $('#stCancel').addEventListener('click', resetStudentForm);
   $('#stSearch').addEventListener('input', renderStudents);
+
+  // إضافة دفعة طلاب
+  $('#bulkAdd').addEventListener('click', function () {
+    var gid = $('#bulkGroup').value;
+    var raw = $('#bulkNames').value || '';
+    var names = raw.split(/\r?\n/).map(function (n) { return n.trim(); }).filter(Boolean);
+    if (!names.length) { toast('أدخل اسمًا واحدًا على الأقل', 'err'); return; }
+    try {
+      var n = Store.addStudents(names, gid);
+      toast('تمت إضافة ' + n + ' طالبًا', 'ok');
+      $('#bulkNames').value = '';
+    } catch (err) { toast(err.message, 'err'); }
+  });
+  $('#bulkNames').addEventListener('input', function () {
+    var c = ($('#bulkNames').value || '').split(/\r?\n/).map(function (n) { return n.trim(); }).filter(Boolean).length;
+    $('#bulkCount').textContent = c ? (c + ' اسمًا جاهزًا') : '';
+  });
 
   function renderStudents() {
     var q = $('#stSearch').value.trim().toLowerCase();
@@ -256,8 +317,15 @@
   /* ====================================================
      سجل العمليات
      ==================================================== */
+  $('#logSearch').addEventListener('input', renderLog);
+
   function renderLog() {
-    var log = Store.getLog();
+    var q = ($('#logSearch').value || '').trim().toLowerCase();
+    var all = Store.getLog();
+    var log = all.filter(function (e) {
+      if (!q) return true;
+      return (e.studentName + ' ' + (e.supervisor || '') + ' ' + (e.reason || '')).toLowerCase().indexOf(q) !== -1;
+    });
     $('#logCount').textContent = log.length + ' عملية';
     $('#logEmpty').style.display = log.length ? 'none' : 'block';
     var body = $('#logBody');
@@ -266,7 +334,10 @@
       var isAdd = e.type === 'add';
       var sign = isAdd ? '+' : '−';
       var color = isAdd ? 'var(--green)' : 'var(--red)';
-      return '<tr>' +
+      var undoCell = e.undone
+        ? '<span class="badge" style="background:rgba(148,163,184,.18);color:var(--muted)">متراجَع عنها</span>'
+        : '<button class="icon-btn" data-undo="' + e.id + '">↩️ تراجع</button>';
+      return '<tr class="' + (e.undone ? 'undone' : '') + '">' +
         '<td class="nowrap muted">' + fmtDate(e.timestamp) + '</td>' +
         '<td>' + esc(e.studentName) + '</td>' +
         '<td><span class="g-' + cls + '">' + esc(e.groupName) + '</span></td>' +
@@ -274,8 +345,15 @@
         '<td style="color:' + color + ';font-weight:800">' + sign + e.amount + '</td>' +
         '<td class="muted">' + (esc(e.reason) || '—') + '</td>' +
         '<td class="muted">' + (esc(e.supervisor) || '—') + '</td>' +
+        '<td class="right">' + undoCell + '</td>' +
         '</tr>';
     }).join('');
+
+    $$('[data-undo]', body).forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (Store.undoEntry(b.dataset.undo, Store.getSupervisor())) toast('تم التراجع عن العملية', 'ok');
+      });
+    });
   }
 
   $('#logClear').addEventListener('click', function () {
@@ -348,6 +426,89 @@
       Store.resetAll(); toast('تمت إعادة التهيئة', 'ok');
     }
   });
+  $('#setAllGoalBtn').addEventListener('click', function () {
+    var v = parseInt($('#setAllGoal').value, 10);
+    if (isNaN(v) || v < 1) { toast('أدخل هدفًا صحيحًا', 'err'); return; }
+    Store.getGroups().forEach(function (g) { Store.setGroupGoal(g.id, v); });
+    $('#setAllGoal').value = '';
+    toast('تم تطبيق الهدف على جميع المجموعات', 'ok');
+  });
+  $('#setResetPoints').addEventListener('click', function () {
+    if (confirm('تصفير نقاط جميع الطلاب؟ (يبقى الطلاب والسجل)')) {
+      Store.resetPoints(false); toast('تم تصفير النقاط', 'ok');
+    }
+  });
+  $('#setResetPointsLog').addEventListener('click', function () {
+    if (confirm('تصفير نقاط جميع الطلاب ومسح السجل؟ لا يمكن التراجع.')) {
+      Store.resetPoints(true); toast('تم بدء جولة جديدة', 'ok');
+    }
+  });
+
+  /* ====================================================
+     التقارير والإحصائيات
+     ==================================================== */
+  function renderReports() {
+    var students = Store.getStudents();
+    var summaries = Store.getGroupSummaries();
+    var log = Store.getLog();
+
+    var totalPoints = 0;
+    students.forEach(function (s) { totalPoints += (s.points || 0); });
+    var activeOps = log.filter(function (e) { return !e.undone; });
+    var adds = activeOps.filter(function (e) { return e.type === 'add'; }).length;
+    var subs = activeOps.filter(function (e) { return e.type === 'subtract'; }).length;
+
+    // بطاقات ملخّص
+    var stats = [
+      { l: 'إجمالي الطلاب', v: students.length, c: 'qimma' },
+      { l: 'إجمالي النقاط', v: totalPoints, c: 'sumood' },
+      { l: 'عمليات الإضافة', v: adds, c: 'tumooh' },
+      { l: 'عمليات الخصم', v: subs, c: 'ruwwad' }
+    ];
+    $('#repStats').innerHTML = stats.map(function (x) {
+      return '<div class="stat-card b-' + x.c + '"><div class="sv">' + x.v + '</div><div class="sl">' + x.l + '</div></div>';
+    }).join('');
+
+    // مخطط مقارنة المجموعات (نسبة لأعلى نقاط)
+    var maxPts = 1;
+    summaries.forEach(function (s) { if (s.points > maxPts) maxPts = s.points; });
+    var ranked = summaries.slice().sort(function (a, b) { return b.points - a.points; });
+    $('#repChart').innerHTML = ranked.map(function (s) {
+      var cls = groupClass(s.id);
+      var w = Math.round((s.points / maxPts) * 100);
+      return '<div class="hbar"><div class="hbar-label g-' + cls + '">' + esc(s.name) + '</div>' +
+        '<div class="hbar-track"><span class="bg-' + cls + '" style="width:' + w + '%"></span></div>' +
+        '<div class="hbar-val">' + s.points + '</div></div>';
+    }).join('');
+
+    // أعلى الطلاب (أفضل 10)
+    var top = students.slice().sort(function (a, b) {
+      return b.points - a.points || a.name.localeCompare(b.name, 'ar');
+    }).slice(0, 10);
+    $('#repTopEmpty').style.display = top.length ? 'none' : 'block';
+    var medals = ['🥇', '🥈', '🥉'];
+    $('#repTop').innerHTML = top.map(function (s, i) {
+      var g = Store.getGroup(s.groupId);
+      var cls = groupClass(s.groupId);
+      return '<tr><td>' + (medals[i] || (i + 1)) + '</td>' +
+        '<td>' + esc(s.name) + '</td>' +
+        '<td><span class="g-' + cls + '">' + esc(g ? g.name : '—') + '</span></td>' +
+        '<td><span class="points-pill">' + s.points + '</span></td></tr>';
+    }).join('');
+
+    // متصدّر كل مجموعة + المتوسط
+    $('#repPerGroup').innerHTML = summaries.map(function (s) {
+      var cls = groupClass(s.id);
+      var members = students.filter(function (st) { return st.groupId === s.id; });
+      var leader = members.slice().sort(function (a, b) { return b.points - a.points; })[0];
+      var avg = members.length ? Math.round(s.points / members.length) : 0;
+      return '<tr><td><span class="g-' + cls + '">' + esc(s.name) + '</span></td>' +
+        '<td>' + (leader ? esc(leader.name) : '—') + '</td>' +
+        '<td>' + (leader ? leader.points : 0) + '</td>' +
+        '<td>' + members.length + '</td>' +
+        '<td>' + avg + '</td></tr>';
+    }).join('');
+  }
 
   /* ====================================================
      إعادة الرسم الكامل عند أي تغيير
@@ -355,11 +516,14 @@
   function renderAll() {
     renderPointStudentOptions();
     renderBars($('#ppBars'));
+    renderLastInfo();
     fillGroupSelect($('#stGroup'));
+    fillGroupSelect($('#bulkGroup'));
     renderStudents();
     renderIndFilters();
     renderIndividual();
     renderBars($('#grBars'));
+    renderReports();
     renderLog();
     renderSettings();
     if (document.activeElement !== supInput) supInput.value = Store.getSupervisor();

@@ -23,6 +23,7 @@
     <button class="tab" data-view="students">👥 إدارة الطلاب</button>
     <button class="tab" data-view="individual">📋 النقاط الفردية</button>
     <button class="tab" data-view="groups">🏆 المجموعات</button>
+    <button class="tab" data-view="reports">📊 التقارير</button>
     <button class="tab" data-view="log">🧾 سجل العمليات</button>
     <button class="tab" data-view="settings">⚙️ الإعدادات</button>
   </nav>
@@ -38,6 +39,10 @@
         <div class="row">
           <div class="field" style="flex:2">
             <label>الطالب</label>
+            <input id="ppSearch" placeholder="🔎 ابحث لتصفية القائمة..." />
+          </div>
+          <div class="field" style="flex:2">
+            <label>&nbsp;</label>
             <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
           </div>
         </div>
@@ -58,6 +63,14 @@
           <div class="field">
             <label>عدد النقاط</label>
             <input id="ppAmount" type="number" min="1" step="1" placeholder="مثال: 10" />
+            <div class="chip-filters mini" id="ppQuick">
+              <button type="button" class="chip" data-amt="1">1</button>
+              <button type="button" class="chip" data-amt="3">3</button>
+              <button type="button" class="chip" data-amt="5">5</button>
+              <button type="button" class="chip" data-amt="10">10</button>
+              <button type="button" class="chip" data-amt="25">25</button>
+              <button type="button" class="chip" data-amt="50">50</button>
+            </div>
           </div>
           <div class="field">
             <label>نوع العملية</label>
@@ -71,11 +84,22 @@
           <div class="field" style="flex:3">
             <label>السبب (اختياري)</label>
             <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
+            <div class="chip-filters mini" id="ppReasons">
+              <button type="button" class="chip" data-reason="المشاركة">المشاركة</button>
+              <button type="button" class="chip" data-reason="الحضور المبكر">الحضور المبكر</button>
+              <button type="button" class="chip" data-reason="حسن السلوك">حسن السلوك</button>
+              <button type="button" class="chip" data-reason="إنجاز الواجب">إنجاز الواجب</button>
+              <button type="button" class="chip" data-reason="التميّز">التميّز</button>
+            </div>
           </div>
           <div class="field" style="flex:0; min-width:auto">
             <label>&nbsp;</label>
             <button class="btn green" id="ppSave">💾 حفظ</button>
           </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost sm" id="ppUndoLast">↩️ تراجع عن آخر عملية</button>
+          <span class="muted" id="ppLastInfo"></span>
         </div>
       </div>
 
@@ -110,6 +134,27 @@
           </div>
         </div>
         <input type="hidden" id="stEditId" />
+      </div>
+
+      <div class="card">
+        <h3>➕ إضافة دفعة طلاب</h3>
+        <p class="page-sub" style="margin-bottom:12px">اكتب اسمًا في كل سطر، اختر المجموعة، ثم أضف الجميع دفعة واحدة.</p>
+        <div class="row">
+          <div class="field" style="flex:0; min-width:200px">
+            <label>المجموعة</label>
+            <select id="bulkGroup"></select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field">
+            <label>الأسماء (اسم بكل سطر)</label>
+            <textarea id="bulkNames" rows="5" placeholder="أحمد الذبياني&#10;محمد الغامدي&#10;سعد القحطاني"></textarea>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="bulkAdd">إضافة الجميع</button>
+          <span class="muted" id="bulkCount"></span>
+        </div>
       </div>
 
       <div class="card">
@@ -167,20 +212,55 @@
       </div>
     </section>
 
+    <!-- ====================== التقارير والإحصائيات ====================== -->
+    <section class="view" id="view-reports">
+      <h2 class="page-title">التقارير والإحصائيات</h2>
+      <p class="page-sub">نظرة شاملة على أداء المجموعات والطلاب.</p>
+
+      <div class="stats-grid" id="repStats"></div>
+
+      <div class="card">
+        <h3>مقارنة المجموعات</h3>
+        <div id="repChart"></div>
+      </div>
+
+      <div class="card">
+        <h3>🏅 أعلى الطلاب</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>الاسم</th><th>المجموعة</th><th>النقاط</th></tr></thead>
+            <tbody id="repTop"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="repTopEmpty" style="display:none">لا توجد بيانات بعد.</div>
+      </div>
+
+      <div class="card">
+        <h3>🥇 متصدّر كل مجموعة</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>المجموعة</th><th>المتصدّر</th><th>نقاطه</th><th>عدد الطلاب</th><th>المتوسط</th></tr></thead>
+            <tbody id="repPerGroup"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================== سجل العمليات ====================== -->
     <section class="view" id="view-log">
       <h2 class="page-title">سجل العمليات</h2>
-      <p class="page-sub">كل عملية إضافة أو خصم محفوظة هنا.</p>
+      <p class="page-sub">كل عملية إضافة أو خصم محفوظة هنا، مع إمكانية التراجع.</p>
       <div class="card">
         <div class="toolbar">
-          <span class="muted grow" id="logCount"></span>
+          <input class="grow" id="logSearch" placeholder="🔎 بحث بالطالب أو المشرف أو السبب..." />
+          <span class="muted" id="logCount"></span>
           <button class="btn ghost sm" id="logExport">⬇️ تصدير CSV</button>
           <button class="btn red sm" id="logClear">🗑️ مسح السجل</button>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>التاريخ والوقت</th><th>الطالب</th><th>المجموعة</th><th>النوع</th><th>النقاط</th><th>السبب</th><th>المشرف</th></tr>
+              <tr><th>التاريخ والوقت</th><th>الطالب</th><th>المجموعة</th><th>النوع</th><th>النقاط</th><th>السبب</th><th>المشرف</th><th class="right">تراجع</th></tr>
             </thead>
             <tbody id="logBody"></tbody>
           </table>
@@ -192,15 +272,34 @@
     <!-- ====================== الإعدادات ====================== -->
     <section class="view" id="view-settings">
       <h2 class="page-title">الإعدادات</h2>
-      <p class="page-sub">أهداف المجموعات والنسخ الاحتياطي.</p>
+      <p class="page-sub">أهداف المجموعات، الجولات، والنسخ الاحتياطي.</p>
 
       <div class="card">
-        <h3>أهداف المجموعات</h3>
+        <h3>🎯 أهداف المجموعات</h3>
         <div id="setGoals"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field" style="flex:0; min-width:160px">
+            <label>تعيين هدف موحّد للجميع</label>
+            <input id="setAllGoal" type="number" min="1" step="1" placeholder="مثال: 100" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn ghost" id="setAllGoalBtn">تطبيق على الكل</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
-        <h3>النسخ الاحتياطي</h3>
+        <h3>🔄 الجولات</h3>
+        <p class="page-sub" style="margin-bottom:12px">بدء جولة جديدة يصفّر نقاط جميع الطلاب مع الإبقاء عليهم.</p>
+        <div class="row">
+          <button class="btn ghost" id="setResetPoints">تصفير النقاط (إبقاء السجل)</button>
+          <button class="btn ghost" id="setResetPointsLog">تصفير النقاط ومسح السجل</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💾 النسخ الاحتياطي</h3>
         <div class="row">
           <button class="btn ghost" id="setExport">⬇️ تصدير نسخة (JSON)</button>
           <button class="btn ghost" id="setImportBtn">⬆️ استيراد نسخة</button>

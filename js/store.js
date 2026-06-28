@@ -202,6 +202,20 @@
     return student;
   }
 
+  // إضافة عدة طلاب دفعة واحدة (أسماء، اسم بكل سطر) لمجموعة واحدة
+  function addStudents(names, groupId) {
+    if (!getGroup(groupId)) throw new Error('المجموعة غير صحيحة');
+    var added = 0;
+    (names || []).forEach(function (n) {
+      n = (n || '').trim();
+      if (!n) return;
+      state.students.push({ id: uid(), name: n, groupId: groupId, points: 0 });
+      added++;
+    });
+    if (added) commit();
+    return added;
+  }
+
   function updateStudent(id, fields) {
     var st = getStudent(id);
     if (!st) return;
@@ -258,8 +272,47 @@
     return { student: st, entry: entry };
   }
 
+  // أحدث عملية فعّالة (غير متراجَع عنها) — لزر «تراجع آخر عملية»
+  function getLastActiveEntry() {
+    for (var i = 0; i < state.log.length; i++) {
+      if (!state.log[i].undone) return state.log[i];
+    }
+    return null;
+  }
+
+  // التراجع عن عملية: يعكس أثرها على نقاط الطالب ويعلّمها كمتراجَع عنها
+  function undoEntry(id, supervisor) {
+    var entry = null;
+    for (var i = 0; i < state.log.length; i++) {
+      if (state.log[i].id === id) { entry = state.log[i]; break; }
+    }
+    if (!entry || entry.undone) return false;
+
+    var st = getStudent(entry.studentId);
+    if (st) {
+      var before = st.points || 0;
+      if (entry.type === 'add') {
+        st.points = Math.max(0, before - entry.amount);
+      } else { // كانت خصمًا، نُعيد النقاط
+        st.points = before + entry.amount;
+      }
+    }
+    entry.undone = true;
+    entry.undoneAt = Date.now();
+    entry.undoneBy = (supervisor || state.supervisor || '').trim();
+    commit();
+    return true;
+  }
+
   function clearLog() {
     state.log = [];
+    commit();
+  }
+
+  // بدء جولة/موسم جديد: تصفير نقاط جميع الطلاب (مع خيار مسح السجل)
+  function resetPoints(clearLogToo) {
+    state.students.forEach(function (s) { s.points = 0; });
+    if (clearLogToo) state.log = [];
     commit();
   }
 
@@ -304,10 +357,14 @@
     setSupervisor: setSupervisor,
     setGroupGoal: setGroupGoal,
     addStudent: addStudent,
+    addStudents: addStudents,
     updateStudent: updateStudent,
     deleteStudent: deleteStudent,
     applyPoints: applyPoints,
+    getLastActiveEntry: getLastActiveEntry,
+    undoEntry: undoEntry,
     clearLog: clearLog,
+    resetPoints: resetPoints,
     resetAll: resetAll,
     exportData: exportData,
     importData: importData,

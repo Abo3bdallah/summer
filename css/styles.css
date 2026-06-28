@@ -203,6 +203,36 @@ tr:hover td { background: rgba(255,255,255,.02); }
   font-size: 14px; font-weight: 600; color: var(--muted);
 }
 .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip-filters.mini { margin-top: 8px; gap: 6px; }
+.chip-filters.mini .chip { padding: 5px 12px; font-size: 13px; }
+.chip-filters.mini .chip:hover { border-color: var(--primary); color: var(--text); }
+
+/* ---------- بطاقات الإحصائيات ---------- */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+@media (max-width: 720px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+.stat-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 14px; text-align: center; position: relative; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.stat-card::before { content: ""; position: absolute; inset-block-start: 0; inset-inline: 0; height: 4px; }
+.stat-card.b-qimma::before  { background: var(--g-qimma); }
+.stat-card.b-tumooh::before { background: var(--g-tumooh); }
+.stat-card.b-sumood::before { background: var(--g-sumood); }
+.stat-card.b-ruwwad::before { background: var(--g-ruwwad); }
+.stat-card .sv { font-size: 32px; font-weight: 900; }
+.stat-card .sl { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* ---------- مخطط مقارنة المجموعات (أفقي) ---------- */
+.hbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hbar-label { flex: 0 0 90px; font-weight: 700; font-size: 14px; }
+.hbar-track { flex: 1; height: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.hbar-track > span { display: block; height: 100%; border-radius: 999px; transition: width .6s cubic-bezier(.22,1,.36,1); }
+.hbar-val { flex: 0 0 50px; text-align: left; font-weight: 800; }
+
+/* ---------- صفوف السجل المتراجَع عنها ---------- */
+tr.undone td { opacity: .5; text-decoration: line-through; }
+tr.undone td:last-child { opacity: 1; text-decoration: none; }
 
 /* ---------- أشرطة المجموعات (داخل المشرف) ---------- */
 .bars-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -256,6 +286,77 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .muted { color: var(--muted); }
 .right { text-align: left; }
 .nowrap { white-space: nowrap; }
+
+/* ============================================================
+   تحسينات الجوال للوحة المشرف فقط
+   ============================================================ */
+@media (max-width: 768px) {
+  /* الشريط العلوي: يلتف بدل التداخل */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .topbar .brand { font-size: 16px; flex: 1 1 100%; }
+  .topbar .spacer { display: none; }
+  .supervisor-box { flex: 1 1 auto; }
+  .supervisor-box input { width: 100%; flex: 1; }
+  .topbar .btn.sm { flex: 1 1 auto; text-align: center; }
+
+  /* التبويبات: شريط أفقي قابل للتمرير بدل التكدّس في صفوف */
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 12px 0;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 9px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+    border-color: transparent;
+  }
+  .tab.active { border-color: var(--line); }
+
+  /* المحتوى */
+  .container { padding: 14px; }
+  .page-title { font-size: 19px; }
+  .card { padding: 14px; border-radius: 12px; }
+
+  /* الحقول: كل حقل يأخذ صفًّا كاملًا فلا تتداخل (نتجاوز الأنماط المضمّنة) */
+  .row { gap: 10px; }
+  .container .field { min-width: 100% !important; flex: 1 1 100% !important; }
+
+  /* أزرار العمليات تمتد بعرض الصف */
+  .row .actions { width: 100%; }
+  .row .actions .btn { flex: 1; }
+  .seg { display: flex; width: 100%; }
+  .seg button { flex: 1; padding: 12px 10px; }
+
+  /* معاينة الطالب تترتب رأسيًا */
+  .student-preview { gap: 12px; }
+  .student-preview .cur { margin-inline-start: 0; }
+
+  /* شريط الأدوات والفلاتر */
+  .toolbar { gap: 8px; }
+  .toolbar .grow { min-width: 100%; }
+  .chip { padding: 8px 12px; font-size: 13px; }
+
+  /* الجداول: تمرير أفقي + خط أصغر قليلًا */
+  table { font-size: 13px; }
+  th, td { padding: 9px 8px; }
+  .actions { flex-wrap: wrap; }
+
+  /* التنبيه يمتد بعرض الشاشة */
+  .toast { left: 12px; right: 12px; transform: none; text-align: center; }
+  .toast.show { bottom: 16px; }
+}
 
 /* ============================================================
    شاشة العرض الكبيرة (display.html) — تصميم صيفي
@@ -595,3 +696,19 @@ body.display.individual { overflow: auto; }
   .vcol { padding: 10px 6px; border-radius: 18px; }
   .vname { font-size: 17px; }
 }
+
+/* ============================================================
+   زر ملء الشاشة العائم (شاشات العرض)
+   ============================================================ */
+.fs-btn {
+  position: fixed; top: 14px; inset-inline-end: 14px; z-index: 60;
+  width: 46px; height: 46px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.6);
+  background: rgba(255,255,255,.4); color: #0b2a4a;
+  font-size: 22px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 16px rgba(13,42,74,.2);
+  opacity: .35; transition: opacity .25s, transform .15s;
+}
+.fs-btn:hover { opacity: 1; transform: scale(1.05); }
+.fs-btn:active { transform: scale(.96); }
