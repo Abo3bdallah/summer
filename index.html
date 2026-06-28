@@ -14,6 +14,8 @@
       <label>المشرف:</label>
       <input id="supervisorInput" placeholder="اسم المشرف" />
     </div>
+    <a class="btn ghost sm" href="home.html">🏠 الرئيسية</a>
+    <a class="btn ghost sm" href="attendance.html">✅ التحضير</a>
     <a class="btn ghost sm" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
     <a class="btn ghost sm" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
   </div>
@@ -285,6 +287,29 @@
           <div class="field" style="flex:0; min-width:auto">
             <label>&nbsp;</label>
             <button class="btn ghost" id="setAllGoalBtn">تطبيق على الكل</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>✅ نقاط التحضير</h3>
+        <p class="page-sub" style="margin-bottom:12px">قيمة النقاط الممنوحة تلقائيًا لكل حالة تحضير.</p>
+        <div class="row">
+          <div class="field" style="flex:0; min-width:140px">
+            <label>⏰ حضور مبكر</label>
+            <input type="number" step="1" id="apEarly" />
+          </div>
+          <div class="field" style="flex:0; min-width:140px">
+            <label>✅ حاضر</label>
+            <input type="number" step="1" id="apPresent" />
+          </div>
+          <div class="field" style="flex:0; min-width:140px">
+            <label>❌ غائب</label>
+            <input type="number" step="1" id="apAbsent" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn" id="apSave">حفظ</button>
           </div>
         </div>
       </div>

@@ -37,7 +37,11 @@
       groups: DEFAULT_GROUPS.map(function (g) { return { id: g.id, name: g.name, goal: g.goal }; }),
       students: [],
       log: [],
-      supervisor: ''
+      supervisor: '',
+      // نقاط التحضير لكل حالة (قابلة للضبط من الإعدادات)
+      attendancePoints: { early: 10, present: 5, absent: 0 },
+      // سجل التحضير: { 'YYYY-MM-DD': { studentId: 'early'|'present'|'absent' } }
+      attendance: {}
     };
   }
 
@@ -49,6 +53,13 @@
       if (Array.isArray(parsed.students)) s.students = parsed.students;
       if (Array.isArray(parsed.log)) s.log = parsed.log;
       if (typeof parsed.supervisor === 'string') s.supervisor = parsed.supervisor;
+      if (parsed.attendancePoints) {
+        ['early', 'present', 'absent'].forEach(function (k) {
+          var v = parseInt(parsed.attendancePoints[k], 10);
+          if (!isNaN(v)) s.attendancePoints[k] = v;
+        });
+      }
+      if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
     }
     // ترحيل: فرض الأسماء الجديدة حسب المعرّف مع الحفاظ على الأهداف
     s.groups.forEach(function (g) { if (CANON_NAMES[g.id]) g.name = CANON_NAMES[g.id]; });
@@ -272,10 +283,10 @@
     return { student: st, entry: entry };
   }
 
-  // أحدث عملية فعّالة (غير متراجَع عنها) — لزر «تراجع آخر عملية»
+  // أحدث عملية يدوية فعّالة (غير متراجَع عنها وليست تحضيرًا) — لزر «تراجع آخر عملية»
   function getLastActiveEntry() {
     for (var i = 0; i < state.log.length; i++) {
-      if (!state.log[i].undone) return state.log[i];
+      if (!state.log[i].undone && state.log[i].kind !== 'attendance') return state.log[i];
     }
     return null;
   }
@@ -312,8 +323,100 @@
   // بدء جولة/موسم جديد: تصفير نقاط جميع الطلاب (مع خيار مسح السجل)
   function resetPoints(clearLogToo) {
     state.students.forEach(function (s) { s.points = 0; });
+    state.attendance = {}; // تصفير التحضير مع الجولة الجديدة
     if (clearLogToo) state.log = [];
     commit();
+  }
+
+  /* ---------------- التحضير ---------------- */
+  var ATT_LABELS = { early: 'حضور مبكر', present: 'حاضر', absent: 'غائب' };
+
+  function getAttendancePoints() {
+    return {
+      early: state.attendancePoints.early,
+      present: state.attendancePoints.present,
+      absent: state.attendancePoints.absent
+    };
+  }
+  function setAttendancePoints(obj) {
+    ['early', 'present', 'absent'].forEach(function (k) {
+      if (obj && obj[k] != null) {
+        var v = parseInt(obj[k], 10);
+        if (!isNaN(v)) state.attendancePoints[k] = v;
+      }
+    });
+    commit();
+  }
+
+  function pointsForStatus(status) {
+    if (status === 'early') return state.attendancePoints.early;
+    if (status === 'present') return state.attendancePoints.present;
+    if (status === 'absent') return state.attendancePoints.absent;
+    return 0; // غير محدد
+  }
+
+  function getAttendance(date) { return state.attendance[date] || {}; }
+  function getStudentAttendance(date, studentId) {
+    var day = state.attendance[date];
+    return (day && day[studentId]) || null;
+  }
+
+  // تحديد حالة تحضير لطالب في تاريخ معيّن (يعدّل النقاط دون تكرار)
+  // status: 'early' | 'present' | 'absent' | 'none' (لإلغاء التحديد)
+  function setAttendance(date, studentId, status, supervisor) {
+    var st = getStudent(studentId);
+    if (!st) return;
+    if (!state.attendance[date]) state.attendance[date] = {};
+    var prev = state.attendance[date][studentId] || null;
+    if (prev === status) return; // لا تغيير
+
+    var oldPts = prev ? pointsForStatus(prev) : 0;
+    var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
+    var delta = newPts - oldPts;
+
+    if (delta !== 0) {
+      st.points = Math.max(0, (st.points || 0) + delta);
+    }
+
+    if (status === 'none' || !status) {
+      delete state.attendance[date][studentId];
+    } else {
+      state.attendance[date][studentId] = status;
+    }
+
+    // تسجيل تغيير التحضير في السجل (للمراجعة) إن تغيّرت النقاط
+    if (delta !== 0) {
+      var grp = getGroup(st.groupId);
+      state.log.unshift({
+        id: uid(),
+        studentId: st.id,
+        studentName: st.name,
+        groupId: st.groupId,
+        groupName: grp ? grp.name : '',
+        amount: Math.abs(delta),
+        requested: Math.abs(delta),
+        type: delta >= 0 ? 'add' : 'subtract',
+        reason: 'تحضير (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء'),
+        supervisor: (supervisor || state.supervisor || '').trim(),
+        timestamp: Date.now(),
+        kind: 'attendance'
+      });
+    }
+    commit();
+  }
+
+  // ملخّص يوم: أعداد كل حالة + إجمالي نقاط ذلك اليوم
+  function getAttendanceSummary(date) {
+    var day = state.attendance[date] || {};
+    var sum = { early: 0, present: 0, absent: 0, unmarked: 0, points: 0 };
+    state.students.forEach(function (s) {
+      var status = day[s.id] || null;
+      if (status === 'early') { sum.early++; sum.points += pointsForStatus('early'); }
+      else if (status === 'present') { sum.present++; sum.points += pointsForStatus('present'); }
+      else if (status === 'absent') { sum.absent++; sum.points += pointsForStatus('absent'); }
+      else sum.unmarked++;
+    });
+    return sum;
   }
 
   function resetAll() {
@@ -325,15 +428,7 @@
   function exportData() { return JSON.stringify(state, null, 2); }
 
   function importData(json) {
-    var parsed = JSON.parse(json);
-    state = (function () {
-      var s = defaultState();
-      if (parsed.groups && parsed.groups.length) s.groups = parsed.groups;
-      if (Array.isArray(parsed.students)) s.students = parsed.students;
-      if (Array.isArray(parsed.log)) s.log = parsed.log;
-      if (typeof parsed.supervisor === 'string') s.supervisor = parsed.supervisor;
-      return s;
-    })();
+    state = normalize(JSON.parse(json));
     commit();
   }
 
@@ -363,6 +458,12 @@
     applyPoints: applyPoints,
     getLastActiveEntry: getLastActiveEntry,
     undoEntry: undoEntry,
+    getAttendancePoints: getAttendancePoints,
+    setAttendancePoints: setAttendancePoints,
+    getAttendance: getAttendance,
+    getStudentAttendance: getStudentAttendance,
+    setAttendance: setAttendance,
+    getAttendanceSummary: getAttendanceSummary,
     clearLog: clearLog,
     resetPoints: resetPoints,
     resetAll: resetAll,

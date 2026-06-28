@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>التحضير — عداد الصيف</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> التحضير اليومي</div>
+    <div class="spacer"></div>
+    <div class="supervisor-box">
+      <label>المشرف:</label>
+      <input id="supervisorInput" placeholder="اسم المشرف" />
+    </div>
+    <a class="btn ghost sm" href="home.html">🏠 الرئيسية</a>
+    <a class="btn ghost sm" href="index.html">📋 البرنامج</a>
+  </div>
+
+  <div class="container">
+    <h2 class="page-title">التحضير اليومي</h2>
+    <p class="page-sub">اختر اليوم، ثم حدّد حالة كل طالب — تُمنح النقاط تلقائيًا.</p>
+
+    <div class="card">
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="flex:0; min-width:180px">
+          <label>التاريخ</label>
+          <input type="date" id="attDate" />
+        </div>
+        <div class="field" style="flex:0; min-width:200px">
+          <label>المجموعة</label>
+          <select id="attGroup"><option value="all">جميع المجموعات</option></select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>بحث</label>
+          <input id="attSearch" placeholder="🔎 بحث بالاسم..." />
+        </div>
+      </div>
+
+      <div class="att-legend" id="attLegend"></div>
+
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button class="btn ghost sm" id="attAllEarly">⏰ الكل مبكر</button>
+        <button class="btn ghost sm" id="attAllPresent">✅ الكل حاضر</button>
+        <button class="btn ghost sm" id="attAllAbsent">❌ الكل غائب</button>
+        <button class="btn ghost sm" id="attClearDay">↩️ مسح تحضير اليوم</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="att-list" id="attList"></div>
+      <div class="empty" id="attEmpty" style="display:none">لا يوجد طلاب مطابقون.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/attendance.js"></script>
+</body>
+</html>

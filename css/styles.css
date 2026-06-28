@@ -712,3 +712,80 @@ body.display.individual { overflow: auto; }
 }
 .fs-btn:hover { opacity: 1; transform: scale(1.05); }
 .fs-btn:active { transform: scale(.96); }
+
+/* ============================================================
+   الصفحة الرئيسية للمنصة (home.html)
+   ============================================================ */
+body.home {
+  background: linear-gradient(135deg, #f6d976 0%, #b9dd8a 48%, #6fc8ef 100%);
+  font-family: "Baloo Bhaijaan 2", "Tajawal", "Tahoma", system-ui, sans-serif;
+  color: #0b2a4a; min-height: 100vh;
+}
+.home-wrap { max-width: 1000px; margin: 0 auto; padding: clamp(28px, 6vh, 70px) 20px; }
+.home-head { text-align: center; margin-bottom: clamp(24px, 5vh, 48px); }
+.home-head h1 { margin: 0; font-size: clamp(28px, 5vw, 48px); font-weight: 800; color: #e06d1f; text-shadow: 0 2px 0 rgba(255,255,255,.5); }
+.home-head p { margin: 8px 0 0; font-size: clamp(15px, 2vw, 20px); color: #1d4663; font-weight: 600; }
+.home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(14px, 2.4vw, 26px); }
+@media (max-width: 600px) { .home-grid { grid-template-columns: 1fr; } }
+.home-card {
+  display: block; text-decoration: none; color: #0b2a4a;
+  background: rgba(255,255,255,.45); border: 1px solid rgba(255,255,255,.7);
+  border-radius: 22px; padding: clamp(20px, 3vw, 32px);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 12px 30px rgba(13,42,74,.16);
+  transition: transform .25s ease, box-shadow .25s ease;
+  position: relative; overflow: hidden;
+}
+.home-card::before { content: ""; position: absolute; inset-block-start: 0; inset-inline: 0; height: 6px; background: var(--hc, #6366f1); }
+.home-card:hover { transform: translateY(-5px); box-shadow: 0 20px 44px rgba(13,42,74,.26); }
+.home-card .hc-icon { font-size: clamp(36px, 5vw, 54px); line-height: 1; }
+.home-card .hc-title { font-size: clamp(20px, 2.6vw, 28px); font-weight: 800; margin-top: 10px; }
+.home-card .hc-sub { color: #2a4a68; font-size: clamp(13px, 1.5vw, 16px); margin-top: 6px; font-weight: 600; }
+.home-card.c-prog { --hc: #2563eb; }
+.home-card.c-att  { --hc: #16a34a; }
+.home-card.c-grp  { --hc: #ca8a04; }
+.home-card.c-ind  { --hc: #dc2626; }
+.home-foot { text-align: center; color: #1d4663; font-weight: 600; margin-top: clamp(24px, 5vh, 44px); }
+
+/* ============================================================
+   صفحة التحضير (attendance.html)
+   ============================================================ */
+.att-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.att-stat { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--bg-soft); border: 1px solid var(--line); }
+.att-stat b { font-size: 15px; }
+.att-stat.st-early   { color: #fbbf24; }
+.att-stat.st-present { color: var(--green); }
+.att-stat.st-absent  { color: var(--red); }
+.att-stat.st-none    { color: var(--muted); }
+.att-stat.st-total   { color: #fff; background: var(--primary); border-color: var(--primary); }
+
+.att-list { display: flex; flex-direction: column; gap: 8px; }
+.att-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card-2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 8px 12px;
+}
+.att-who { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.att-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; flex: 0 0 auto; }
+.att-info { display: flex; flex-direction: column; min-width: 0; }
+.att-info .an { font-weight: 700; }
+.att-info .ag { font-size: 12px; font-weight: 600; }
+.att-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.att-btn {
+  border: 1px solid var(--line); background: var(--bg-soft); color: var(--muted);
+  border-radius: 9px; padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit;
+  white-space: nowrap;
+}
+.att-btn:hover { color: var(--text); border-color: var(--primary); }
+.att-btn.active.st-early   { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+.att-btn.active.st-present { background: var(--green); color: #fff; border-color: var(--green); }
+.att-btn.active.st-absent  { background: var(--red); color: #fff; border-color: var(--red); }
+.att-pts { flex: 0 0 auto; min-width: 44px; text-align: center; font-weight: 800; background: rgba(99,102,241,.18); color: #c7d2fe; border-radius: 999px; padding: 4px 10px; }
+
+@media (max-width: 640px) {
+  .att-row { flex-wrap: wrap; }
+  .att-who { flex: 1 1 100%; }
+  .att-actions { flex: 1 1 auto; }
+  .att-btn { flex: 1; text-align: center; }
+  .att-pts { flex: 0 0 auto; }
+}

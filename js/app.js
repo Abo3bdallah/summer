@@ -334,9 +334,14 @@
       var isAdd = e.type === 'add';
       var sign = isAdd ? '+' : '−';
       var color = isAdd ? 'var(--green)' : 'var(--red)';
-      var undoCell = e.undone
-        ? '<span class="badge" style="background:rgba(148,163,184,.18);color:var(--muted)">متراجَع عنها</span>'
-        : '<button class="icon-btn" data-undo="' + e.id + '">↩️ تراجع</button>';
+      var undoCell;
+      if (e.undone) {
+        undoCell = '<span class="badge" style="background:rgba(148,163,184,.18);color:var(--muted)">متراجَع عنها</span>';
+      } else if (e.kind === 'attendance') {
+        undoCell = '<span class="muted" style="font-size:12px">من التحضير</span>';
+      } else {
+        undoCell = '<button class="icon-btn" data-undo="' + e.id + '">↩️ تراجع</button>';
+      }
       return '<tr class="' + (e.undone ? 'undone' : '') + '">' +
         '<td class="nowrap muted">' + fmtDate(e.timestamp) + '</td>' +
         '<td>' + esc(e.studentName) + '</td>' +
@@ -404,6 +409,23 @@
       });
     });
   }
+
+  // نقاط التحضير
+  function renderAttendancePoints() {
+    if (document.activeElement && /^ap(Early|Present|Absent)$/.test(document.activeElement.id)) return;
+    var ap = Store.getAttendancePoints();
+    $('#apEarly').value = ap.early;
+    $('#apPresent').value = ap.present;
+    $('#apAbsent').value = ap.absent;
+  }
+  $('#apSave').addEventListener('click', function () {
+    Store.setAttendancePoints({
+      early: $('#apEarly').value,
+      present: $('#apPresent').value,
+      absent: $('#apAbsent').value
+    });
+    toast('تم حفظ نقاط التحضير', 'ok');
+  });
 
   $('#setExport').addEventListener('click', function () {
     downloadFile(Store.exportData(), 'نسخة-النقاط.json', 'application/json');
@@ -526,6 +548,7 @@
     renderReports();
     renderLog();
     renderSettings();
+    renderAttendancePoints();
     if (document.activeElement !== supInput) supInput.value = Store.getSupervisor();
   }
 
