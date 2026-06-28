@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "PowerShell($n = \\(Get-Command node -ErrorAction SilentlyContinue\\); if \\($n\\) { node --version; npm --version } else { \"node not found\" })",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget"
+    ]
+  }
+}

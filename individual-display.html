@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>عداد الصيف — النقاط الفردية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;600;700;800&family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="display individual">
+  <div class="bubbles" id="bubbles"></div>
+
+  <div class="display-wrap ind">
+    <div class="legend" id="legend"></div>
+    <div class="ind-grid" id="igrid"></div>
+    <div class="ind-empty" id="iempty" style="display:none">لا يوجد طلاب بعد.</div>
+    <div class="display-foot">يتحدّث تلقائيًا مع كل عملية نقاط ✨</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/individual-display.js"></script>
+</body>
+</html>

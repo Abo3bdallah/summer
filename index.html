@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام النقاط — لوحة المشرف</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> نظام نقاط الطلاب والمجموعات</div>
+    <div class="spacer"></div>
+    <div class="supervisor-box">
+      <label>المشرف:</label>
+      <input id="supervisorInput" placeholder="اسم المشرف" />
+    </div>
+    <a class="btn ghost sm" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
+    <a class="btn ghost sm" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="points">⚡ إضافة نقاط</button>
+    <button class="tab" data-view="students">👥 إدارة الطلاب</button>
+    <button class="tab" data-view="individual">📋 النقاط الفردية</button>
+    <button class="tab" data-view="groups">🏆 المجموعات</button>
+    <button class="tab" data-view="log">🧾 سجل العمليات</button>
+    <button class="tab" data-view="settings">⚙️ الإعدادات</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- ====================== إضافة نقاط ====================== -->
+    <section class="view active" id="view-points">
+      <h2 class="page-title">إضافة / خصم النقاط</h2>
+      <p class="page-sub">اختر الطالب، أدخل عدد النقاط ونوع العملية ثم احفظ.</p>
+
+      <div class="card">
+        <div class="row">
+          <div class="field" style="flex:2">
+            <label>الطالب</label>
+            <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
+          </div>
+        </div>
+
+        <div class="student-preview" id="ppPreview">
+          <div class="avatar" id="ppAvatar">؟</div>
+          <div class="info">
+            <div class="nm" id="ppName">—</div>
+            <div class="gp" id="ppGroup">—</div>
+          </div>
+          <div class="cur">
+            <div class="v" id="ppCurrent">0</div>
+            <div class="l">النقاط الحالية</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <div class="field">
+            <label>عدد النقاط</label>
+            <input id="ppAmount" type="number" min="1" step="1" placeholder="مثال: 10" />
+          </div>
+          <div class="field">
+            <label>نوع العملية</label>
+            <div class="seg" id="ppType">
+              <button type="button" class="add active" data-type="add">➕ إضافة</button>
+              <button type="button" class="sub" data-type="subtract">➖ خصم</button>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div class="field" style="flex:3">
+            <label>السبب (اختياري)</label>
+            <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn green" id="ppSave">💾 حفظ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>أشرطة المجموعات (مباشر)</h3>
+        <div class="bars-grid" id="ppBars"></div>
+      </div>
+    </section>
+
+    <!-- ====================== إدارة الطلاب ====================== -->
+    <section class="view" id="view-students">
+      <h2 class="page-title">إدارة الطلاب</h2>
+      <p class="page-sub">إضافة، تعديل، وحذف الطلاب وتحديد مجموعاتهم.</p>
+
+      <div class="card">
+        <h3 id="stFormTitle">إضافة طالب جديد</h3>
+        <div class="row">
+          <div class="field" style="flex:2">
+            <label>الاسم</label>
+            <input id="stName" placeholder="اسم الطالب" />
+          </div>
+          <div class="field">
+            <label>المجموعة</label>
+            <select id="stGroup"></select>
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button class="btn" id="stSave">إضافة</button>
+              <button class="btn ghost" id="stCancel" style="display:none">إلغاء</button>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="stEditId" />
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <input class="grow" id="stSearch" placeholder="🔎 بحث بالاسم..." />
+          <span class="muted" id="stCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>الاسم</th><th>المجموعة</th><th>النقاط</th><th class="right">إجراءات</th></tr>
+            </thead>
+            <tbody id="stBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="stEmpty" style="display:none">لا يوجد طلاب بعد.</div>
+      </div>
+    </section>
+
+    <!-- ====================== النقاط الفردية ====================== -->
+    <section class="view" id="view-individual">
+      <h2 class="page-title">النقاط الفردية</h2>
+      <p class="page-sub">جميع الطلاب ونقاطهم مع الفلترة والترتيب.</p>
+
+      <div class="card">
+        <div class="chip-filters" id="indFilters"></div>
+        <div class="toolbar" style="margin-top:14px">
+          <input class="grow" id="indSearch" placeholder="🔎 بحث بالاسم..." />
+          <div class="field" style="flex:0; min-width:200px">
+            <select id="indSort">
+              <option value="high">الأعلى نقاطًا</option>
+              <option value="low">الأقل نقاطًا</option>
+              <option value="alpha">الترتيب الأبجدي</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>الاسم</th><th>المجموعة</th><th>النقاط</th></tr>
+            </thead>
+            <tbody id="indBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="indEmpty" style="display:none">لا يوجد طلاب مطابقون.</div>
+      </div>
+    </section>
+
+    <!-- ====================== المجموعات ====================== -->
+    <section class="view" id="view-groups">
+      <h2 class="page-title">ترتيب المجموعات</h2>
+      <p class="page-sub">المجموع محسوب تلقائيًا من نقاط الطلاب.</p>
+      <div class="card">
+        <div class="bars-grid" id="grBars"></div>
+      </div>
+    </section>
+
+    <!-- ====================== سجل العمليات ====================== -->
+    <section class="view" id="view-log">
+      <h2 class="page-title">سجل العمليات</h2>
+      <p class="page-sub">كل عملية إضافة أو خصم محفوظة هنا.</p>
+      <div class="card">
+        <div class="toolbar">
+          <span class="muted grow" id="logCount"></span>
+          <button class="btn ghost sm" id="logExport">⬇️ تصدير CSV</button>
+          <button class="btn red sm" id="logClear">🗑️ مسح السجل</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>التاريخ والوقت</th><th>الطالب</th><th>المجموعة</th><th>النوع</th><th>النقاط</th><th>السبب</th><th>المشرف</th></tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="logEmpty" style="display:none">السجل فارغ.</div>
+      </div>
+    </section>
+
+    <!-- ====================== الإعدادات ====================== -->
+    <section class="view" id="view-settings">
+      <h2 class="page-title">الإعدادات</h2>
+      <p class="page-sub">أهداف المجموعات والنسخ الاحتياطي.</p>
+
+      <div class="card">
+        <h3>أهداف المجموعات</h3>
+        <div id="setGoals"></div>
+      </div>
+
+      <div class="card">
+        <h3>النسخ الاحتياطي</h3>
+        <div class="row">
+          <button class="btn ghost" id="setExport">⬇️ تصدير نسخة (JSON)</button>
+          <button class="btn ghost" id="setImportBtn">⬆️ استيراد نسخة</button>
+          <input type="file" id="setImportFile" accept="application/json" style="display:none" />
+        </div>
+        <p class="muted" style="margin-top:14px">منطقة الخطر:</p>
+        <button class="btn red" id="setReset">حذف كل البيانات وإعادة التهيئة</button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
