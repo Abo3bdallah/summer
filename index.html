@@ -37,18 +37,17 @@
       <h2 class="page-title">إضافة / خصم النقاط</h2>
       <p class="page-sub">اختر الطالب، أدخل عدد النقاط ونوع العملية ثم احفظ.</p>
 
-      <div class="card">
-        <div class="row">
-          <div class="field" style="flex:2">
-            <label>الطالب</label>
-            <input id="ppSearch" placeholder="🔎 ابحث لتصفية القائمة..." />
-          </div>
-          <div class="field" style="flex:2">
-            <label>&nbsp;</label>
+      <div class="card points-form">
+        <!-- 1) اختيار الطالب -->
+        <div class="pp-step">
+          <label class="pp-label">1 · الطالب</label>
+          <div class="pp-select">
+            <input id="ppSearch" placeholder="🔎 ابحث بالاسم لتصفية القائمة..." />
             <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
           </div>
         </div>
 
+        <!-- بطاقة الطالب المختار -->
         <div class="student-preview" id="ppPreview">
           <div class="avatar" id="ppAvatar">؟</div>
           <div class="info">
@@ -61,45 +60,44 @@
           </div>
         </div>
 
-        <div class="row" style="margin-top:6px">
-          <div class="field">
-            <label>عدد النقاط</label>
-            <input id="ppAmount" type="number" min="1" step="1" placeholder="مثال: 10" />
-            <div class="chip-filters mini" id="ppQuick">
-              <button type="button" class="chip" data-amt="1">1</button>
-              <button type="button" class="chip" data-amt="3">3</button>
-              <button type="button" class="chip" data-amt="5">5</button>
-              <button type="button" class="chip" data-amt="10">10</button>
-              <button type="button" class="chip" data-amt="25">25</button>
-              <button type="button" class="chip" data-amt="50">50</button>
-            </div>
-          </div>
-          <div class="field">
-            <label>نوع العملية</label>
-            <div class="seg" id="ppType">
-              <button type="button" class="add active" data-type="add">➕ إضافة</button>
-              <button type="button" class="sub" data-type="subtract">➖ خصم</button>
-            </div>
+        <!-- 2) نوع العملية -->
+        <div class="pp-step">
+          <label class="pp-label">2 · نوع العملية</label>
+          <div class="seg big" id="ppType">
+            <button type="button" class="add active" data-type="add">➕ إضافة</button>
+            <button type="button" class="sub" data-type="subtract">➖ خصم</button>
           </div>
         </div>
-        <div class="row" style="margin-top:12px">
-          <div class="field" style="flex:3">
-            <label>السبب (اختياري)</label>
-            <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
-            <div class="chip-filters mini" id="ppReasons">
-              <button type="button" class="chip" data-reason="المشاركة">المشاركة</button>
-              <button type="button" class="chip" data-reason="الحضور المبكر">الحضور المبكر</button>
-              <button type="button" class="chip" data-reason="حسن السلوك">حسن السلوك</button>
-              <button type="button" class="chip" data-reason="إنجاز الواجب">إنجاز الواجب</button>
-              <button type="button" class="chip" data-reason="التميّز">التميّز</button>
-            </div>
-          </div>
-          <div class="field" style="flex:0; min-width:auto">
-            <label>&nbsp;</label>
-            <button class="btn green" id="ppSave">💾 حفظ</button>
+
+        <!-- 3) عدد النقاط -->
+        <div class="pp-step">
+          <label class="pp-label">3 · عدد النقاط</label>
+          <input id="ppAmount" type="number" min="1" step="1" placeholder="اكتب العدد أو اختر بسرعة" />
+          <div class="chip-filters mini" id="ppQuick">
+            <button type="button" class="chip" data-amt="1">1</button>
+            <button type="button" class="chip" data-amt="3">3</button>
+            <button type="button" class="chip" data-amt="5">5</button>
+            <button type="button" class="chip" data-amt="10">10</button>
+            <button type="button" class="chip" data-amt="25">25</button>
+            <button type="button" class="chip" data-amt="50">50</button>
           </div>
         </div>
-        <div class="row" style="margin-top:10px">
+
+        <!-- 4) السبب -->
+        <div class="pp-step">
+          <label class="pp-label">4 · السبب <span class="muted">(اختياري)</span></label>
+          <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
+          <div class="chip-filters mini" id="ppReasons">
+            <button type="button" class="chip" data-reason="المشاركة">المشاركة</button>
+            <button type="button" class="chip" data-reason="الحضور المبكر">الحضور المبكر</button>
+            <button type="button" class="chip" data-reason="حسن السلوك">حسن السلوك</button>
+            <button type="button" class="chip" data-reason="إنجاز الواجب">إنجاز الواجب</button>
+            <button type="button" class="chip" data-reason="التميّز">التميّز</button>
+          </div>
+        </div>
+
+        <button class="btn green block" id="ppSave">💾 حفظ العملية</button>
+        <div class="pp-undo">
           <button class="btn ghost sm" id="ppUndoLast">↩️ تراجع عن آخر عملية</button>
           <span class="muted" id="ppLastInfo"></span>
         </div>

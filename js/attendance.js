@@ -114,26 +114,27 @@
     $('#attEmpty').style.display = students.length ? 'none' : 'block';
 
     var list = $('#attList');
-    list.innerHTML = students.map(function (s) {
+    list.innerHTML = students.map(function (s, i) {
       var g = Store.getGroup(s.groupId);
       var cls = groupClass(s.groupId);
       var cur = Store.getStudentAttendance(date, s.id);
       var btns = STATUSES.map(function (st) {
         var active = cur === st.key ? ' active ' + st.cls : '';
-        return '<button class="att-btn' + active + '" data-id="' + s.id + '" data-st="' + st.key + '">' + st.label + '</button>';
+        return '<button class="aseg' + active + '" data-id="' + s.id + '" data-st="' + st.key + '" title="' + st.label + '">' + st.label + '</button>';
       }).join('');
-      return '<div class="att-row">' +
+      return '<div class="att-row' + (cur ? ' done' : '') + '">' +
+        '<span class="att-idx">' + (i + 1) + '</span>' +
         '<div class="att-who">' +
           '<span class="att-avatar bg-' + cls + '">' + esc(initials(s.name)) + '</span>' +
           '<span class="att-info"><span class="an">' + esc(s.name) + '</span>' +
           '<span class="ag g-' + cls + '">' + esc(g ? g.name : '') + '</span></span>' +
         '</div>' +
-        '<div class="att-actions">' + btns + '</div>' +
+        '<div class="att-seg">' + btns + '</div>' +
         '<span class="att-pts">' + s.points + '</span>' +
       '</div>';
     }).join('');
 
-    $$('.att-btn', list).forEach(function (b) {
+    $$('.aseg', list).forEach(function (b) {
       b.addEventListener('click', function () {
         var id = b.dataset.id, st = b.dataset.st;
         // الضغط على نفس الحالة يلغيها
