@@ -209,7 +209,7 @@
       '</div>' : '') +
 
       // قائمة الطلاب للتحضير
-      '<div class="space-y-3 pb-24">';
+      '<div class="space-y-3 pb-6">';
 
     if (students.length === 0) {
       html += '<div class="text-center text-slate-400 p-8 bg-slate-900/50 rounded-xl border border-slate-800 font-bold">لا يوجد طلاب مطابقون</div>';
