@@ -363,14 +363,36 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .toolbar .grow { flex: 1; min-width: 180px; }
 .chip-filters { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
-  padding: 7px 14px; border-radius: 999px; cursor: pointer;
-  background: var(--bg-soft); border: 1px solid var(--line);
-  font-size: 14px; font-weight: 600; color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+.chip.active {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+}
 .chip-filters.mini { margin-top: 8px; gap: 6px; }
-.chip-filters.mini .chip { padding: 5px 12px; font-size: 13px; }
-.chip-filters.mini .chip:hover { border-color: var(--primary); color: var(--text); }
+.chip-filters.mini .chip { padding: 6px 12px; font-size: 12.5px; border-radius: 10px; }
 
 /* ---------- بطاقات الإحصائيات ---------- */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
