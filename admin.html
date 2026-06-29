@@ -8,27 +8,27 @@
 </head>
 <body>
   <!-- طبقة تسجيل الدخول للمعلمين -->
-  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
-    <div style="background:#1e293b; border:1px solid #334155; padding:30px; border-radius:16px; max-width:400px; width:100%; shadow-2xl space-y-5 text-right; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #fef08a 0%, #bbf7d0 50%, #93c5fd 100%); z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
+    <div style="background:rgba(255, 255, 255, 0.65); backdrop-filter:blur(16px); border:1px solid rgba(255, 255, 255, 0.7); padding:30px; border-radius:24px; max-width:400px; width:100%; space-y-5 text-right; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);">
       <div style="text-align:center; margin-bottom:20px;">
         <span style="font-size:40px;">🔑</span>
-        <h2 style="font-size:20px; font-weight:800; color:#fff; margin-top:10px;">بوابة المعلمين</h2>
-        <p style="font-size:12px; color:#94a3b8; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
+        <h2 style="font-size:20px; font-weight:800; color:#1e293b; margin-top:10px;">بوابة المعلمين</h2>
+        <p style="font-size:12px; color:#475569; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
       </div>
       
       <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-        <label style="font-size:12px; font-weight:bold; color:#cbd5e1;">👤 اسم المعلم:</label>
-        <select id="loginTeacherSelect" style="width:100%; padding:12px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:14px;">
+        <label style="font-size:12px; font-weight:bold; color:#475569;">👤 اسم المعلم:</label>
+        <select id="loginTeacherSelect" style="width:100%; padding:12px; background:rgba(255, 255, 255, 0.85); border:1px solid rgba(0,0,0,0.1); border-radius:10px; color:#1e293b; font-weight:bold; outline:none; font-size:14px;">
           <!-- سيتم تعبئته بواسطة JS -->
         </select>
       </div>
       
       <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-        <label style="font-size:12px; font-weight:bold; color:#cbd5e1;">🔑 كلمة المرور:</label>
-        <input type="password" id="loginPasswordInput" style="width:100%; padding:12px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:14px;" placeholder="أدخل كلمة المرور..." />
+        <label style="font-size:12px; font-weight:bold; color:#475569;">🔑 كلمة المرور:</label>
+        <input type="password" id="loginPasswordInput" style="width:100%; padding:12px; background:rgba(255, 255, 255, 0.85); border:1px solid rgba(0,0,0,0.1); border-radius:10px; color:#1e293b; font-weight:bold; outline:none; font-size:14px;" placeholder="أدخل كلمة المرور..." />
       </div>
       
-      <button id="btnLoginSubmit" style="width:100%; padding:14px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; font-size:14px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.4);">دخول للمنصة</button>
+      <button id="btnLoginSubmit" style="width:100%; padding:14px; background:#4f46e5; color:white; border:none; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.25);">دخول للمنصة</button>
       
       <div id="loginErrorMsg" style="color:#ef4444; font-size:12px; font-weight:bold; text-align:center; display:none; margin-top:12px;">❌ كلمة المرور غير صحيحة!</div>
     </div>
@@ -38,9 +38,9 @@
     <div class="brand"><span class="dot"></span> نظام نقاط الطلاب والمجموعات</div>
     <div class="spacer"></div>
     <div class="supervisor-box" style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:13px; font-weight:bold; color:#94a3b8;">👤 المعلم:</span>
-      <span id="activeTeacherName" style="font-size:14px; font-weight:800; color:#f1f5f9;">—</span>
-      <button id="btnLogout" class="btn sm" style="background:#b91c1c; border:none; color:white; border-radius:6px; padding:4px 10px; font-weight:bold; font-size:11px; cursor:pointer;">🚪 خروج</button>
+      <span style="font-size:13px; font-weight:bold; color:#475569;">👤 المعلم:</span>
+      <span id="activeTeacherName" style="font-size:14px; font-weight:800; color:#1e293b;">—</span>
+      <button id="btnLogout" class="btn sm" style="background:#f43f5e; border:none; color:white; border-radius:6px; padding:4px 10px; font-weight:bold; font-size:11px; cursor:pointer;">🚪 خروج</button>
     </div>
     <a class="btn ghost sm" href="index.html">🏠 الرئيسية</a>
     <a class="btn ghost sm" href="attendance.html">✅ التحضير</a>
@@ -50,12 +50,12 @@
 
   <!-- واجهة رفض الوصول لغير المدراء -->
   <div id="accessDeniedOverlay" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; text-align:center; min-height:60vh; font-family:'Tajawal', sans-serif;">
-    <div style="background:#1e293b; border:1px solid #334155; padding:40px 20px; border-radius:16px; max-width:480px; width:100%; box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);" class="space-y-4">
+    <div style="background:rgba(255, 255, 255, 0.65); backdrop-filter:blur(16px); border:1px solid rgba(255, 255, 255, 0.7); padding:40px 20px; border-radius:24px; max-width:480px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.08);" class="space-y-4">
       <span style="font-size:48px;">⚠️</span>
-      <h2 style="font-weight:800; color:#fff; font-size:18px; margin-top:10px;">عذراً، الوصول غير مصرح!</h2>
-      <p style="font-size:13px; color:#94a3b8; line-height:1.6; margin-top:8px;">هذه الصفحة مخصصة لمدير المنصة والمتحكم بها (<b style="color:#818cf8;">المعلم أحمد الذبياني</b>) فقط، ولا يمكن لبقية المعلمين دخولها.</p>
+      <h2 style="font-weight:800; color:#1e293b; font-size:18px; margin-top:10px;">عذراً، الوصول غير مصرح!</h2>
+      <p style="font-size:13px; color:#475569; line-height:1.6; margin-top:8px;">هذه الصفحة مخصصة لمدير المنصة والمتحكم بها (<b style="color:#4f46e5;">المعلم أحمد الذبياني</b>) فقط، ولا يمكن لبقية المعلمين دخولها.</p>
       <div style="margin-top:20px;">
-        <a href="attendance.html" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:8px; font-weight:bold; font-size:13px; text-decoration:none; box-shadow:0 4px 12px rgba(79,70,229,0.4); transition:all hover:bg-indigo-700">👈 الانتقال لصفحة التحضير والمتابعة</a>
+        <a href="attendance.html" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; font-weight:bold; font-size:13px; text-decoration:none; box-shadow:0 4px 12px rgba(79,70,229,0.25); transition:all">👈 الانتقال لصفحة التحضير والمتابعة</a>
       </div>
     </div>
   </div>

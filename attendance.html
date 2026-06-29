@@ -11,54 +11,55 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #0f172a;
-      color: #e2e8f0;
+      background: linear-gradient(135deg, #fef08a 0%, #bbf7d0 50%, #93c5fd 100%);
+      background-attachment: fixed;
+      color: #1e293b;
     }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
     
-    .tab-active { color: #818cf8; border-top: 3px solid #818cf8; background-color: #1e1b4b; }
-    .tab-inactive { color: #94a3b8; border-top: 3px solid transparent; }
+    .tab-active { color: #4f46e5; border-top: 3px solid #4f46e5; background-color: rgba(255, 255, 255, 0.45); font-weight: 900; }
+    .tab-inactive { color: #64748b; border-top: 3px solid transparent; }
     
-    /* ألوان الأزرار النشطة للتحضير */
-    .btn-early-active { background-color: #1d4ed8 !important; border-color: #3b82f6 !important; color: white !important; }
-    .btn-present-active { background-color: #15803d !important; border-color: #22c55e !important; color: white !important; }
-    .btn-absent-active { background-color: #b91c1c !important; border-color: #ef4444 !important; color: white !important; }
+    /* ألوان الأزرار النشطة للتحضير (Glassmorphic Gradients) */
+    .btn-early-active { background: linear-gradient(to right, #3b82f6, #4f46e5) !important; border-color: #3b82f6 !important; color: white !important; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important; }
+    .btn-present-active { background: linear-gradient(to right, #10b981, #059669) !important; border-color: #10b981 !important; color: white !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important; }
+    .btn-absent-active { background: linear-gradient(to right, #f43f5e, #e11d48) !important; border-color: #f43f5e !important; color: white !important; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3) !important; }
     .btn-late-active { background-color: #b45309 !important; border-color: #f59e0b !important; color: white !important; }
   </style>
 </head>
-<body class="bg-slate-950 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col">
 
   <!-- طبقة تسجيل الدخول للمعلمين -->
-  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
-    <div style="background:#1e293b; border:1px solid #334155; padding:24px; border-radius:16px; max-width:360px; width:100%; shadow-2xl space-y-5 text-right; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #fef08a 0%, #bbf7d0 50%, #93c5fd 100%); z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
+    <div style="background:rgba(255, 255, 255, 0.65); backdrop-filter:blur(16px); border:1px solid rgba(255, 255, 255, 0.7); padding:24px; border-radius:24px; max-width:360px; width:100%; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); text-align:right;">
       <div style="text-align:center; margin-bottom:16px;">
         <span style="font-size:36px;">🔑</span>
-        <h2 style="font-size:18px; font-weight:800; color:#fff; margin-top:8px;">بوابة المعلمين</h2>
-        <p style="font-size:11px; color:#94a3b8; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
+        <h2 style="font-size:18px; font-weight:800; color:#1e293b; margin-top:8px;">بوابة المعلمين</h2>
+        <p style="font-size:11px; color:#475569; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
       </div>
       
       <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-        <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">👤 اسم المعلم:</label>
-        <select id="loginTeacherSelect" style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:13px;">
+        <label style="font-size:11px; font-weight:bold; color:#475569;">👤 اسم المعلم:</label>
+        <select id="loginTeacherSelect" style="width:100%; padding:10px; background:rgba(255, 255, 255, 0.85); border:1px solid rgba(0,0,0,0.1); border-radius:10px; color:#1e293b; font-weight:bold; outline:none; font-size:13px;">
           <!-- سيتم تعبئته بواسطة JS -->
         </select>
       </div>
       
       <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-        <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">🔑 كلمة المرور:</label>
-        <input type="password" id="loginPasswordInput" style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:13px;" placeholder="أدخل كلمة المرور..." />
+        <label style="font-size:11px; font-weight:bold; color:#475569;">🔑 كلمة المرور:</label>
+        <input type="password" id="loginPasswordInput" style="width:100%; padding:10px; background:rgba(255, 255, 255, 0.85); border:1px solid rgba(0,0,0,0.1); border-radius:10px; color:#1e293b; font-weight:bold; outline:none; font-size:13px;" placeholder="أدخل كلمة المرور..." />
       </div>
       
-      <button id="btnLoginSubmit" style="width:100%; padding:12px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.4);">دخول للمنصة</button>
+      <button id="btnLoginSubmit" style="width:100%; padding:12px; background:#4f46e5; color:white; border:none; border-radius:10px; font-weight:bold; font-size:13px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.25);">دخول للمنصة</button>
       
       <div id="loginErrorMsg" style="color:#ef4444; font-size:11px; font-weight:bold; text-align:center; display:none; margin-top:12px;">❌ كلمة المرور غير صحيحة!</div>
     </div>
   </div>
 
-  <div id="app" class="w-full min-h-screen bg-slate-900 flex flex-col pb-20 md:pb-6">
-    <header class="bg-slate-800 border-b border-slate-700 text-white p-4 shadow-md sticky top-0 z-40 flex justify-between items-center">
+  <div id="app" class="w-full min-h-screen bg-white/35 backdrop-blur-md flex flex-col pb-20 md:pb-6 border-x border-white/40 shadow-xl">
+    <header class="bg-white/60 backdrop-blur-lg border-b border-white/80 text-slate-800 p-4 shadow-sm sticky top-0 z-40 flex justify-between items-center">
       <div class="flex items-center gap-1.5">
         <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]"></span>
         <h1 class="text-sm md:text-lg font-black">
@@ -67,15 +68,15 @@
         </h1>
       </div>
       <div class="flex gap-1.5 items-center">
-        <button onclick="toggleFilters()" class="text-[10px] md:text-xs font-bold bg-slate-700 hover:bg-slate-600 active:scale-95 px-2 py-1.5 rounded-lg border border-slate-600 transition-all flex items-center gap-0.5 shadow-sm shrink-0">
+        <button onclick="toggleFilters()" class="text-[10px] md:text-xs font-bold bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-sm active:scale-95 px-2 py-1.5 rounded-lg transition-all flex items-center gap-0.5 shrink-0">
           <span class="inline md:hidden">⚙️</span>
           <span class="hidden md:inline">⚙️ خيارات</span>
         </button>
-        <a id="nav-admin-link" class="text-[10px] md:text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2 py-1.5 rounded-lg border border-slate-600 transition-colors shrink-0 hidden" href="admin.html">
+        <a id="nav-admin-link" class="text-[10px] md:text-xs font-bold bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-sm px-2 py-1.5 rounded-lg transition-colors shrink-0 hidden" href="admin.html">
           <span class="inline md:hidden">📋</span>
           <span class="hidden md:inline">📋 الإدارة</span>
         </a>
-        <a class="text-[10px] md:text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2 py-1.5 rounded-lg border border-slate-600 transition-colors shrink-0" href="index.html">
+        <a class="text-[10px] md:text-xs font-bold bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-sm px-2 py-1.5 rounded-lg transition-colors shrink-0" href="index.html">
           <span class="inline md:hidden">🏠</span>
           <span class="hidden md:inline">🏠 الرئيسية</span>
         </a>
@@ -83,7 +84,7 @@
     </header>
 
     <!-- شريط التنقل السفلي للهواتف / علوي للأجهزة الكبيرة -->
-    <nav class="bg-slate-800 border-b md:border-t-0 md:border-b border-slate-700 fixed bottom-0 left-0 w-full flex justify-around shadow-2xl z-50 md:relative md:bottom-auto md:left-auto md:shadow-none">
+    <nav class="bg-white/50 backdrop-blur-md border-b md:border-t-0 md:border-b border-white/70 fixed bottom-0 left-0 w-full flex justify-around shadow-lg z-50 md:relative md:bottom-auto md:left-auto md:shadow-none">
       <button onclick="switchTab('attendance')" id="tab-attendance" class="tab-active flex-1 py-3 flex flex-col items-center transition-all">
         <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
         <span class="text-[10px] font-bold">التحضير</span>
@@ -105,44 +106,44 @@
 
     <!-- واجهة رفض الوصول لغير المخولين بالتحضير -->
     <div id="accessDeniedOverlay" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; text-align:center; min-height:60vh; font-family:'Tajawal', sans-serif;">
-      <div style="background:#1e293b; border:1px solid #334155; padding:30px 20px; border-radius:16px; max-width:320px; width:100%; box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);" class="space-y-4">
+      <div style="background:rgba(255, 255, 255, 0.65); backdrop-filter:blur(16px); border:1px solid rgba(255, 255, 255, 0.7); padding:30px 20px; border-radius:24px; max-width:320px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.08);" class="space-y-4">
         <span style="font-size:40px;">⚠️</span>
-        <h2 style="font-weight:800; color:#fff; font-size:16px; margin-top:8px;">عذراً، لا توجد صلاحيات!</h2>
-        <p style="font-size:12px; color:#94a3b8; line-height:1.6; margin-top:8px;">ليس لديك صلاحية الوصول لشاشة التحضير والمتابعة حالياً. يرجى مراجعة المعلم <b style="color:#818cf8;">أحمد الذبياني</b> لتفعيل حسابك.</p>
+        <h2 style="font-weight:800; color:#1e293b; font-size:16px; margin-top:8px;">عذراً، لا توجد صلاحيات!</h2>
+        <p style="font-size:12px; color:#475569; line-height:1.6; margin-top:8px;">ليس لديك صلاحية الوصول لشاشة التحضير والمتابعة حالياً. يرجى مراجعة المعلم <b style="color:#4f46e5;">أحمد الذبياني</b> لتفعيل حسابك.</p>
         <div style="margin-top:16px;">
-          <button onclick="Store.logout(); location.reload();" style="width:100%; padding:10px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer;">🚪 خروج وتسجيل دخول آخر</button>
+          <button onclick="Store.logout(); location.reload();" style="width:100%; padding:10px; background:#f43f5e; color:white; border:none; border-radius:10px; font-weight:bold; font-size:12px; cursor:pointer; shadow-sm active:scale-95 transition-all">🚪 خروج وتسجيل دخول آخر</button>
         </div>
       </div>
     </div>
 
     <!-- الكرت الدائم للفلاتر (يمنع الفقدان المتكرر للتركيز وحلقات الأحداث اللانهائية) -->
-    <div id="filters-card" class="p-4 bg-slate-800 border-b border-slate-700 hidden shadow-lg text-right">
+    <div id="filters-card" class="p-4 bg-white/45 backdrop-blur-md border-b border-white/60 hidden shadow-lg text-right">
       <div class="max-w-7xl mx-auto w-full space-y-3.5">
       <!-- المعلم الحالي وزر تسجيل الخروج -->
       <div class="flex flex-col gap-1">
-        <label class="block text-xs font-bold text-slate-400">👤 المعلم الحالي:</label>
+        <label class="block text-xs font-bold text-slate-500">👤 المعلم الحالي:</label>
         <div class="flex gap-2">
-          <input type="text" id="supervisorInput" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 font-bold outline-none" disabled />
-          <button id="btnLogout" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs px-3.5 rounded-lg transition-all shadow-md shrink-0">تسجيل الخروج</button>
+          <input type="text" id="supervisorInput" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none" disabled />
+          <button id="btnLogout" class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold text-xs px-3.5 rounded-lg active:scale-95 transition-all shadow-md shrink-0">تسجيل الخروج</button>
         </div>
       </div>
 
       <!-- التاريخ والمجموعة جنباً إلى جنب -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1">📅 التاريخ:</label>
-          <input type="date" id="attDate" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 font-bold outline-none focus:border-indigo-500" />
+          <label class="block text-xs font-bold text-slate-500 mb-1">📅 التاريخ:</label>
+          <input type="date" id="attDate" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1">🏆 تصفية المجموعات:</label>
-          <select id="attGroup" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 font-bold outline-none focus:border-indigo-500 appearance-none"></select>
+          <label class="block text-xs font-bold text-slate-500 mb-1">🏆 تصفية المجموعات:</label>
+          <select id="attGroup" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none"></select>
         </div>
       </div>
 
       <!-- البحث السريع كامل العرض -->
       <div class="flex flex-col gap-1">
-        <label class="block text-xs font-bold text-slate-400">🔎 ابحث باسم الطالب:</label>
-        <input type="text" id="attSearch" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 font-bold outline-none focus:border-indigo-500" placeholder="اكتب اسم الطالب هنا للبحث السريع..." />
+        <label class="block text-xs font-bold text-slate-500">🔎 ابحث باسم الطالب:</label>
+        <input type="text" id="attSearch" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" placeholder="اكتب اسم الطالب هنا للبحث السريع..." />
       </div>
       </div>
     </div>

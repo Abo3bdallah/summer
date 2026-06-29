@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    attendance.js — منطق التحضير الميداني المطور (تجنب حلقات التكرار وفقد التركيز)
    ============================================================ */
 (function () {
@@ -185,7 +185,7 @@
     var html = '<div class="space-y-4">' +
       // لافتة قفل التحضير
       (isClosed ? 
-        '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-red-300 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
+        '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-rose-700 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
         '<button onclick="manuallyReopenAttendance()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔓 إعادة فتح التحضير</button></div>'
         :
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-green-950/40 text-green-300 border-green-900/60 flex flex-col gap-2 justify-center items-center"><div>🔓 التحضير مفتوح حالياً لتسجيل حضور الطلاب.</div>' +
@@ -196,23 +196,23 @@
       '<div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">' +
         '<div class="bg-blue-900/40 border border-blue-800 p-2 rounded-xl text-blue-300">⏰ مبكر (' + ap.early + 'ن): <b class="block text-base mt-1">' + sum.early + '</b></div>' +
         '<div class="bg-green-900/40 border border-green-800 p-2 rounded-xl text-green-300">✅ حاضر (' + ap.present + 'ن): <b class="block text-base mt-1">' + sum.present + '</b></div>' +
-        '<div class="bg-red-900/40 border border-red-800 p-2 rounded-xl text-red-300">❌ غائب (' + ap.absent + 'ن): <b class="block text-base mt-1">' + sum.absent + '</b></div>' +
+        '<div class="bg-red-900/40 border border-red-800 p-2 rounded-xl text-rose-700">❌ غائب (' + ap.absent + 'ن): <b class="block text-base mt-1">' + sum.absent + '</b></div>' +
       '</div>' +
 
       // أزرار العمليات الجماعية (تظهر فقط إذا كان التحضير مفتوحاً)
       (!isClosed ? 
       '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
-        '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95">⏰ الكل مبكر</button>' +
-        '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95">✅ الكل حاضر</button>' +
-        '<button onclick="applyAllStatus(\'absent\')" class="flex-1 min-w-[70px] bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95">❌ الكل غائب</button>' +
-        '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-slate-800/60 border border-slate-800 hover:bg-slate-800 text-red-400 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95">↩️ تصفير اليوم</button>' +
+        '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-white/70 border border-white/80 hover:bg-white text-slate-700 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>' +
+        '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-white/70 border border-white/80 hover:bg-white text-slate-700 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>' +
+        '<button onclick="applyAllStatus(\'absent\')" class="flex-1 min-w-[70px] bg-white/70 border border-white/80 hover:bg-white text-slate-700 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">❌ الكل غائب</button>' +
+        '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50/50 border border-red-100 hover:bg-red-100/60 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>' +
       '</div>' : '') +
 
       // قائمة الطلاب للتحضير
       '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-6">';
 
     if (students.length === 0) {
-      html += '<div class="text-center text-slate-400 p-8 bg-slate-900/50 rounded-xl border border-slate-800 font-bold">لا يوجد طلاب مطابقون</div>';
+      html += '<div class="text-center text-slate-500 p-8 bg-white/50 rounded-2xl border border-white/80 font-bold">لا يوجد طلاب مطابقون</div>';
     } else {
       students.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
@@ -226,21 +226,21 @@
         }
 
         var btns = STATUSES.map(function (st) {
-          var activeClass = cur === st.key ? ' ' + st.cls : ' bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800';
+          var activeClass = cur === st.key ? ' ' + st.cls : ' bg-white/50 text-slate-400 border-slate-200/60 hover:bg-white/80';
           var disabledAttr = isClosed ? ' disabled style="opacity: 0.5; cursor: not-allowed;" ' : '';
           return '<button onclick="toggleAttendanceStatus(\'' + s.id + '\', \'' + st.key + '\')" ' + disabledAttr + 
                  ' class="flex-1 text-xs font-black py-2 rounded-lg border transition-all active:scale-95' + activeClass + '">' + st.label.split(' ')[1] + '</button>';
         }).join('');
 
-        html += '<div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-3 transition-all hover:border-slate-600">' +
+        html += '<div class="bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-white/80 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md hover:border-white">' +
           '<div class="flex items-center justify-between">' +
             '<div class="flex items-center gap-2.5">' +
               '<span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] text-white shrink-0" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
               '<div class="text-right">' +
-                '<h3 class="font-bold text-sm text-slate-200">' + esc(s.name) + '</h3>' +
+                '<h3 class="font-bold text-sm text-slate-800">' + esc(s.name) + '</h3>' +
                 '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">' +
                   '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
-                  '<span class="text-[9px] font-bold text-slate-400 bg-slate-900/60 border border-slate-700 px-1.5 py-0.5 rounded">' + esc(auditTitle) + '</span>' +
+                  '<span class="text-[9px] font-bold text-slate-500 bg-white/80 border border-white/95 px-1.5 py-0.5 rounded">' + esc(auditTitle) + '</span>' +
                 '</div>' +
               '</div>' +
             '</div>' +
@@ -317,32 +317,32 @@
     });
 
     var html = '<div class="space-y-4">' +
-      '<div class="bg-red-950/40 border border-red-900/60 p-4 rounded-xl text-center shadow-md border-r-4 border-r-red-500 space-y-2">' +
-        '<h2 class="text-base font-black text-red-300">⚠️ كشف الطلاب الغائبين حالياً</h2>' +
-        '<p class="text-xs text-red-400 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد.</p>' +
-        (missing.length > 0 ? '<button onclick="copyAbsentNames()" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 text-indigo-400 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-md flex justify-center items-center gap-1.5 mt-2">📋 نسخ أسماء الغائبين</button>' : '') +
+      '<div class="bg-rose-50/70 backdrop-blur-md border border-rose-100 p-4 rounded-2xl text-center shadow-sm border-r-4 border-r-rose-500 space-y-2">' +
+        '<h2 class="text-base font-black text-rose-700">⚠️ كشف الطلاب الغائبين حالياً</h2>' +
+        '<p class="text-xs text-rose-600 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد.</p>' +
+        (missing.length > 0 ? '<button onclick="copyAbsentNames()" class="w-full bg-white hover:bg-slate-50 border border-rose-200/60 text-rose-700 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm flex justify-center items-center gap-1.5 mt-2">📋 نسخ أسماء الغائبين</button>' : '') +
       '</div>' +
       '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-6">';
 
     if (missing.length === 0) {
-      html += '<div class="text-center text-green-400 p-12 bg-green-950/20 border border-green-900/40 rounded-xl font-bold text-base">الجميع حاضرون! العدد مكتمل 🎉</div>';
+      html += '<div class="text-center text-emerald-600 p-12 bg-white/50 border border-white/80 rounded-2xl font-bold text-base">الجميع حاضرون! العدد مكتمل 🎉</div>';
     } else {
       missing.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
         var hexColor = groupColorHex(s.groupId);
 
-        html += '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm flex items-center justify-between transition-all hover:border-red-900">' +
+        html += '<div class="bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-white/80 shadow-sm flex items-center justify-between transition-all hover:shadow-md hover:border-rose-400">' +
           '<div class="flex items-center gap-3">' +
             '<span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
             '<div>' +
-              '<h3 class="font-bold text-sm text-slate-200">' + esc(s.name) + '</h3>' +
+              '<h3 class="font-bold text-sm text-slate-800">' + esc(s.name) + '</h3>' +
               '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
             '</div>' +
           '</div>' +
           '<div>' +
             (isClosed 
-              ? '<span class="text-xs font-bold text-slate-500 border border-slate-700 px-3 py-1.5 rounded-lg bg-slate-900/50">🔒 مغلق</span>'
-              : '<button onclick="markPresentFromTracking(\'' + s.id + '\')" class="bg-green-600 hover:bg-green-700 active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md">✅ حضر الطالب</button>'
+              ? '<span class="text-xs font-bold text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg bg-white/40">🔒 مغلق</span>'
+              : '<button onclick="markPresentFromTracking(\'' + s.id + '\')" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all active:scale-95 shadow-md">✅ حضر الطالب</button>'
             ) +
           '</div>' +
         '</div>';
@@ -411,11 +411,11 @@
      ==================================================== */
   function renderLogsHTML() {
     var html = '<div class="space-y-4">' +
-      '<div class="flex bg-slate-800 p-1 rounded-xl shadow-md border border-slate-700">' +
+      '<div class="flex bg-white/50 p-1 rounded-2xl shadow-sm border border-slate-200/60">' +
         '<button onclick="setLogsViewMode(\'days\')" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ' + 
-          (logsViewMode === 'days' ? 'bg-slate-900 text-indigo-400 shadow-sm border border-slate-700' : 'text-slate-400') + '">📅 سجل الأيام</button>' +
+          (logsViewMode === 'days' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500') + '">📅 سجل الأيام</button>' +
         '<button onclick="setLogsViewMode(\'statistics\')" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ' + 
-          (logsViewMode === 'statistics' ? 'bg-slate-900 text-indigo-400 shadow-sm border border-slate-700' : 'text-slate-400') + '">📊 ملخص الخصومات</button>' +
+          (logsViewMode === 'statistics' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500') + '">📊 ملخص الخصومات</button>' +
       '</div>';
 
     if (logsViewMode === 'statistics') {
@@ -444,28 +444,28 @@
         return b.absent - a.absent;
       });
 
-      html += '<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-md overflow-hidden pb-12">' +
+      html += '<div class="bg-white/70 backdrop-blur-md rounded-2xl border border-white/80 shadow-md overflow-hidden pb-12">' +
         '<table class="w-full text-right text-xs">' +
-          '<thead class="bg-slate-900 text-slate-300 font-bold border-b border-slate-700">' +
+          '<thead class="bg-slate-50/50 text-slate-700 font-bold border-b border-slate-200/60">' +
             '<tr>' +
               '<th class="py-3 px-4">الطالب / المجموعة</th>' +
-              '<th class="py-3 px-4 text-center text-red-400">إجمالي الغياب ❌</th>' +
+              '<th class="py-3 px-4 text-center text-rose-600">إجمالي الغياب ❌</th>' +
             '</tr>' +
           '</thead>' +
-          '<tbody class="divide-y divide-slate-800">';
+          '<tbody class="divide-y divide-slate-100">';
 
       statsArr.forEach(function (stat) {
         var cls = groupClass(stat.group);
         var grp = Store.getGroup(stat.group);
         var isViolator = stat.absent > 0;
         
-        html += '<tr class="' + (isViolator ? 'bg-red-950/10' : '') + '">' +
+        html += '<tr class="' + (isViolator ? 'bg-red-50/40' : '') + '">' +
           '<td class="py-3.5 px-4">' +
-            '<div class="font-bold text-slate-200">' + esc(stat.name) + '</div>' +
+            '<div class="font-bold text-slate-800">' + esc(stat.name) + '</div>' +
             '<div class="text-[10px] font-bold g-' + cls + '">' + esc(grp ? grp.name : '') + '</div>' +
           '</td>' +
           '<td class="py-3.5 px-4 text-center font-bold text-sm">' + 
-            (stat.absent > 0 ? '<span class="bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full">' + stat.absent + '</span>' : '<span class="text-slate-600">-</span>') + 
+            (stat.absent > 0 ? '<span class="bg-red-50 text-red-600 border border-red-100 px-2.5 py-0.5 rounded-full">' + stat.absent + '</span>' : '<span class="text-slate-400">-</span>') + 
           '</td>' +
         '</tr>';
       });
@@ -480,7 +480,7 @@
       html += '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-24 md:pb-6">';
 
       if (dates.length === 0) {
-        html += '<div class="text-center text-slate-500 py-12 bg-slate-900/50 rounded-xl border border-slate-800 font-bold">لا يوجد سجلات تحضير سابقة</div>';
+        html += '<div class="text-center text-slate-500 py-12 bg-white/50 rounded-2xl border border-white/80 font-bold">لا يوجد سجلات تحضير سابقة</div>';
       } else {
         dates.forEach(function (d) {
           var day = stateData.attendance[d];
@@ -497,11 +497,11 @@
             if (status === 'late') late++;
           });
 
-          html += '<div class="bg-slate-800 p-4 rounded-xl border ' + (isClosed ? 'border-slate-700' : 'border-green-800/80') + ' shadow-sm space-y-3 transition-all hover:border-slate-600">' +
+          html += '<div class="bg-white/70 backdrop-blur-md p-4 rounded-2xl border ' + (isClosed ? 'border-white/80' : 'border-emerald-300') + ' shadow-sm space-y-3 transition-all hover:shadow-md hover:border-indigo-400">' +
             '<div class="flex justify-between items-center">' +
               '<div>' +
-                '<h3 class="font-black text-slate-100 text-sm">📅 تحضير يوم: ' + fmtDateAr(d) + '</h3>' +
-                '<p class="text-[10px] text-slate-400 font-bold mt-1">' + 
+                '<h3 class="font-black text-slate-800 text-sm">📅 تحضير يوم: ' + fmtDateAr(d) + '</h3>' +
+                '<p class="text-[10px] text-slate-500 font-bold mt-1">' + 
                   (isClosed 
                     ? '🔒 مغلق وموثق بواسطة: ' + (day.closedBy || 'النظام') + ' في ' + fmtTime(day.closedAt)
                     : '🔓 مفتوح حالياً ويستقبل رصد المعلمين'
@@ -509,13 +509,13 @@
                 '</p>' +
               '</div>' +
               '<div>' +
-                '<button onclick="viewDayDetails(\'' + d + '\')" class="bg-slate-900 hover:bg-slate-950 border border-slate-700 active:scale-95 text-indigo-400 text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm">🔍 عرض وتعديل</button>' +
+                '<button onclick="viewDayDetails(\'' + d + '\')" class="bg-white hover:bg-slate-50 border border-slate-200/60 active:scale-95 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm">🔍 عرض وتعديل</button>' +
               '</div>' +
             '</div>' +
-            '<div class="flex justify-between text-[11px] font-bold text-slate-400 border-t border-slate-700/60 pt-2.5">' +
-              '<span>⏰ مبكر: <b class="text-blue-400">' + early + '</b></span>' +
-              '<span>✅ حاضر: <b class="text-green-400">' + present + '</b></span>' +
-              '<span>❌ غائب: <b class="text-red-400">' + absent + '</b></span>' +
+            '<div class="flex justify-between text-[11px] font-bold text-slate-500 border-t border-slate-700/60 pt-2.5">' +
+              '<span>⏰ مبكر: <b class="text-blue-600">' + early + '</b></span>' +
+              '<span>✅ حاضر: <b class="text-emerald-600">' + present + '</b></span>' +
+              '<span>❌ غائب: <b class="text-rose-600">' + absent + '</b></span>' +
             '</div>' +
           '</div>';
         });
@@ -546,24 +546,24 @@
     });
 
     var html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-24 md:pb-6">' +
-      '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
-        '<h2 class="text-sm font-black text-slate-200">➕ إضافة دفعة طلاب جديدة</h2>' +
+      '<div class="bg-white/70 backdrop-blur-md p-4 rounded-2xl border border-white/80 shadow-md space-y-3">' +
+        '<h2 class="text-sm font-black text-slate-800">➕ إضافة دفعة طلاب جديدة</h2>' +
         '<div class="space-y-3 text-right">' +
           '<div>' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1.5">اختر المجموعة للدفعة:</label>' +
-            '<select id="addStGroup" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 font-bold outline-none focus:border-indigo-500 appearance-none"></select>' +
+            '<label class="block text-xs font-bold text-slate-500 mb-1.5">اختر المجموعة للدفعة:</label>' +
+            '<select id="addStGroup" class="w-full p-3 bg-white/90 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none"></select>' +
           '</div>' +
           '<div>' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1.5">الأسماء (اسم بكل سطر أو فاصلة):</label>' +
-            '<textarea id="addStNames" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 font-bold outline-none focus:border-indigo-500" placeholder="أحمد محمد\nيوسف الحربي\nسلمان..."></textarea>' +
+            '<label class="block text-xs font-bold text-slate-500 mb-1.5">الأسماء (اسم بكل سطر أو فاصلة):</label>' +
+            '<textarea id="addStNames" rows="3" class="w-full p-3 bg-white/90 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" placeholder="أحمد محمد\nيوسف الحربي\nسلمان..."></textarea>' +
           '</div>' +
-          '<button onclick="saveBulkStudents()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-98 text-xs">حفظ وإضافة الأسماء</button>' +
+          '<button onclick="saveBulkStudents()" class="w-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition-transform active:scale-98 text-xs">حفظ وإضافة الأسماء</button>' +
         '</div>' +
       '</div>' +
 
-      '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
-        '<h2 class="text-sm font-black text-slate-200">👥 قائمة الطلاب الحالية (' + students.length + ')</h2>' +
-        '<div class="divide-y divide-slate-700 max-h-[300px] overflow-y-auto pr-1" id="studentsListGrid">';
+      '<div class="bg-white/70 backdrop-blur-md p-4 rounded-2xl border border-white/80 shadow-md space-y-3">' +
+        '<h2 class="text-sm font-black text-slate-800">👥 قائمة الطلاب الحالية (' + students.length + ')</h2>' +
+        '<div class="divide-y divide-slate-100 max-h-[300px] overflow-y-auto pr-1" id="studentsListGrid">';
 
     if (students.length === 0) {
       html += '<p class="text-center text-slate-500 py-6 text-xs font-bold">لا يوجد طلاب مضافين بعد</p>';
@@ -575,11 +575,11 @@
           '<div class="flex items-center gap-2.5">' +
             '<span class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] text-white" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
             '<div>' +
-              '<div class="font-bold text-xs text-slate-200">' + esc(s.name) + '</div>' +
+              '<div class="font-bold text-xs text-slate-800">' + esc(s.name) + '</div>' +
               '<span class="text-[9px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
             '</div>' +
           '</div>' +
-          '<button onclick="confirmDeleteStudent(\'' + s.id + '\', \'' + esc(s.name) + '\')" class="text-red-400 hover:bg-red-950/40 p-1.5 rounded-lg transition-colors text-xs font-bold">🗑️ حذف</button>' +
+          '<button onclick="confirmDeleteStudent(\'' + s.id + '\', \'' + esc(s.name) + '\')" class="text-rose-600 hover:bg-red-950/40 p-1.5 rounded-lg transition-colors text-xs font-bold">🗑️ حذف</button>' +
         '</div>';
       });
     }
@@ -738,10 +738,10 @@
       }
     } catch (err) {
       if (window.console) console.error("Render Error: ", err);
-      tabContent.innerHTML = '<div class="p-6 bg-red-950/40 border border-red-900/60 text-red-300 rounded-xl text-center font-bold text-xs space-y-2">' +
+      tabContent.innerHTML = '<div class="p-6 bg-red-950/40 border border-red-900/60 text-rose-700 rounded-xl text-center font-bold text-xs space-y-2">' +
         '<div>⚠️ حدث خطأ في معالجة واجهة التحضير:</div>' +
-        '<div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-left font-mono overflow-x-auto text-[11px] text-red-400">' + esc(err.stack || err.message) + '</div>' +
-        '<div class="text-[10px] text-slate-400">يرجى تصوير هذه الشاشة للمطور لحل المشكلة.</div>' +
+        '<div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-left font-mono overflow-x-auto text-[11px] text-rose-600">' + esc(err.stack || err.message) + '</div>' +
+        '<div class="text-[10px] text-slate-500">يرجى تصوير هذه الشاشة للمطور لحل المشكلة.</div>' +
         '</div>';
     }
   }

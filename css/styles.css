@@ -2,20 +2,20 @@
    styles.css — تنسيقات نظام النقاط (RTL عربي)
    ============================================================ */
 :root {
-  --bg: #0f172a;
-  --bg-soft: #1e293b;
-  --card: #1e293b;
-  --card-2: #273449;
-  --line: #334155;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --primary: #6366f1;
-  --primary-d: #4f46e5;
-  --green: #22c55e;
-  --red: #ef4444;
+  --bg: linear-gradient(135deg, #fef08a 0%, #bbf7d0 50%, #93c5fd 100%);
+  --bg-soft: rgba(255, 255, 255, 0.45);
+  --card: rgba(255, 255, 255, 0.65);
+  --card-2: rgba(255, 255, 255, 0.8);
+  --line: rgba(255, 255, 255, 0.6);
+  --text: #1e293b;
+  --muted: #475569;
+  --primary: #4f46e5;
+  --primary-d: #4338ca;
+  --green: #10b981;
+  --red: #f43f5e;
   --amber: #f59e0b;
-  --radius: 14px;
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius: 20px;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 
   /* ألوان المجموعات: البواسل أزرق • الكواسر أحمر • المعالي أخضر • الشموخ أصفر */
   --g-qimma: #2563eb;   /* البواسل - أزرق */
@@ -43,8 +43,11 @@ a { color: inherit; }
   align-items: center;
   gap: 16px;
   padding: 14px 22px;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
+  color: var(--text);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -93,9 +96,10 @@ a { color: inherit; }
 }
 .tab:hover { color: var(--text); }
 .tab.active {
-  color: #fff;
+  color: var(--primary);
   background: var(--card);
   border-color: var(--line);
+  font-weight: 800;
 }
 
 /* ---------- المحتوى ---------- */
@@ -168,7 +172,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .points-pill {
   display: inline-block; min-width: 42px; text-align: center;
   padding: 4px 10px; border-radius: 999px; font-weight: 800;
-  background: rgba(99,102,241,.18); color: #c7d2fe;
+  background: rgba(79,70,229,.12); color: #4f46e5;
 }
 
 .group-tag { font-weight: 700; }
@@ -176,10 +180,12 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .g-tumooh { color: var(--g-tumooh); }
 .g-sumood { color: var(--g-sumood); }
 .g-ruwwad { color: var(--g-ruwwad); }
+.g-nogroup { color: var(--g-nogroup); }
 .bg-qimma  { background: var(--g-qimma); }
 .bg-tumooh { background: var(--g-tumooh); }
 .bg-sumood { background: var(--g-sumood); }
 .bg-ruwwad { background: var(--g-ruwwad); }
+.bg-nogroup { background: var(--g-nogroup); }
 
 .actions { display: flex; gap: 6px; }
 .icon-btn {
