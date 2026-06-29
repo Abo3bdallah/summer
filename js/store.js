@@ -106,34 +106,91 @@
 
   /* ---------------- مزامنة Firebase / Firestore (عبر الأجهزة) ---------------- */
   var db = global.db || null;
-  var docRef = db ? db.collection('app').doc('state') : null;
-  var applyingRemote = false; // لمنع إعادة الإرسال عند استقبال لقطة
+  var applyingRemote = false;
 
-  if (docRef) {
-    docRef.onSnapshot(function (snap) {
+  if (db) {
+    applyingRemote = true;
+
+    // 1. الإعدادات والمجموعات
+    db.collection('settings').doc('config').onSnapshot(function (snap) {
       if (snap.exists) {
         applyingRemote = true;
-        state = normalize(snap.data());
-        persist();          // نسخة محلية للعمل دون اتصال
-        emit(false);        // حدّث الشاشات دون إعادة إرسال
+        var data = snap.data();
+        if (data.groups) state.groups = data.groups;
+        if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
+        if (typeof data.supervisor === 'string') state.supervisor = data.supervisor;
+        persist();
+        emit(false);
         applyingRemote = false;
       } else {
-        // أول تشغيل: ارفع الحالة المحلية الحالية إلى السحابة
-        docRef.set(state).catch(function () {});
+        db.collection('settings').doc('config').set({
+          groups: state.groups,
+          attendancePoints: state.attendancePoints,
+          supervisor: state.supervisor
+        }).catch(function () {});
       }
     }, function (err) {
-      if (global.console) console.warn('تعذّر الاتصال بـ Firebase:', err && err.message);
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (الإعدادات):', err && err.message);
     });
-  }
 
-  function pushRemote() {
-    if (!docRef || applyingRemote) return;
-    docRef.set(state).catch(function () { /* غير متصل: محفوظ محليًا وسيُزامَن لاحقًا */ });
+    // 2. الطلاب
+    db.collection('students').onSnapshot(function (snap) {
+      applyingRemote = true;
+      var students = [];
+      snap.forEach(function (doc) {
+        var s = doc.data();
+        s.id = doc.id;
+        students.push(s);
+      });
+      state.students = students;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (الطلاب):', err && err.message);
+    });
+
+    // 3. سجل العمليات
+    db.collection('logs').orderBy('timestamp', 'desc').limit(150).onSnapshot(function (snap) {
+      applyingRemote = true;
+      var log = [];
+      snap.forEach(function (doc) {
+        var l = doc.data();
+        l.id = doc.id;
+        log.push(l);
+      });
+      state.log = log;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (السجل):', err && err.message);
+    });
+
+    // 4. التحضير اليومي
+    db.collection('attendance').onSnapshot(function (snap) {
+      applyingRemote = true;
+      var attendance = {};
+      snap.forEach(function (doc) {
+        var data = doc.data();
+        attendance[doc.id] = {
+          records: data.records || {},
+          status: data.status || 'active',
+          closedAt: data.closedAt || null,
+          closedBy: data.closedBy || null
+        };
+      });
+      state.attendance = attendance;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (التحضير):', err && err.message);
+    });
   }
 
   function commit() {
     persist();      // فوري محليًا
-    pushRemote();   // مزامنة سحابية لبقية الأجهزة
     emit(true);     // تحديث لحظي للشاشات على نفس الجهاز
   }
 
@@ -191,6 +248,9 @@
 
   function setSupervisor(name) {
     state.supervisor = (name || '').trim();
+    if (db) {
+      db.collection('settings').doc('config').set({ supervisor: state.supervisor }, { merge: true }).catch(function() {});
+    }
     commit();
   }
 
@@ -200,6 +260,9 @@
     goal = parseInt(goal, 10);
     if (isNaN(goal) || goal < 1) goal = 1;
     g.goal = goal;
+    if (db) {
+      db.collection('settings').doc('config').set({ groups: state.groups }, { merge: true }).catch(function() {});
+    }
     commit();
   }
 
@@ -209,6 +272,9 @@
     if (!getGroup(groupId)) throw new Error('المجموعة غير صحيحة');
     var student = { id: uid(), name: name, groupId: groupId, points: 0 };
     state.students.push(student);
+    if (db) {
+      db.collection('students').doc(student.id).set(student).catch(function() {});
+    }
     commit();
     return student;
   }
@@ -217,30 +283,59 @@
   function addStudents(names, groupId) {
     if (!getGroup(groupId)) throw new Error('المجموعة غير صحيحة');
     var added = 0;
+    var batch = db ? db.batch() : null;
+    var newStudents = [];
     (names || []).forEach(function (n) {
       n = (n || '').trim();
       if (!n) return;
-      state.students.push({ id: uid(), name: n, groupId: groupId, points: 0 });
+      var student = { id: uid(), name: n, groupId: groupId, points: 0 };
+      state.students.push(student);
+      newStudents.push(student);
       added++;
+      if (batch) {
+        batch.set(db.collection('students').doc(student.id), student);
+      }
     });
-    if (added) commit();
+    if (added) {
+      if (batch) {
+        batch.commit().catch(function() {});
+      }
+      commit();
+    }
     return added;
   }
 
   function updateStudent(id, fields) {
     var st = getStudent(id);
     if (!st) return;
+    var updatedFields = {};
     if (typeof fields.name === 'string') {
       var nm = fields.name.trim();
-      if (nm) st.name = nm;
+      if (nm) {
+        st.name = nm;
+        updatedFields.name = nm;
+      }
     }
-    if (fields.groupId && getGroup(fields.groupId)) st.groupId = fields.groupId;
-    if (typeof fields.points === 'number') st.points = Math.max(0, Math.round(fields.points));
+    if (fields.groupId && getGroup(fields.groupId)) {
+      st.groupId = fields.groupId;
+      updatedFields.groupId = fields.groupId;
+    }
+    if (typeof fields.points === 'number') {
+      var pts = Math.max(0, Math.round(fields.points));
+      st.points = pts;
+      updatedFields.points = pts;
+    }
+    if (db && Object.keys(updatedFields).length > 0) {
+      db.collection('students').doc(id).update(updatedFields).catch(function() {});
+    }
     commit();
   }
 
   function deleteStudent(id) {
     state.students = state.students.filter(function (s) { return s.id !== id; });
+    if (db) {
+      db.collection('students').doc(id).delete().catch(function() {});
+    }
     commit();
   }
 
@@ -279,6 +374,13 @@
       timestamp: Date.now()
     };
     state.log.unshift(entry); // الأحدث أولًا
+
+    if (db) {
+      var batch = db.batch();
+      batch.update(db.collection('students').doc(studentId), { points: after });
+      batch.set(db.collection('logs').doc(entry.id), entry);
+      batch.commit().catch(function() {});
+    }
     commit();
     return { student: st, entry: entry };
   }
@@ -300,23 +402,45 @@
     if (!entry || entry.undone) return false;
 
     var st = getStudent(entry.studentId);
+    var newPoints = st ? st.points : 0;
     if (st) {
       var before = st.points || 0;
       if (entry.type === 'add') {
-        st.points = Math.max(0, before - entry.amount);
+        newPoints = Math.max(0, before - entry.amount);
       } else { // كانت خصمًا، نُعيد النقاط
-        st.points = before + entry.amount;
+        newPoints = before + entry.amount;
       }
+      st.points = newPoints;
     }
     entry.undone = true;
     entry.undoneAt = Date.now();
     entry.undoneBy = (supervisor || state.supervisor || '').trim();
+
+    if (db) {
+      var batch = db.batch();
+      if (st) {
+        batch.update(db.collection('students').doc(entry.studentId), { points: newPoints });
+      }
+      batch.update(db.collection('logs').doc(id), {
+        undone: true,
+        undoneAt: entry.undoneAt,
+        undoneBy: entry.undoneBy
+      });
+      batch.commit().catch(function() {});
+    }
     commit();
     return true;
   }
 
   function clearLog() {
     state.log = [];
+    if (db) {
+      db.collection('logs').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+    }
     commit();
   }
 
@@ -325,6 +449,28 @@
     state.students.forEach(function (s) { s.points = 0; });
     state.attendance = {}; // تصفير التحضير مع الجولة الجديدة
     if (clearLogToo) state.log = [];
+
+    if (db) {
+      db.collection('students').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.update(doc.ref, { points: 0 }); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+
+      db.collection('attendance').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+
+      if (clearLogToo) {
+        db.collection('logs').get().then(function (snap) {
+          var batch = db.batch();
+          snap.forEach(function (doc) { batch.delete(doc.ref); });
+          batch.commit().catch(function() {});
+        }).catch(function() {});
+      }
+    }
     commit();
   }
 
@@ -345,6 +491,9 @@
         if (!isNaN(v)) state.attendancePoints[k] = v;
       }
     });
+    if (db) {
+      db.collection('settings').doc('config').set({ attendancePoints: state.attendancePoints }, { merge: true }).catch(function() {});
+    }
     commit();
   }
 
@@ -355,19 +504,86 @@
     return 0; // غير محدد
   }
 
-  function getAttendance(date) { return state.attendance[date] || {}; }
+  function getAttendance(date) {
+    var day = state.attendance[date];
+    return (day && day.records) || {};
+  }
+
   function getStudentAttendance(date, studentId) {
     var day = state.attendance[date];
-    return (day && day[studentId]) || null;
+    var rec = day && day.records && day.records[studentId];
+    if (rec && typeof rec === 'object') return rec.status;
+    return rec || null;
+  }
+
+  function getStudentAttendanceDetails(date, studentId) {
+    var day = state.attendance[date];
+    return (day && day.records && day.records[studentId]) || null;
+  }
+
+  function isAttendanceClosed(date) {
+    var day = state.attendance[date];
+    var dbStatus = day ? day.status : null;
+    if (dbStatus === 'closed') return true;
+    if (dbStatus === 'active') return false;
+
+    // الإغلاق التلقائي:
+    var today = todayStr();
+    if (date < today) return true; // الأيام السابقة تغلق تلقائياً
+    if (date === today) {
+      var hr = new Date().getHours();
+      if (hr >= 21) return true; // بعد الـ 9:00 مساءً يغلق تلقائياً
+    }
+    return false;
+  }
+
+  function closeAttendance(date, supervisor) {
+    if (!state.attendance[date]) {
+      state.attendance[date] = { records: {}, status: 'active' };
+    }
+    state.attendance[date].status = 'closed';
+    state.attendance[date].closedAt = Date.now();
+    state.attendance[date].closedBy = (supervisor || state.supervisor || '').trim();
+
+    if (db) {
+      db.collection('attendance').doc(date).set({
+        status: 'closed',
+        closedAt: state.attendance[date].closedAt,
+        closedBy: state.attendance[date].closedBy
+      }, { merge: true }).catch(function() {});
+    }
+    commit();
+  }
+
+  // إعادة فتح التحضير
+  function reopenAttendance(date) {
+    if (!state.attendance[date]) {
+      state.attendance[date] = { records: {}, status: 'active' };
+    }
+    state.attendance[date].status = 'active';
+    if (db) {
+      db.collection('attendance').doc(date).set({
+        status: 'active'
+      }, { merge: true }).catch(function() {});
+    }
+    commit();
   }
 
   // تحديد حالة تحضير لطالب في تاريخ معيّن (يعدّل النقاط دون تكرار)
   // status: 'early' | 'present' | 'absent' | 'none' (لإلغاء التحديد)
   function setAttendance(date, studentId, status, supervisor) {
+    if (isAttendanceClosed(date)) {
+      throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
+    }
     var st = getStudent(studentId);
     if (!st) return;
-    if (!state.attendance[date]) state.attendance[date] = {};
-    var prev = state.attendance[date][studentId] || null;
+    
+    if (!state.attendance[date]) {
+      state.attendance[date] = { records: {}, status: 'active' };
+    }
+    var records = state.attendance[date].records;
+    var prevRec = records[studentId] || null;
+    var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
     if (prev === status) return; // لا تغيير
 
     var oldPts = prev ? pointsForStatus(prev) : 0;
@@ -379,15 +595,20 @@
     }
 
     if (status === 'none' || !status) {
-      delete state.attendance[date][studentId];
+      delete records[studentId];
     } else {
-      state.attendance[date][studentId] = status;
+      records[studentId] = {
+        status: status,
+        by: (supervisor || state.supervisor || '').trim(),
+        at: Date.now()
+      };
     }
 
+    var logEntry = null;
     // تسجيل تغيير التحضير في السجل (للمراجعة) إن تغيّرت النقاط
     if (delta !== 0) {
       var grp = getGroup(st.groupId);
-      state.log.unshift({
+      logEntry = {
         id: uid(),
         studentId: st.id,
         studentName: st.name,
@@ -400,17 +621,35 @@
         supervisor: (supervisor || state.supervisor || '').trim(),
         timestamp: Date.now(),
         kind: 'attendance'
-      });
+      };
+      state.log.unshift(logEntry);
+    }
+
+    if (db) {
+      var batch = db.batch();
+      if (delta !== 0) {
+        batch.update(db.collection('students').doc(studentId), { points: st.points });
+      }
+      batch.set(db.collection('attendance').doc(date), { 
+        records: records,
+        status: state.attendance[date].status || 'active'
+      }, { merge: true });
+      if (logEntry) {
+        batch.set(db.collection('logs').doc(logEntry.id), logEntry);
+      }
+      batch.commit().catch(function() {});
     }
     commit();
   }
 
   // ملخّص يوم: أعداد كل حالة + إجمالي نقاط ذلك اليوم
   function getAttendanceSummary(date) {
-    var day = state.attendance[date] || {};
+    var day = state.attendance[date];
+    var records = (day && day.records) || {};
     var sum = { early: 0, present: 0, absent: 0, unmarked: 0, points: 0 };
     state.students.forEach(function (s) {
-      var status = day[s.id] || null;
+      var rec = records[s.id] || null;
+      var status = (rec && typeof rec === 'object') ? rec.status : rec;
       if (status === 'early') { sum.early++; sum.points += pointsForStatus('early'); }
       else if (status === 'present') { sum.present++; sum.points += pointsForStatus('present'); }
       else if (status === 'absent') { sum.absent++; sum.points += pointsForStatus('absent'); }
@@ -421,6 +660,24 @@
 
   function resetAll() {
     state = defaultState();
+    if (db) {
+      db.collection('settings').doc('config').delete().catch(function() {});
+      db.collection('students').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+      db.collection('logs').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+      db.collection('attendance').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function() {});
+      }).catch(function() {});
+    }
     commit();
   }
 
@@ -429,6 +686,30 @@
 
   function importData(json) {
     state = normalize(JSON.parse(json));
+    if (db) {
+      db.collection('settings').doc('config').set({
+        groups: state.groups,
+        attendancePoints: state.attendancePoints,
+        supervisor: state.supervisor
+      }).catch(function() {});
+
+      state.students.forEach(function(s) {
+        db.collection('students').doc(s.id).set(s).catch(function() {});
+      });
+
+      state.log.forEach(function(l) {
+        db.collection('logs').doc(l.id).set(l).catch(function() {});
+      });
+
+      Object.keys(state.attendance).forEach(function(date) {
+        var day = state.attendance[date];
+        var records = (day && day.records) ? day.records : day;
+        db.collection('attendance').doc(date).set({
+          records: records,
+          status: (day && day.status) || 'active'
+        }).catch(function() {});
+      });
+    }
     commit();
   }
 
@@ -462,6 +743,10 @@
     setAttendancePoints: setAttendancePoints,
     getAttendance: getAttendance,
     getStudentAttendance: getStudentAttendance,
+    getStudentAttendanceDetails: getStudentAttendanceDetails,
+    isAttendanceClosed: isAttendanceClosed,
+    closeAttendance: closeAttendance,
+    reopenAttendance: reopenAttendance,
     setAttendance: setAttendance,
     getAttendanceSummary: getAttendanceSummary,
     clearLog: clearLog,

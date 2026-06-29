@@ -69,6 +69,10 @@
   /* أزرار "الكل" */
   function applyAll(status) {
     var date = dateInput.value;
+    if (Store.isAttendanceClosed(date)) {
+      toast('التحضير مغلق لهذا اليوم ولا يمكن تعديله', 'err');
+      return;
+    }
     visibleStudents().forEach(function (s) {
       Store.setAttendance(date, s.id, status, Store.getSupervisor());
     });
@@ -78,8 +82,12 @@
   $('#attAllPresent').addEventListener('click', function () { applyAll('present'); });
   $('#attAllAbsent').addEventListener('click', function () { applyAll('absent'); });
   $('#attClearDay').addEventListener('click', function () {
-    if (!confirm('مسح تحضير اليوم للطلاب الظاهرين؟ ستُسحب النقاط الممنوحة لهم اليوم.')) return;
     var date = dateInput.value;
+    if (Store.isAttendanceClosed(date)) {
+      toast('التحضير مغلق لهذا اليوم ولا يمكن تعديله', 'err');
+      return;
+    }
+    if (!confirm('مسح تحضير اليوم للطلاب الظاهرين؟ ستُسحب النقاط الممنوحة لهم اليوم.')) return;
     visibleStudents().forEach(function (s) {
       Store.setAttendance(date, s.id, 'none', Store.getSupervisor());
     });
@@ -113,16 +121,64 @@
     var students = visibleStudents();
     $('#attEmpty').style.display = students.length ? 'none' : 'block';
 
+    // إدارة حالة قفل التحضير
+    var isClosed = Store.isAttendanceClosed(date);
+    var banner = $('#attLockBanner');
+    var actionsRow = $('#attActionsRow');
+    
+    if (isClosed) {
+      banner.style.display = 'block';
+      banner.style.backgroundColor = '#fef2f2';
+      banner.style.color = '#991b1b';
+      banner.style.border = '1px solid #fee2e2';
+      banner.innerHTML = '🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله. ' +
+        '<button class="btn sm ghost" id="btnReopen" style="margin-right:10px; color:#ef4444; border-color:#fee2e2; background:white; font-size:12px; padding:3px 8px; border-radius:6px; cursor:pointer;">🔓 إعادة فتح التحضير</button>';
+      
+      $('#btnReopen').addEventListener('click', function() {
+        Store.reopenAttendance(date);
+        toast('تم إعادة فتح التحضير', 'ok');
+      });
+      
+      actionsRow.style.display = 'none';
+    } else {
+      banner.style.display = 'block';
+      banner.style.backgroundColor = '#f0fdf4';
+      banner.style.color = '#166534';
+      banner.style.border = '1px solid #dcfce7';
+      banner.innerHTML = '🔓 التحضير مفتوح حالياً لتسجيل حضور الطلاب. ' +
+        '<button id="btnCloseDay" style="margin-right:10px; background:#22c55e; color:white; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:12px;">🔒 إغلاق واعتماد اليوم</button>';
+      
+      $('#btnCloseDay').addEventListener('click', function() {
+        if (confirm('هل أنت متأكد من إغلاق واعتماد تحضير اليوم؟ لن يتمكن المعلمون من تعديل الحضور بعد ذلك.')) {
+          Store.closeAttendance(date, Store.getSupervisor());
+          toast('تم إغلاق واعتماد التحضير اليومي', 'ok');
+        }
+      });
+      
+      actionsRow.style.display = 'flex';
+    }
+
     var list = $('#attList');
     list.innerHTML = students.map(function (s, i) {
       var g = Store.getGroup(s.groupId);
       var cls = groupClass(s.groupId);
       var cur = Store.getStudentAttendance(date, s.id);
+      var details = Store.getStudentAttendanceDetails(date, s.id);
+      
+      // تفاصيل المحضر والوقت إذا وجدت
+      var detailTitle = '';
+      if (details && details.by) {
+        var timeStr = new Date(details.at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        detailTitle = 'بواسطة: ' + details.by + ' في ' + timeStr;
+      }
+      
       var btns = STATUSES.map(function (st) {
         var active = cur === st.key ? ' active ' + st.cls : '';
-        return '<button class="aseg' + active + '" data-id="' + s.id + '" data-st="' + st.key + '" title="' + st.label + '">' + st.label + '</button>';
+        var disabledAttr = isClosed ? ' disabled style="opacity: 0.6; cursor: not-allowed;" ' : '';
+        return '<button class="aseg' + active + '"' + disabledAttr + ' data-id="' + s.id + '" data-st="' + st.key + '" title="' + st.label + '">' + st.label + '</button>';
       }).join('');
-      return '<div class="att-row' + (cur ? ' done' : '') + '">' +
+      
+      return '<div class="att-row' + (cur ? ' done' : '') + '" title="' + esc(detailTitle) + '">' +
         '<span class="att-idx">' + (i + 1) + '</span>' +
         '<div class="att-who">' +
           '<span class="att-avatar bg-' + cls + '">' + esc(initials(s.name)) + '</span>' +
@@ -136,10 +192,15 @@
 
     $$('.aseg', list).forEach(function (b) {
       b.addEventListener('click', function () {
+        if (Store.isAttendanceClosed(date)) return;
         var id = b.dataset.id, st = b.dataset.st;
         // الضغط على نفس الحالة يلغيها
         var cur = Store.getStudentAttendance(date, id);
-        Store.setAttendance(date, id, cur === st ? 'none' : st, Store.getSupervisor());
+        try {
+          Store.setAttendance(date, id, cur === st ? 'none' : st, Store.getSupervisor());
+        } catch (e) {
+          toast(e.message, 'err');
+        }
       });
     });
   }
