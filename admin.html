@@ -35,31 +35,35 @@
   </div>
 
   <div class="topbar">
-    <div class="brand">
-      <div class="brand-logo">☀️</div>
-      <div class="brand-info text-right">
-        <div class="brand-name">لوحة المشرف</div>
-        <div class="brand-sub">برنامج صيف ٢٠٢٦ 🏆</div>
+    <div class="topbar-right">
+      <div class="brand">
+        <span class="brand-logo">🏆</span>
+        <span class="brand-name">برنامج النقاط</span>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="nav-links">
+        <a class="nav-link" href="index.html">🏠 الرئيسية</a>
+        <a class="nav-link" href="attendance.html">✅ التحضير</a>
+        <a class="nav-link" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
+        <a class="nav-link" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
       </div>
     </div>
-    <div class="spacer"></div>
-    <div class="nav-links">
-      <a class="nav-link" href="index.html">🏠 الرئيسية</a>
-      <a class="nav-link" href="attendance.html">✅ التحضير</a>
-      <a class="nav-link" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
-      <a class="nav-link" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
-    </div>
-    <div class="spacer"></div>
-    <div class="user-profile">
-      <div class="profile-avatar-wrapper">
-        <div class="profile-avatar">👤</div>
-        <span class="active-dot"></span>
+    
+    <div class="topbar-left">
+      <div class="user-profile">
+        <div class="profile-avatar-wrapper">
+          <div class="profile-avatar">👤</div>
+          <span class="active-dot"></span>
+        </div>
+        <div class="profile-info text-right">
+          <div class="profile-name" id="activeTeacherName">—</div>
+          <div class="profile-role">المشرف العام</div>
+        </div>
+        <div class="profile-divider"></div>
+        <button id="btnLogout" class="logout-btn" title="تسجيل الخروج">
+          🚪 <span style="font-size:12px; font-weight:700; margin-right:4px;">خروج</span>
+        </button>
       </div>
-      <div class="profile-info text-right">
-        <div class="profile-name" id="activeTeacherName">—</div>
-        <div class="profile-role">مدير البرنامج 👑</div>
-      </div>
-      <button id="btnLogout" class="logout-btn" title="تسجيل الخروج">🚪</button>
     </div>
   </div>
 

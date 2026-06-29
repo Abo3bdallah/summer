@@ -38,158 +38,169 @@ html, body {
 a { color: inherit; }
 
 /* ---------- الشريط العلوي ---------- */
+/* ---------- الترويسة العلوية الاحترافية ---------- */
 .topbar {
   display: flex;
   align-items: center;
-  gap: 28px;
-  padding: 18px 40px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--line);
-  color: var(--text);
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.065);
   position: sticky;
   top: 0;
-  z-index: 50;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);
+  z-index: 1000;
+  width: 100%;
 }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .topbar .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
+
 .brand-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 22px;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
 }
+
 .brand-name {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
   color: #0f172a;
-  line-height: 1.25;
 }
+
 .brand-sub {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-  margin-top: 2px;
+  display: none; /* إخفاء النص الطويل ليكون المظهر أنظف */
 }
-.topbar .spacer { flex: 1; }
 
 .nav-links {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
 }
+
 .nav-link {
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #475569;
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  padding: 10px 18px;
-  border-radius: 14px;
+  padding: 8px 14px;
+  border-radius: 8px;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.85);
   color: var(--primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
 }
 
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  padding: 8px 16px;
-  border-radius: 18px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 12px;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
+
 .user-profile:hover {
-  background: rgba(255, 255, 255, 0.65);
-  border-color: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.08);
-  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.07);
 }
+
 .profile-avatar-wrapper {
   position: relative;
   display: inline-block;
   flex-shrink: 0;
 }
+
 .profile-avatar {
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #a78bfa, #4f46e5);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
 }
+
 .active-dot {
   position: absolute;
-  bottom: 1px;
-  left: 1px;
-  width: 11px;
-  height: 11px;
+  bottom: 0;
+  left: 0;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #10b981;
-  border: 2px solid #fff;
-  box-shadow: 0 0 6px #10b981;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 4px #10b981;
 }
+
 .profile-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  color: #1e293b;
+  color: #0f172a;
   line-height: 1.2;
 }
+
 .profile-role {
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   color: #4f46e5;
-  background: rgba(79, 70, 229, 0.08);
-  padding: 2.5px 10px;
-  border-radius: 8px;
-  display: inline-block;
-  margin-top: 3px;
-  border: 1px solid rgba(79, 70, 229, 0.15);
+  margin-top: 1px;
 }
+
+.profile-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.07);
+}
+
 .logout-btn {
   border: none;
-  background: rgba(244, 63, 94, 0.08);
+  background: transparent;
   color: #f43f5e;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(244, 63, 94, 0.12);
+  font-size: 13px;
+  transition: all 0.2s ease;
+  font-weight: 700;
 }
+
 .logout-btn:hover {
-  background: #f43f5e;
-  color: white;
-  transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
-  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.08);
 }
 
 /* ---------- التبويبات ---------- */
@@ -441,38 +452,52 @@ tr.undone td:last-child { opacity: 1; text-decoration: none; }
 @media (max-width: 768px) {
   /* الشريط العلوي: يلتف بدل التداخل */
   .topbar {
-    flex-wrap: wrap;
+    height: auto;
+    flex-direction: column;
+    padding: 12px 16px;
     gap: 12px;
-    padding: 10px 14px;
-    justify-content: center;
+    align-items: stretch;
+  }
+  .topbar-right {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .topbar-divider {
+    display: none;
   }
   .topbar .brand {
     justify-content: center;
-    flex: 1 1 100%;
   }
-  .topbar .spacer { display: none; }
   .nav-links {
     justify-content: center;
-    flex: 1 1 100%;
     flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
   }
   .nav-link {
     padding: 6px 12px;
     font-size: 12px;
   }
-  .user-profile {
-    order: -1;
+  .topbar-left {
     justify-content: center;
-    flex: 1 1 100%;
+    width: 100%;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 8px;
     margin-bottom: 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    padding-bottom: 10px;
-    border-radius: 0;
+    order: -1; /* لجعل شريط المستخدم في الأعلى تماماً */
+  }
+  .user-profile {
+    width: 100%;
+    justify-content: center;
     background: transparent;
-    border-top: none;
-    border-left: none;
-    border-right: none;
+    border: none;
     box-shadow: none;
+    padding: 0;
+  }
+  .profile-divider {
+    background: rgba(0, 0, 0, 0.08);
   }
 
   /* التبويبات: شريط أفقي قابل للتمرير بدل التكدّس في صفوف */
