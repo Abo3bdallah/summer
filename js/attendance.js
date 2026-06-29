@@ -275,11 +275,13 @@
 
   window.clearAllAttendance = function () {
     if (Store.isAttendanceClosed(selectedDate)) return;
-    if (!confirm('تصفير تحضير اليوم للطلاب الظاهرين؟ ستُسحب أي نقاط تم منحها لهم في تحضير اليوم.')) return;
-    visibleStudents().forEach(function (s) {
-      Store.setAttendance(selectedDate, s.id, 'none', Store.getSupervisor());
+    showConfirm('تصفير تحضير اليوم للطلاب الظاهرين؟ ستُسحب أي نقاط تم منحها لهم في تحضير اليوم.', function (confirmed) {
+      if (!confirmed) return;
+      visibleStudents().forEach(function (s) {
+        Store.setAttendance(selectedDate, s.id, 'none', Store.getSupervisor());
+      });
+      toast('تم تصفير تحضير اليوم', 'ok');
     });
-    toast('تم تصفير تحضير اليوم', 'ok');
   };
 
   window.manuallyCloseAttendance = function () {
@@ -287,10 +289,11 @@
       toast('عذراً، ليس لديك صلاحية قفل واعتماد التحضير ⚠️', 'err');
       return;
     }
-    if (confirm('هل أنت متأكد من قفل واعتماد تحضير اليوم؟ لن يتمكن المعلمون من التعديل.')) {
+    showConfirm('هل أنت متأكد من قفل واعتماد تحضير اليوم؟ لن يتمكن المعلمون من التعديل.', function (confirmed) {
+      if (!confirmed) return;
       Store.closeAttendance(selectedDate, Store.getSupervisor());
       toast('تم قفل واعتماد تحضير اليوم بنجاح 🔒', 'ok');
-    }
+    });
   };
 
   window.manuallyReopenAttendance = function () {

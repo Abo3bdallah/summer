@@ -934,3 +934,171 @@
     setTeacherPermission: setTeacherPermission
   };
 })(window);
+
+// ============================================================
+// نظام حوارات التنبيه والتأكيد المخصصة والزجاجية الفاخرة (Alert & Confirm Modals)
+// ============================================================
+(function () {
+  'use strict';
+
+  function injectStyles() {
+    if (document.getElementById('custom-modal-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'custom-modal-styles';
+    style.innerHTML = `
+      .custom-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        padding: 20px;
+        font-family: 'Tajawal', sans-serif;
+      }
+      .custom-modal-overlay.active {
+        opacity: 1;
+      }
+      .custom-modal-card {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 400px;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+        transform: scale(0.9);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        text-align: center;
+        direction: rtl;
+      }
+      .custom-modal-overlay.active .custom-modal-card {
+        transform: scale(1);
+      }
+      .custom-modal-icon {
+        font-size: 40px;
+        margin-bottom: 14px;
+        display: inline-block;
+      }
+      .custom-modal-msg {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        white-space: pre-line;
+      }
+      .custom-modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+      .custom-modal-btn {
+        flex: 1;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 13.5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .custom-modal-btn-confirm {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        color: white;
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+      }
+      .custom-modal-btn-confirm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
+      }
+      .custom-modal-btn-confirm:active {
+        transform: translateY(0);
+      }
+      .custom-modal-btn-cancel {
+        background: rgba(0, 0, 0, 0.05);
+        color: #475569;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      .custom-modal-btn-cancel:hover {
+        background: rgba(0, 0, 0, 0.08);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  window.showConfirm = function (message, callback) {
+    injectStyles();
+    var overlay = document.createElement('div');
+    overlay.className = 'custom-modal-overlay';
+    overlay.innerHTML = `
+      <div class="custom-modal-card">
+        <div class="custom-modal-icon">⚠️</div>
+        <div class="custom-modal-msg">${message}</div>
+        <div class="custom-modal-actions">
+          <button class="custom-modal-btn custom-modal-btn-confirm" id="custom-modal-ok">نعم، متأكد</button>
+          <button class="custom-modal-btn custom-modal-btn-cancel" id="custom-modal-cancel">إلغاء</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // تفعيل التأثير البصري للدخول
+    setTimeout(function () {
+      overlay.classList.add('active');
+    }, 10);
+
+    function close(confirmed) {
+      overlay.classList.remove('active');
+      setTimeout(function () {
+        overlay.remove();
+        if (callback) callback(confirmed);
+      }, 250);
+    }
+
+    overlay.querySelector('#custom-modal-ok').onclick = function () { close(true); };
+    overlay.querySelector('#custom-modal-cancel').onclick = function () { close(false); };
+  };
+
+  window.showAlert = function (message, callback) {
+    injectStyles();
+    var overlay = document.createElement('div');
+    overlay.className = 'custom-modal-overlay';
+    overlay.innerHTML = `
+      <div class="custom-modal-card">
+        <div class="custom-modal-icon">💡</div>
+        <div class="custom-modal-msg">${message}</div>
+        <div class="custom-modal-actions">
+          <button class="custom-modal-btn custom-modal-btn-confirm" id="custom-modal-ok" style="max-width: 140px; margin: 0 auto;">موافق</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // تفعيل التأثير البصري للدخول
+    setTimeout(function () {
+      overlay.classList.add('active');
+    }, 10);
+
+    function close() {
+      overlay.classList.remove('active');
+      setTimeout(function () {
+        overlay.remove();
+        if (callback) callback();
+      }, 250);
+    }
+
+    overlay.querySelector('#custom-modal-ok').onclick = function () { close(); };
+  };
+})();

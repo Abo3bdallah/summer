@@ -108,11 +108,12 @@
   });
 
   $('#btnLogout').addEventListener('click', function () {
-    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+    showConfirm('هل أنت متأكد من تسجيل الخروج؟', function (confirmed) {
+      if (!confirmed) return;
       Store.logout();
       toast('تم تسجيل الخروج بنجاح.', 'ok');
       checkAuth();
-    }
+    });
   });
 
   checkAuth();
@@ -201,10 +202,11 @@
     var last = Store.getLastActiveEntry();
     if (!last) { toast('لا توجد عملية للتراجع عنها', 'err'); return; }
     var label = (last.type === 'add' ? 'إضافة ' : 'خصم ') + last.amount + ' لـ ' + last.studentName;
-    if (confirm('التراجع عن آخر عملية؟\n' + label)) {
+    showConfirm('التراجع عن آخر عملية؟\n' + label, function (confirmed) {
+      if (!confirmed) return;
       Store.undoEntry(last.id, Store.getSupervisor());
       toast('تم التراجع عن العملية', 'ok');
-    }
+    });
   });
 
   function renderLastInfo() {
@@ -334,9 +336,12 @@
     $$('[data-del]', body).forEach(function (b) {
       b.addEventListener('click', function () {
         var st = Store.getStudent(b.dataset.del);
-        if (st && confirm('حذف الطالب «' + st.name + '»؟\nسيؤثر هذا على مجموع نقاط مجموعته.')) {
-          Store.deleteStudent(st.id);
-          toast('تم حذف الطالب', 'ok');
+        if (st) {
+          showConfirm('حذف الطالب «' + st.name + '»؟\nسيؤثر هذا على مجموع نقاط مجموعته.', function (confirmed) {
+            if (!confirmed) return;
+            Store.deleteStudent(st.id);
+            toast('تم حذف الطالب', 'ok');
+          });
         }
       });
     });
@@ -437,7 +442,11 @@
   }
 
   $('#logClear').addEventListener('click', function () {
-    if (confirm('مسح كامل سجل العمليات؟ لا يمكن التراجع.')) { Store.clearLog(); toast('تم مسح السجل', 'ok'); }
+    showConfirm('مسح كامل سجل العمليات؟ لا يمكن التراجع.', function (confirmed) {
+      if (!confirmed) return;
+      Store.clearLog();
+      toast('تم مسح السجل', 'ok');
+    });
   });
   $('#logExport').addEventListener('click', function () {
     var log = Store.getLog();
@@ -578,9 +587,11 @@
     e.target.value = '';
   });
   $('#setReset').addEventListener('click', function () {
-    if (confirm('حذف جميع الطلاب والنقاط والسجل وإعادة الضبط؟ لا يمكن التراجع.')) {
-      Store.resetAll(); toast('تمت إعادة التهيئة', 'ok');
-    }
+    showConfirm('حذف جميع الطلاب والنقاط والسجل وإعادة الضبط؟ لا يمكن التراجع.', function (confirmed) {
+      if (!confirmed) return;
+      Store.resetAll();
+      toast('تمت إعادة التهيئة', 'ok');
+    });
   });
   $('#setAllGoalBtn').addEventListener('click', function () {
     var v = parseInt($('#setAllGoal').value, 10);
@@ -590,14 +601,18 @@
     toast('تم تطبيق الهدف على جميع المجموعات', 'ok');
   });
   $('#setResetPoints').addEventListener('click', function () {
-    if (confirm('تصفير نقاط جميع الطلاب؟ (يبقى الطلاب والسجل)')) {
-      Store.resetPoints(false); toast('تم تصفير النقاط', 'ok');
-    }
+    showConfirm('تصفير نقاط جميع الطلاب؟ (يبقى الطلاب والسجل)', function (confirmed) {
+      if (!confirmed) return;
+      Store.resetPoints(false);
+      toast('تم تصفير النقاط', 'ok');
+    });
   });
   $('#setResetPointsLog').addEventListener('click', function () {
-    if (confirm('تصفير نقاط جميع الطلاب ومسح السجل؟ لا يمكن التراجع.')) {
-      Store.resetPoints(true); toast('تم بدء جولة جديدة', 'ok');
-    }
+    showConfirm('تصفير نقاط جميع الطلاب ومسح السجل؟ لا يمكن التراجع.', function (confirmed) {
+      if (!confirmed) return;
+      Store.resetPoints(true);
+      toast('تم بدء جولة جديدة', 'ok');
+    });
   });
 
   /* ====================================================
