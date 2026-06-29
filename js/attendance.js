@@ -338,10 +338,9 @@
               '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
             '</div>' +
           '</div>' +
-          '<div>' +
             (isClosed 
               ? '<span class="text-xs font-bold text-slate-500 border border-slate-700 px-3 py-1.5 rounded-lg bg-slate-900/50">🔒 مغلق</span>'
-              : '<button onclick="markLateFromTracking(\'' + s.id + '\')" class="bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md">⚠️ حضر متأخراً</button>'
+              : '<button onclick="markPresentFromTracking(\'' + s.id + '\')" class="bg-green-600 hover:bg-green-700 active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md">✅ حضر الطالب</button>'
             ) +
           '</div>' +
         '</div>';
@@ -352,11 +351,11 @@
     return html;
   }
 
-  window.markLateFromTracking = function (studentId) {
+  window.markPresentFromTracking = function (studentId) {
     if (Store.isAttendanceClosed(selectedDate)) return;
     try {
-      Store.setAttendance(selectedDate, studentId, 'late', Store.getSupervisor());
-      toast('تم رصد حضور الطالب كمتأخر وتعديل نقاطه ⚠️', 'ok');
+      Store.setAttendance(selectedDate, studentId, 'present', Store.getSupervisor());
+      toast('تم تسجيل حضور الطالب بنجاح وتعديل نقاطه ✅', 'ok');
     } catch (e) {
       toast(e.message, 'err');
     }
@@ -378,7 +377,7 @@
       var stats = {};
       var students = Store.getStudents();
       students.forEach(function (s) {
-        stats[s.id] = { name: s.name, group: s.groupId, absent: 0, late: 0 };
+        stats[s.id] = { name: s.name, group: s.groupId, absent: 0 };
       });
 
       var logs = Store.getLog();
@@ -390,18 +389,14 @@
             if (l.type === 'add') stStat.absent++;
             else if (l.type === 'subtract') stStat.absent = Math.max(0, stStat.absent - 1);
           }
-          if (l.reason.indexOf('متأخر') !== -1) {
-            if (l.type === 'add') stStat.late++;
-            else if (l.type === 'subtract') stStat.late = Math.max(0, stStat.late - 1);
-          }
         }
       });
 
       var statsArr = Object.keys(stats).map(function (id) {
         var item = stats[id];
-        return { id: id, name: item.name, group: item.group, absent: item.absent, late: item.late };
+        return { id: id, name: item.name, group: item.group, absent: item.absent };
       }).sort(function (a, b) {
-        return (b.absent * 2 + b.late) - (a.absent * 2 + a.late);
+        return b.absent - a.absent;
       });
 
       html += '<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-md overflow-hidden pb-12">' +
@@ -409,8 +404,7 @@
           '<thead class="bg-slate-900 text-slate-300 font-bold border-b border-slate-700">' +
             '<tr>' +
               '<th class="py-3 px-4">الطالب / المجموعة</th>' +
-              '<th class="py-3 px-4 text-center text-red-400">الغياب ❌</th>' +
-              '<th class="py-3 px-4 text-center text-amber-400">التأخير ⚠️</th>' +
+              '<th class="py-3 px-4 text-center text-red-400">إجمالي الغياب ❌</th>' +
             '</tr>' +
           '</thead>' +
           '<tbody class="divide-y divide-slate-800">';
@@ -418,7 +412,7 @@
       statsArr.forEach(function (stat) {
         var cls = groupClass(stat.group);
         var grp = Store.getGroup(stat.group);
-        var isViolator = stat.absent > 0 || stat.late > 0;
+        var isViolator = stat.absent > 0;
         
         html += '<tr class="' + (isViolator ? 'bg-red-950/10' : '') + '">' +
           '<td class="py-3.5 px-4">' +
@@ -427,9 +421,6 @@
           '</td>' +
           '<td class="py-3.5 px-4 text-center font-bold text-sm">' + 
             (stat.absent > 0 ? '<span class="bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full">' + stat.absent + '</span>' : '<span class="text-slate-600">-</span>') + 
-          '</td>' +
-          '<td class="py-3.5 px-4 text-center font-bold text-sm">' + 
-            (stat.late > 0 ? '<span class="bg-amber-950 text-amber-400 border border-amber-900 px-2 py-0.5 rounded-full">' + stat.late + '</span>' : '<span class="text-slate-600">-</span>') + 
           '</td>' +
         '</tr>';
       });
@@ -480,7 +471,6 @@
               '<span>⏰ مبكر: <b class="text-blue-400">' + early + '</b></span>' +
               '<span>✅ حاضر: <b class="text-green-400">' + present + '</b></span>' +
               '<span>❌ غائب: <b class="text-red-400">' + absent + '</b></span>' +
-              '<span>⚠️ متأخر: <b class="text-amber-400">' + late + '</b></span>' +
             '</div>' +
           '</div>';
         });
