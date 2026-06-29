@@ -63,6 +63,7 @@
   var filterGroup = 'all';
   var selectedDate = todayStr();
   var searchQuery = '';
+  var filtersExpanded = false; // كرت الخيارات مطوي افتراضياً لحفظ مساحة الشاشة في الهواتف
 
   var STATUSES = [
     { key: 'early', label: '⏰ مبكر', cls: 'btn-early-active' },
@@ -643,6 +644,12 @@
       var activeTeacher = $('#supervisorInput');
       if (activeTeacher) activeTeacher.value = Store.getLoggedInTeacher();
       
+      var navAdmin = $('#nav-admin-link');
+      if (navAdmin) {
+        if (Store.hasPermission('adminPanel')) navAdmin.classList.remove('hidden');
+        else navAdmin.classList.add('hidden');
+      }
+      
       if (!Store.hasPermission('attendance')) {
         if (mainContent) mainContent.style.display = 'none';
         if (bottomNav) bottomNav.style.display = 'none';
@@ -711,8 +718,8 @@
         if (supervisorInput.value !== storeSup) supervisorInput.value = storeSup;
       }
 
-      // إظهار وإخفاء شريط الفلاتر الدائم حسب التبويب النشط
-      if (currentTab === 'attendance' || currentTab === 'tracking') {
+      // إظهار وإخفاء شريط الفلاتر الدائم حسب التبويب النشط وحالة التوسيع
+      if ((currentTab === 'attendance' || currentTab === 'tracking') && filtersExpanded) {
         filtersCard.classList.remove('hidden');
       } else {
         filtersCard.classList.add('hidden');
@@ -738,6 +745,11 @@
         '</div>';
     }
   }
+
+  window.toggleFilters = function () {
+    filtersExpanded = !filtersExpanded;
+    render();
+  };
 
   // الاشتراك في تحديثات المتجر
   Store.subscribe(render);
