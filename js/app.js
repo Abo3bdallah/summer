@@ -493,7 +493,7 @@
     tbody.innerHTML = Object.keys(teachers).map(function (t) {
       var teacherObj = teachers[t];
       var pass = typeof teacherObj === 'string' ? teacherObj : (teacherObj.password || '1234');
-      var perms = (teacherObj && teacherObj.permissions) || { adminPanel: t === "أحمد الذبياني", manageStudents: t === "أحمد الذبياني", attendance: true };
+      var perms = (teacherObj && teacherObj.permissions) || { adminPanel: t === "أحمد الذبياني", manageStudents: t === "أحمد الذبياني", attendance: true, closeAttendance: t === "أحمد الذبياني" };
       
       var isOwner = t === "أحمد الذبياني";
       var disabledAttr = isOwner ? ' disabled style="opacity:0.6; cursor:not-allowed;" ' : '';
@@ -510,9 +510,13 @@
             '<input type="checkbox" id="p-students-' + esc(t) + '" ' + (perms.manageStudents ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'manageStudents\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
             '<label for="p-students-' + esc(t) + '" style="cursor:pointer;">إدارة الطلاب 👥</label>' +
           '</div>' +
-          '<div style="display:flex; align-items:center; gap:6px;">' +
+          '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
             '<input type="checkbox" id="p-attendance-' + esc(t) + '" ' + (perms.attendance ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'attendance\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
             '<label for="p-attendance-' + esc(t) + '" style="cursor:pointer;">التحضير والمتابعة ✅</label>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:6px;">' +
+            '<input type="checkbox" id="p-close-attendance-' + esc(t) + '" ' + (perms.closeAttendance ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'closeAttendance\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
+            '<label for="p-close-attendance-' + esc(t) + '" style="cursor:pointer;">إغلاق واعتماد التحضير 🔒</label>' +
           '</div>' +
         '</td>' +
         '<td style="padding:10px; text-align:center;"><button onclick="saveTeacherPassword(\'' + esc(t) + '\')" class="btn sm" style="background:#4f46e5; border:none; color:white; border-radius:6px; padding:6px 12px; font-weight:bold; font-size:11px; cursor:pointer;">💾 حفظ كلمة المرور</button></td>' +

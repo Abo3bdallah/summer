@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    attendance.js — منطق التحضير الميداني المطور (تجنب حلقات التكرار وفقد التركيز)
    ============================================================ */
 (function () {
@@ -186,10 +186,10 @@
       // لافتة قفل التحضير
       (isClosed ? 
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-rose-700 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
-        '<button onclick="manuallyReopenAttendance()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔓 إعادة فتح التحضير</button></div>'
+        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔓 إعادة فتح التحضير</button>' : '') + '</div>'
         :
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-green-950/40 text-green-300 border-green-900/60 flex flex-col gap-2 justify-center items-center"><div>🔓 التحضير مفتوح حالياً لتسجيل حضور الطلاب.</div>' +
-        '<button onclick="manuallyCloseAttendance()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔒 إغلاق واعتماد اليوم</button></div>'
+        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔒 إغلاق واعتماد اليوم</button>' : '') + '</div>'
       ) +
 
       // إحصاءات اليوم ونقاطه
@@ -283,6 +283,10 @@
   };
 
   window.manuallyCloseAttendance = function () {
+    if (!Store.hasPermission('closeAttendance')) {
+      toast('عذراً، ليس لديك صلاحية قفل واعتماد التحضير ⚠️', 'err');
+      return;
+    }
     if (confirm('هل أنت متأكد من قفل واعتماد تحضير اليوم؟ لن يتمكن المعلمون من التعديل.')) {
       Store.closeAttendance(selectedDate, Store.getSupervisor());
       toast('تم قفل واعتماد تحضير اليوم بنجاح 🔒', 'ok');
@@ -290,6 +294,10 @@
   };
 
   window.manuallyReopenAttendance = function () {
+    if (!Store.hasPermission('closeAttendance')) {
+      toast('عذراً، ليس لديك صلاحية إعادة فتح التحضير ⚠️', 'err');
+      return;
+    }
     Store.reopenAttendance(selectedDate);
     toast('تم إعادة فتح تحضير اليوم 🔓', 'ok');
   };

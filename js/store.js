@@ -22,14 +22,14 @@
   var CANON_NAMES = { qimma: 'البواسل', tumooh: 'الكواسر', sumood: 'المعالي', ruwwad: 'الشموخ' };
 
   var DEFAULT_TEACHERS = {
-    "حاتم الحارثي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "أحمد الذبياني": { password: "1234", permissions: { adminPanel: true, manageStudents: true, attendance: true } },
-    "سليمان جهاد": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "أمجد العماري": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "عمار الصبحي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "عمر فتني": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "عبدالعزيز باحيدرة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
-    "محمد باغزوزة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } }
+    "حاتم الحارثي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "أحمد الذبياني": { password: "1234", permissions: { adminPanel: true, manageStudents: true, attendance: true, closeAttendance: true } },
+    "سليمان جهاد": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "أمجد العماري": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "عمار الصبحي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "عمر فتني": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "عبدالعزيز باحيدرة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
+    "محمد باغزوزة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } }
   };
 
   function copyTeachers() {
@@ -42,7 +42,8 @@
           permissions: {
             adminPanel: t.permissions.adminPanel,
             manageStudents: t.permissions.manageStudents,
-            attendance: t.permissions.attendance
+            attendance: t.permissions.attendance,
+            closeAttendance: !!t.permissions.closeAttendance
           }
         };
       }
@@ -106,7 +107,8 @@
                 permissions: {
                   adminPanel: k === "أحمد الذبياني",
                   manageStudents: k === "أحمد الذبياني",
-                  attendance: true
+                  attendance: true,
+                  closeAttendance: k === "أحمد الذبياني"
                 }
               };
             } else if (rawT && typeof rawT === 'object') {
@@ -115,7 +117,8 @@
                 permissions: {
                   adminPanel: !!(rawT.permissions && rawT.permissions.adminPanel),
                   manageStudents: !!(rawT.permissions && rawT.permissions.manageStudents),
-                  attendance: rawT.permissions ? !!rawT.permissions.attendance : true
+                  attendance: rawT.permissions ? !!rawT.permissions.attendance : true,
+                  closeAttendance: rawT.permissions ? !!rawT.permissions.closeAttendance : (k === "أحمد الذبياني")
                 }
               };
             }
@@ -817,7 +820,7 @@
     if (!password) throw new Error('كلمة المرور مطلوبة');
     if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
     if (typeof state.teachers[name] === 'string') {
-      state.teachers[name] = { password: password, permissions: { adminPanel: name === "أحمد الذبياني", manageStudents: name === "أحمد الذبياني", attendance: true } };
+      state.teachers[name] = { password: password, permissions: { adminPanel: name === "أحمد الذبياني", manageStudents: name === "أحمد الذبياني", attendance: true, closeAttendance: name === "أحمد الذبياني" } };
     } else {
       state.teachers[name].password = password;
     }
