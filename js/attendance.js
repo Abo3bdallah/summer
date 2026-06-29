@@ -1,5 +1,5 @@
 /* ============================================================
-   attendance.js — منطق التحضير الميداني المدمج (حاضر المطور)
+   attendance.js — منطق التحضير الميداني المطور (تجنب حلقات التكرار وفقد التركيز)
    ============================================================ */
 (function () {
   'use strict';
@@ -49,6 +49,14 @@
     toastT = setTimeout(function () { t.className = t.className.replace('opacity-100', 'opacity-0'); }, 2200);
   }
 
+  // مراجع العناصر الثابتة في الصفحة لمنع التكرار وفقدان الفوكس
+  var attDate = $('#attDate');
+  var supervisorInput = $('#supervisorInput');
+  var attGroup = $('#attGroup');
+  var attSearch = $('#attSearch');
+  var filtersCard = $('#filters-card');
+  var tabContent = $('#tab-content');
+
   // الحالات الافتراضية
   var currentTab = 'attendance';
   var logsViewMode = 'days'; // 'days' | 'statistics'
@@ -62,6 +70,57 @@
     { key: 'absent', label: '❌ غائب', cls: 'btn-absent-active' },
     { key: 'late', label: '⚠️ متأخر', cls: 'btn-late-active' }
   ];
+
+  // إعداد حقول الفلاتر الدائمة لأول مرة
+  attDate.value = selectedDate;
+  supervisorInput.value = Store.getSupervisor();
+
+  function fillGroupsDropdown(sel) {
+    if (!sel) return;
+    var cur = sel.value || 'all';
+    sel.innerHTML = '<option value="all">جميع المجموعات</option>' + Store.getGroups().map(function (g) {
+      return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
+    }).join('');
+    sel.value = cur;
+  }
+  fillGroupsDropdown(attGroup);
+
+  function fillGroupsDropdownOnly(sel) {
+    if (!sel) return;
+    var cur = sel.value;
+    var groups = Store.getGroups();
+    sel.innerHTML = groups.map(function (g) {
+      return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
+    }).join('');
+    if (cur && groups.some(function (g) { return g.id === cur; })) {
+      sel.value = cur;
+    } else if (groups.length) {
+      sel.value = groups[0].id;
+    }
+  }
+
+  // الاستماع للأحداث الدائمة مرة واحدة فقط (يمنع حدوث Loops)
+  attDate.addEventListener('change', function (e) {
+    if (selectedDate !== e.target.value) {
+      selectedDate = e.target.value;
+      render();
+    }
+  });
+  supervisorInput.addEventListener('input', function (e) {
+    Store.setSupervisor(e.target.value);
+  });
+  attGroup.addEventListener('change', function (e) {
+    if (filterGroup !== e.target.value) {
+      filterGroup = e.target.value;
+      render();
+    }
+  });
+  attSearch.addEventListener('input', function (e) {
+    if (searchQuery !== e.target.value) {
+      searchQuery = e.target.value;
+      render();
+    }
+  });
 
   // التبديل بين التبويبات
   window.switchTab = function (tabName) {
@@ -113,30 +172,6 @@
     });
   }
 
-  // إعدادات الطلاب والمجموعات
-  function fillGroupsDropdown(sel) {
-    if (!sel) return;
-    var cur = sel.value || 'all';
-    sel.innerHTML = '<option value="all">جميع المجموعات</option>' + Store.getGroups().map(function (g) {
-      return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
-    }).join('');
-    sel.value = cur;
-  }
-
-  function fillGroupsDropdownOnly(sel) {
-    if (!sel) return;
-    var cur = sel.value;
-    var groups = Store.getGroups();
-    sel.innerHTML = groups.map(function (g) {
-      return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
-    }).join('');
-    if (cur && groups.some(function (g) { return g.id === cur; })) {
-      sel.value = cur;
-    } else if (groups.length) {
-      sel.value = groups[0].id;
-    }
-  }
-
   /* ====================================================
      رسم واجهة التحضير الرئيسية (Tab: attendance)
      ==================================================== */
@@ -146,32 +181,8 @@
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
 
-    // 1. بناء شريط الفلاتر والمعلومات
+    // بناء اللافتة وأزرار التحكم
     var html = '<div class="space-y-4">' +
-      // كرت المشرف والتاريخ
-      '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
-        '<div class="flex gap-3">' +
-          '<div class="flex-1">' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1">📅 تاريخ التحضير:</label>' +
-            '<input type="date" id="attDate" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 font-bold outline-none focus:border-indigo-500" value="' + selectedDate + '" />' +
-          '</div>' +
-          '<div class="flex-1">' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1">👤 المشرف (المحضر):</label>' +
-            '<input type="text" id="supervisorInput" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 font-bold outline-none focus:border-indigo-500" placeholder="اسم المشرف..." value="' + esc(Store.getSupervisor()) + '" />' +
-          '</div>' +
-        '</div>' +
-        '<div class="flex gap-3">' +
-          '<div class="flex-1">' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1">🏆 تصفية المجموعات:</label>' +
-            '<select id="attGroup" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 font-bold outline-none focus:border-indigo-500 appearance-none"></select>' +
-          '</div>' +
-          '<div class="flex-1">' +
-            '<label class="block text-xs font-bold text-slate-400 mb-1">🔎 بحث سريع:</label>' +
-            '<input type="text" id="attSearch" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 font-bold outline-none focus:border-indigo-500" placeholder="ابحث باسم الطالب..." value="' + esc(searchQuery) + '" />' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-
       // لافتة قفل التحضير
       (isClosed ? 
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-red-300 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
@@ -205,18 +216,15 @@
     } else {
       students.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
-        var cls = groupClass(s.groupId);
         var hexColor = groupColorHex(s.groupId);
         var cur = Store.getStudentAttendance(selectedDate, s.id);
         var details = Store.getStudentAttendanceDetails(selectedDate, s.id);
         
-        // معلومات من حضّر ومتى
         var auditTitle = 'لم يُحضّر بعد';
         if (details && details.by) {
           auditTitle = 'حضّره المعلم: ' + details.by + ' في ' + fmtTime(details.at);
         }
 
-        // بناء أزرار التحضير الأربعة
         var btns = STATUSES.map(function (st) {
           var activeClass = cur === st.key ? ' ' + st.cls : ' bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800';
           var disabledAttr = isClosed ? ' disabled style="opacity: 0.5; cursor: not-allowed;" ' : '';
@@ -293,10 +301,16 @@
     var isClosed = Store.isAttendanceClosed(selectedDate);
     var records = Store.getAttendance(selectedDate);
     
-    // فلترة الغائبين فقط
     var missing = Store.getStudents().filter(function (s) {
+      if (!s) return false;
       var rec = records[s.id];
       var status = (rec && typeof rec === 'object') ? rec.status : rec;
+      // تطبيق فلاتر المجموعات والبحث في كشف الغياب أيضاً
+      var sName = String(s.name || '').trim().toLowerCase();
+      var sGroupId = s.groupId || '';
+      var q = searchQuery.trim().toLowerCase();
+      if (filterGroup !== 'all' && sGroupId !== filterGroup) return false;
+      if (q && sName.indexOf(q) === -1) return false;
       return status === 'absent';
     }).sort(function (a, b) {
       return a.name.localeCompare(b.name, 'ar');
@@ -305,7 +319,7 @@
     var html = '<div class="space-y-4">' +
       '<div class="bg-red-950/40 border border-red-900/60 p-4 rounded-xl text-center shadow-md border-r-4 border-r-red-500">' +
         '<h2 class="text-base font-black text-red-300">⚠️ كشف الطلاب الغائبين حالياً</h2>' +
-        '<p class="text-xs text-red-400 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد. ابحث عنهم وحدث حالتهم فور وصولهم.</p>' +
+        '<p class="text-xs text-red-400 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد.</p>' +
       '</div>' +
       '<div class="space-y-3 pb-24">';
 
@@ -314,7 +328,6 @@
     } else {
       missing.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
-        var cls = groupClass(s.groupId);
         var hexColor = groupColorHex(s.groupId);
 
         html += '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm flex items-center justify-between transition-all hover:border-red-900">' +
@@ -354,7 +367,6 @@
      ==================================================== */
   function renderLogsHTML() {
     var html = '<div class="space-y-4">' +
-      // شريط الاختيار الفرعي
       '<div class="flex bg-slate-800 p-1 rounded-xl shadow-md border border-slate-700">' +
         '<button onclick="setLogsViewMode(\'days\')" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ' + 
           (logsViewMode === 'days' ? 'bg-slate-900 text-indigo-400 shadow-sm border border-slate-700' : 'text-slate-400') + '">📅 سجل الأيام</button>' +
@@ -363,7 +375,6 @@
       '</div>';
 
     if (logsViewMode === 'statistics') {
-      // 1. حساب ملخص الخصومات التراكمية
       var stats = {};
       var students = Store.getStudents();
       students.forEach(function (s) {
@@ -372,7 +383,7 @@
 
       var logs = Store.getLog();
       logs.forEach(function (l) {
-        if (l.undone || l.kind !== 'attendance') return; // تجاهل التراجع والعمليات العادية
+        if (l.undone || l.kind !== 'attendance') return;
         var stStat = stats[l.studentId];
         if (stStat) {
           if (l.reason.indexOf('غائب') !== -1) {
@@ -386,7 +397,6 @@
         }
       });
 
-      // ترتيب الطلاب تنازلياً حسب إجمالي المخالفات (الغياب بوزن 2، والتأخر بوزن 1)
       var statsArr = Object.keys(stats).map(function (id) {
         var item = stats[id];
         return { id: id, name: item.name, group: item.group, absent: item.absent, late: item.late };
@@ -426,10 +436,9 @@
 
       html += '</tbody></table></div>';
     } else {
-      // 2. كشف الأيام والتوثيق
       var stateData = Store.getState();
       var dates = Object.keys(stateData.attendance || {}).sort(function (a, b) {
-        return b.localeCompare(a); // الأحدث أولاً
+        return b.localeCompare(a);
       });
 
       html += '<div class="space-y-3 pb-24">';
@@ -442,7 +451,6 @@
           var records = day.records || {};
           var isClosed = day.status === 'closed';
           
-          // إحصاء الحالات
           var early = 0, present = 0, absent = 0, late = 0;
           Object.keys(records).forEach(function (sid) {
             var rec = records[sid];
@@ -503,7 +511,6 @@
     });
 
     var html = '<div class="space-y-4">' +
-      // إضافة طلاب دفعة واحدة
       '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
         '<h2 class="text-sm font-black text-slate-200">➕ إضافة دفعة طلاب جديدة</h2>' +
         '<div class="space-y-3 text-right">' +
@@ -519,7 +526,6 @@
         '</div>' +
       '</div>' +
 
-      // كشف أسماء الطلاب
       '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
         '<h2 class="text-sm font-black text-slate-200">👥 قائمة الطلاب الحالية (' + students.length + ')</h2>' +
         '<div class="divide-y divide-slate-700 max-h-[300px] overflow-y-auto pr-1" id="studentsListGrid">';
@@ -529,7 +535,6 @@
     } else {
       students.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
-        var cls = groupClass(s.groupId);
         var hexColor = groupColorHex(s.groupId);
         html += '<div class="py-3 flex justify-between items-center">' +
           '<div class="flex items-center gap-2.5">' +
@@ -551,7 +556,7 @@
   window.saveBulkStudents = function () {
     var gid = $('#addStGroup').value;
     var raw = $('#addStNames').value || '';
-    var names = raw.split(/[\n,，]+/).map(function (n) { return n.trim(); }).filter(Boolean);
+    var names = raw.split(/[\n,痕]+/).map(function (n) { return n.trim(); }).filter(Boolean);
     if (!names.length) { toast('أدخل اسماً واحداً على الأقل', 'err'); return; }
     try {
       var n = Store.addStudents(names, gid);
@@ -575,39 +580,35 @@
      الدالة الأساسية لإعادة رسم محتويات التبويبات النشطة
      ==================================================== */
   function render() {
-    var container = $('#main-content');
-    if (!container) return;
+    if (!tabContent) return;
 
     updateMissingBadge();
 
-    // 1. تحديد أي واجهة يتم رسمها في التبويب النشط
+    // تحديث قيم الفلاتر الدائمة فقط إذا لم يكن المستخدم يكتب بداخلها (يمنع Loops والـ focus loss)
+    if (document.activeElement !== attDate && attDate.value !== selectedDate) {
+      attDate.value = selectedDate;
+    }
+    if (document.activeElement !== supervisorInput) {
+      var storeSup = Store.getSupervisor();
+      if (supervisorInput.value !== storeSup) supervisorInput.value = storeSup;
+    }
+
+    // إظهار وإخفاء شريط الفلاتر الدائم حسب التبويب النشط
+    if (currentTab === 'attendance' || currentTab === 'tracking') {
+      filtersCard.classList.remove('hidden');
+    } else {
+      filtersCard.classList.add('hidden');
+    }
+
+    // رسم واجهة التبويب النشط
     if (currentTab === 'attendance') {
-      container.innerHTML = renderAttendanceHTML();
-      // ملء الفلاتر والارتباط بالأحداث التفاعلية
-      fillGroupsDropdown($('#attGroup'));
-      
-      // ربط حقول التاريخ والمشرف والبحث
-      $('#attDate').addEventListener('change', function (e) {
-        selectedDate = e.target.value;
-        render();
-      });
-      $('#supervisorInput').addEventListener('input', function (e) {
-        Store.setSupervisor(e.target.value);
-      });
-      $('#attGroup').addEventListener('change', function (e) {
-        filterGroup = e.target.value;
-        render();
-      });
-      $('#attSearch').addEventListener('input', function (e) {
-        searchQuery = e.target.value;
-        render();
-      });
+      tabContent.innerHTML = renderAttendanceHTML();
     } else if (currentTab === 'tracking') {
-      container.innerHTML = renderTrackingHTML();
+      tabContent.innerHTML = renderTrackingHTML();
     } else if (currentTab === 'logs') {
-      container.innerHTML = renderLogsHTML();
+      tabContent.innerHTML = renderLogsHTML();
     } else if (currentTab === 'students') {
-      container.innerHTML = renderStudentsHTML();
+      tabContent.innerHTML = renderStudentsHTML();
       fillGroupsDropdownOnly($('#addStGroup'));
     }
   }
