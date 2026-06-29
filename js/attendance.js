@@ -316,9 +316,10 @@
     });
 
     var html = '<div class="space-y-4">' +
-      '<div class="bg-red-950/40 border border-red-900/60 p-4 rounded-xl text-center shadow-md border-r-4 border-r-red-500">' +
+      '<div class="bg-red-950/40 border border-red-900/60 p-4 rounded-xl text-center shadow-md border-r-4 border-r-red-500 space-y-2">' +
         '<h2 class="text-base font-black text-red-300">⚠️ كشف الطلاب الغائبين حالياً</h2>' +
         '<p class="text-xs text-red-400 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد.</p>' +
+        (missing.length > 0 ? '<button onclick="copyAbsentNames()" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 text-indigo-400 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-md flex justify-center items-center gap-1.5 mt-2">📋 نسخ أسماء الغائبين</button>' : '') +
       '</div>' +
       '<div class="space-y-3 pb-24">';
 
@@ -337,6 +338,7 @@
               '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
             '</div>' +
           '</div>' +
+          '<div>' +
             (isClosed 
               ? '<span class="text-xs font-bold text-slate-500 border border-slate-700 px-3 py-1.5 rounded-lg bg-slate-900/50">🔒 مغلق</span>'
               : '<button onclick="markPresentFromTracking(\'' + s.id + '\')" class="bg-green-600 hover:bg-green-700 active:scale-95 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md">✅ حضر الطالب</button>'
@@ -357,6 +359,49 @@
       toast('تم تسجيل حضور الطالب بنجاح وتعديل نقاطه ✅', 'ok');
     } catch (e) {
       toast(e.message, 'err');
+    }
+  };
+
+  function fallbackCopyText(text) {
+    var textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      toast('تم نسخ الأسماء إلى الحافظة 📋', 'ok');
+    } catch (err) {
+      toast('تعذر نسخ الأسماء تلقائياً', 'err');
+    }
+    document.body.removeChild(textArea);
+  }
+
+  window.copyAbsentNames = function () {
+    var today = selectedDate;
+    var records = Store.getAttendance(today);
+    var missingNames = Store.getStudents().filter(function (s) {
+      if (!s) return false;
+      var rec = records[s.id];
+      var status = (rec && typeof rec === 'object') ? rec.status : rec;
+      return status === 'absent';
+    }).map(function (s) { return s.name; });
+
+    if (missingNames.length === 0) {
+      toast('لا يوجد غائبين لنسخهم', 'err');
+      return;
+    }
+
+    var textToCopy = missingNames.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(function () {
+        toast('تم نسخ ' + missingNames.length + ' اسماً إلى الحافظة 📋', 'ok');
+      }).catch(function () {
+        fallbackCopyText(textToCopy);
+      });
+    } else {
+      fallbackCopyText(textToCopy);
     }
   };
 
