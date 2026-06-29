@@ -67,8 +67,7 @@
   var STATUSES = [
     { key: 'early', label: '⏰ مبكر', cls: 'btn-early-active' },
     { key: 'present', label: '✅ حاضر', cls: 'btn-present-active' },
-    { key: 'absent', label: '❌ غائب', cls: 'btn-absent-active' },
-    { key: 'late', label: '⚠️ متأخر', cls: 'btn-late-active' }
+    { key: 'absent', label: '❌ غائب', cls: 'btn-absent-active' }
   ];
 
   // إعداد حقول الفلاتر الدائمة لأول مرة
