@@ -3,64 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>التحضير — عداد الصيف</title>
+  <title>التحضير والمتابعة — عداد الصيف</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    
+    .tab-active { color: #818cf8; border-top: 3px solid #818cf8; background-color: #1e1b4b; }
+    .tab-inactive { color: #94a3b8; border-top: 3px solid transparent; }
+    
+    /* ألوان الأزرار النشطة للتحضير */
+    .btn-early-active { background-color: #1d4ed8 !important; border-color: #3b82f6 !important; color: white !important; }
+    .btn-present-active { background-color: #15803d !important; border-color: #22c55e !important; color: white !important; }
+    .btn-absent-active { background-color: #b91c1c !important; border-color: #ef4444 !important; color: white !important; }
+    .btn-late-active { background-color: #b45309 !important; border-color: #f59e0b !important; color: white !important; }
+  </style>
 </head>
-<body class="att-page">
-  <div class="topbar">
-    <div class="brand"><span class="dot"></span> التحضير اليومي</div>
-    <div class="spacer"></div>
-    <div class="supervisor-box">
-      <label>المشرف:</label>
-      <input id="supervisorInput" placeholder="اسم المشرف" />
-    </div>
-    <a class="btn ghost sm" href="home.html">🏠 الرئيسية</a>
-    <a class="btn ghost sm" href="index.html">📋 البرنامج</a>
+<body class="bg-slate-950 min-h-screen pb-24 flex flex-col">
+
+  <div id="app" class="max-w-md mx-auto bg-slate-900 min-h-screen shadow-2xl relative flex flex-col w-full border-x border-slate-800">
+    <!-- الشريط العلوي -->
+    <header class="bg-slate-800 border-b border-slate-700 text-white p-4 shadow-md sticky top-0 z-40 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]"></span>
+        <h1 class="text-lg font-black">📋 التحضير والمتابعة</h1>
+      </div>
+      <div class="flex gap-2">
+        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="home.html">🏠 الرئيسية</a>
+        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="index.html">📋 البرنامج</a>
+      </div>
+    </header>
+
+    <!-- المحتوى الرئيسي للمحاذاة التلقائية للتبويبات -->
+    <main id="main-content" class="flex-1 p-4 overflow-y-auto space-y-4">
+      <!-- محتوى التبويبات سيتم حقنه بواسطة JS -->
+      <div class="flex justify-center items-center h-48">
+        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+      </div>
+    </main>
+
+    <!-- شريط التنقل السفلي للهواتف -->
+    <nav class="bg-slate-800 border-t border-slate-700 fixed bottom-0 w-full max-w-md left-1/2 transform -translate-x-1/2 flex justify-around shadow-2xl z-50">
+      <button onclick="switchTab('attendance')" id="tab-attendance" class="tab-active flex-1 py-3 flex flex-col items-center transition-all">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+        <span class="text-[10px] font-bold">التحضير</span>
+      </button>
+      <button onclick="switchTab('tracking')" id="tab-tracking" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all relative">
+        <span id="missing-badge" class="absolute top-1.5 right-6 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full hidden">0</span>
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <span class="text-[10px] font-bold">المتابعة والبحث</span>
+      </button>
+      <button onclick="switchTab('logs')" id="tab-logs" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="text-[10px] font-bold">السجل والإحصاءات</span>
+      </button>
+      <button onclick="switchTab('students')" id="tab-students" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all">
+        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <span class="text-[10px] font-bold">الطلاب</span>
+      </button>
+    </nav>
   </div>
 
-  <div class="container">
-    <h2 class="page-title">التحضير اليومي</h2>
-    <p class="page-sub">اختر اليوم، ثم حدّد حالة كل طالب — تُمنح النقاط تلقائيًا.</p>
+  <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-center z-50 text-sm font-bold opacity-0 transition-opacity pointer-events-none"></div>
 
-    <div class="card">
-      <div class="row" style="align-items:flex-end">
-        <div class="field" style="flex:0; min-width:180px">
-          <label>التاريخ</label>
-          <input type="date" id="attDate" />
-        </div>
-        <div class="field" style="flex:0; min-width:200px">
-          <label>المجموعة</label>
-          <select id="attGroup"><option value="all">جميع المجموعات</option></select>
-        </div>
-        <div class="field" style="flex:1">
-          <label>بحث</label>
-          <input id="attSearch" placeholder="🔎 بحث بالاسم..." />
-        </div>
-      </div>
-
-      <div class="att-legend" id="attLegend"></div>
-
-      <div id="attLockBanner" style="display:none; margin-top:14px; padding:12px; border-radius:8px; font-weight:bold; font-size:14px; text-align:center;"></div>
-
-      <div class="row" style="margin-top:10px;gap:8px" id="attActionsRow">
-        <button class="btn ghost sm" id="attAllEarly">⏰ الكل مبكر</button>
-        <button class="btn ghost sm" id="attAllPresent">✅ الكل حاضر</button>
-        <button class="btn ghost sm" id="attAllAbsent">❌ الكل غائب</button>
-        <button class="btn ghost sm" id="attClearDay">↩️ مسح تحضير اليوم</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="att-list" id="attList"></div>
-      <div class="empty" id="attEmpty" style="display:none">لا يوجد طلاب مطابقون.</div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
+  <!-- مكتبات المزامنة ومتجر البيانات المشتركة -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>

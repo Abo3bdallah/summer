@@ -224,8 +224,14 @@
   function renderStudents() {
     var q = $('#stSearch').value.trim().toLowerCase();
     var students = Store.getStudents().filter(function (s) {
-      return !q || s.name.toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ar'); });
+      if (!s) return false;
+      var sName = String(s.name || '').trim().toLowerCase();
+      return !q || sName.indexOf(q) !== -1;
+    }).sort(function (a, b) { 
+      var aName = String(a.name || '');
+      var bName = String(b.name || '');
+      return aName.localeCompare(bName, 'ar'); 
+    });
 
     $('#stCount').textContent = students.length + ' طالب';
     var body = $('#stBody');
