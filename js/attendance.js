@@ -209,7 +209,7 @@
       '</div>' : '') +
 
       // قائمة الطلاب للتحضير
-      '<div class="space-y-3 pb-6">';
+      '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-6">';
 
     if (students.length === 0) {
       html += '<div class="text-center text-slate-400 p-8 bg-slate-900/50 rounded-xl border border-slate-800 font-bold">لا يوجد طلاب مطابقون</div>';
@@ -322,7 +322,7 @@
         '<p class="text-xs text-red-400 font-bold mt-1">يوجد (' + missing.length + ') طالب غائب لم يصل بعد.</p>' +
         (missing.length > 0 ? '<button onclick="copyAbsentNames()" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 text-indigo-400 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-md flex justify-center items-center gap-1.5 mt-2">📋 نسخ أسماء الغائبين</button>' : '') +
       '</div>' +
-      '<div class="space-y-3 pb-24">';
+      '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-6">';
 
     if (missing.length === 0) {
       html += '<div class="text-center text-green-400 p-12 bg-green-950/20 border border-green-900/40 rounded-xl font-bold text-base">الجميع حاضرون! العدد مكتمل 🎉</div>';
@@ -477,7 +477,7 @@
         return b.localeCompare(a);
       });
 
-      html += '<div class="space-y-3 pb-24">';
+      html += '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-24 md:pb-6">';
 
       if (dates.length === 0) {
         html += '<div class="text-center text-slate-500 py-12 bg-slate-900/50 rounded-xl border border-slate-800 font-bold">لا يوجد سجلات تحضير سابقة</div>';
@@ -545,7 +545,7 @@
       return a.name.localeCompare(b.name, 'ar');
     });
 
-    var html = '<div class="space-y-4">' +
+    var html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-24 md:pb-6">' +
       '<div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">' +
         '<h2 class="text-sm font-black text-slate-200">➕ إضافة دفعة طلاب جديدة</h2>' +
         '<div class="space-y-3 text-right">' +
