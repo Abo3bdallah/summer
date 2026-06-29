@@ -32,6 +32,12 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  function todayStr() {
+    var d = new Date();
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
   function defaultState() {
     return {
       groups: DEFAULT_GROUPS.map(function (g) { return { id: g.id, name: g.name, goal: g.goal }; }),
