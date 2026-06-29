@@ -123,6 +123,20 @@
     sel.value = cur;
   }
 
+  function fillGroupsDropdownOnly(sel) {
+    if (!sel) return;
+    var cur = sel.value;
+    var groups = Store.getGroups();
+    sel.innerHTML = groups.map(function (g) {
+      return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
+    }).join('');
+    if (cur && groups.some(function (g) { return g.id === cur; })) {
+      sel.value = cur;
+    } else if (groups.length) {
+      sel.value = groups[0].id;
+    }
+  }
+
   /* ====================================================
      رسم واجهة التحضير الرئيسية (Tab: attendance)
      ==================================================== */
@@ -593,7 +607,7 @@
       container.innerHTML = renderLogsHTML();
     } else if (currentTab === 'students') {
       container.innerHTML = renderStudentsHTML();
-      fillGroupsDropdown($('#addStGroup'));
+      fillGroupsDropdownOnly($('#addStGroup'));
     }
   }
 
