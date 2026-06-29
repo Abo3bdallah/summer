@@ -608,6 +608,7 @@ body.display.individual { overflow: auto; }
 .scard.tumooh { --accent: var(--dg-tumooh); --accent2: var(--dg-tumooh2); }
 .scard.sumood { --accent: var(--dg-sumood); --accent2: var(--dg-sumood2); }
 .scard.ruwwad { --accent: var(--dg-ruwwad); --accent2: var(--dg-ruwwad2); }
+.scard.nogroup { --accent: #475569; --accent2: #64748b; }
 
 /* الشموخ (أصفر): نص داكن للوضوح فوق التدرّج الفاتح */
 .scard.ruwwad { color: #4a3206; }

@@ -11,7 +11,7 @@
     });
   }
   function groupClass(id) {
-    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad' })[id] || 'qimma';
+    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad', nogroup: 'nogroup' })[id] || 'nogroup';
   }
 
   var grid = document.getElementById('igrid');
@@ -49,7 +49,7 @@
   }
 
   function renderLegend() {
-    var groups = Store.getGroups();
+    var groups = Store.getGroups().filter(function (g) { return g.id !== 'nogroup'; });
     legend.innerHTML = groups.map(function (g) {
       var cls = groupClass(g.id);
       var count = Store.getStudents().filter(function (s) { return s.groupId === g.id; }).length;
@@ -62,7 +62,7 @@
     renderLegend();
 
     // رتّب: حسب المجموعة (لتجميع الألوان) ثم النقاط تنازليًا
-    var order = { qimma: 0, tumooh: 1, sumood: 2, ruwwad: 3 };
+    var order = { qimma: 0, tumooh: 1, sumood: 2, ruwwad: 3, nogroup: 4 };
     var students = Store.getStudents().slice().sort(function (a, b) {
       var ga = order[a.groupId] != null ? order[a.groupId] : 9;
       var gb = order[b.groupId] != null ? order[b.groupId] : 9;

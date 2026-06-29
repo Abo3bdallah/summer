@@ -262,9 +262,13 @@
 
   function getState() { return state; }
 
-  function getGroups() { return state.groups.slice(); }
+  function getGroups() {
+    var list = [{ id: 'nogroup', name: 'بدون مجموعة', goal: 100 }];
+    return list.concat(state.groups);
+  }
 
   function getGroup(id) {
+    if (id === 'nogroup') return { id: 'nogroup', name: 'بدون مجموعة', goal: 100 };
     for (var i = 0; i < state.groups.length; i++) {
       if (state.groups[i].id === id) return state.groups[i];
     }

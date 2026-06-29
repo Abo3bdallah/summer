@@ -13,10 +13,10 @@
     });
   }
   function groupClass(id) {
-    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad' })[id] || 'qimma';
+    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad', nogroup: 'nogroup' })[id] || 'nogroup';
   }
   function groupColorHex(id) {
-    return ({ qimma: '#2563eb', tumooh: '#dc2626', sumood: '#16a34a', ruwwad: '#ca8a04' })[id] || '#6366f1';
+    return ({ qimma: '#2563eb', tumooh: '#dc2626', sumood: '#16a34a', ruwwad: '#ca8a04', nogroup: '#64748b' })[id] || '#64748b';
   }
   function initials(name) {
     var p = String(name || '').trim().split(/\s+/);

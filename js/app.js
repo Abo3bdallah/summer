@@ -12,7 +12,7 @@
     });
   }
   function groupClass(id) {
-    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad' })[id] || 'qimma';
+    return ({ qimma: 'qimma', tumooh: 'tumooh', sumood: 'sumood', ruwwad: 'ruwwad', nogroup: 'nogroup' })[id] || 'nogroup';
   }
   function initials(name) {
     var p = String(name || '').trim().split(/\s+/);
@@ -468,7 +468,7 @@
      ==================================================== */
   function renderSettings() {
     var goals = $('#setGoals');
-    goals.innerHTML = Store.getGroups().map(function (g) {
+    goals.innerHTML = Store.getGroups().filter(function (g) { return g.id !== 'nogroup'; }).map(function (g) {
       var cls = groupClass(g.id);
       return '<div class="row" style="margin-bottom:10px;align-items:center">' +
         '<div class="field"><label class="g-' + cls + '" style="font-weight:700;font-size:15px">' + esc(g.name) + '</label></div>' +
