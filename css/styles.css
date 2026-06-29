@@ -481,7 +481,7 @@ tr.undone td:last-child { opacity: 1; text-decoration: none; }
     display: none; /* إخفاء ملف المستخدم ليعرض في القائمة الجانبية */
   }
   .menu-toggle {
-    display: flex; /* إظهار زر القائمة الهامبرغر في الجوال */
+    display: flex !important; /* إظهار زر القائمة الهامبرغر في الجوال */
   }
 
   /* التبويبات: شريط أفقي قابل للتمرير بدل التكدّس في صفوف */
