@@ -274,6 +274,69 @@
   $('#stCancel').addEventListener('click', resetStudentForm);
   $('#stSearch').addEventListener('input', renderStudents);
 
+  // ربط أحداث العمليات الجماعية لإدارة الطلاب
+  var selectAllCheckbox = $('#stSelectAll');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function () {
+      var q = $('#stSearch').value.trim().toLowerCase();
+      var students = Store.getStudents().filter(function (s) {
+        if (!s) return false;
+        var sName = String(s.name || '').trim().toLowerCase();
+        return !q || sName.indexOf(q) !== -1;
+      });
+      if (this.checked) {
+        students.forEach(function (s) {
+          if (selectedStudentIds.indexOf(s.id) === -1) selectedStudentIds.push(s.id);
+        });
+      } else {
+        var filteredIds = students.map(function (s) { return s.id; });
+        selectedStudentIds = selectedStudentIds.filter(function (id) {
+          return filteredIds.indexOf(id) === -1;
+        });
+      }
+      renderStudents();
+    });
+  }
+
+  var bulkDeleteBtn = $('#stBulkDelete');
+  if (bulkDeleteBtn) {
+    bulkDeleteBtn.addEventListener('click', function () {
+      if (!selectedStudentIds.length) return;
+      showConfirm('هل أنت متأكد من حذف (' + selectedStudentIds.length + ') طالب؟\nلا يمكن التراجع عن هذا الإجراء.', function (confirmed) {
+        if (!confirmed) return;
+        selectedStudentIds.forEach(function (id) {
+          Store.deleteStudent(id);
+        });
+        toast('تم حذف الطلاب المحددين بنجاح', 'ok');
+        selectedStudentIds = [];
+        renderStudents();
+      });
+    });
+  }
+
+  var bulkGroupSelect = $('#stBulkGroup');
+  if (bulkGroupSelect) {
+    bulkGroupSelect.addEventListener('change', function () {
+      var val = this.value;
+      if (!val || !selectedStudentIds.length) return;
+      var g = Store.getGroup(val);
+      var groupName = g ? g.name : 'بدون مجموعة';
+      showConfirm('هل تريد نقل (' + selectedStudentIds.length + ') طالب إلى مجموعة "' + groupName + '"؟', function (confirmed) {
+        if (!confirmed) {
+          bulkGroupSelect.value = '';
+          return;
+        }
+        selectedStudentIds.forEach(function (id) {
+          Store.updateStudent(id, { groupId: val });
+        });
+        toast('تم نقل الطلاب بنجاح إلى "' + groupName + '"', 'ok');
+        bulkGroupSelect.value = '';
+        selectedStudentIds = [];
+        renderStudents();
+      });
+    });
+  }
+
   // إضافة دفعة طلاب
   $('#bulkAdd').addEventListener('click', function () {
     var gid = $('#bulkGroup').value;
@@ -291,6 +354,7 @@
     $('#bulkCount').textContent = c ? (c + ' اسمًا جاهزًا') : '';
   });
 
+  var selectedStudentIds = [];
   function renderStudents() {
     var q = $('#stSearch').value.trim().toLowerCase();
     var students = Store.getStudents().filter(function (s) {
@@ -307,18 +371,59 @@
     var body = $('#stBody');
     $('#stEmpty').style.display = students.length ? 'none' : 'block';
 
+    // فلترة المعرفات المحددة غير الموجودة حالياً (في حال تم حذف بعضهم مثلاً)
+    var allIds = students.map(function(s) { return s.id; });
+    selectedStudentIds = selectedStudentIds.filter(function(id) {
+      return allIds.indexOf(id) !== -1;
+    });
+
+    // فحص إذا كان الجميع محددين
+    var allChecked = students.length > 0 && students.every(function (s) {
+      return selectedStudentIds.indexOf(s.id) !== -1;
+    });
+    var selectAllCheckbox = $('#stSelectAll');
+    if (selectAllCheckbox) selectAllCheckbox.checked = allChecked;
+
+    // تحديث شريط العمليات الجماعية
+    var bulkBar = $('#stBulkBar');
+    if (bulkBar) {
+      if (selectedStudentIds.length > 0) {
+        bulkBar.style.display = 'flex';
+        var selectedCountText = $('#stBulkSelectedCount');
+        if (selectedCountText) {
+          selectedCountText.textContent = 'تم تحديد ' + selectedStudentIds.length + ' طالب';
+        }
+      } else {
+        bulkBar.style.display = 'none';
+      }
+    }
+
     body.innerHTML = students.map(function (s) {
       var g = Store.getGroup(s.groupId);
       var cls = groupClass(s.groupId);
-      return '<tr>' +
-        '<td>' + esc(s.name) + '</td>' +
-        '<td><span class="group-tag g-' + cls + '">' + esc(g ? g.name : '—') + '</span></td>' +
-        '<td><span class="points-pill">' + s.points + '</span></td>' +
-        '<td class="right"><div class="actions" style="justify-content:flex-start">' +
-        '<button class="icon-btn" data-edit="' + s.id + '">✏️ تعديل</button>' +
-        '<button class="icon-btn danger" data-del="' + s.id + '">🗑️ حذف</button>' +
+      var isChecked = selectedStudentIds.indexOf(s.id) !== -1 ? 'checked' : '';
+      return '<tr class="' + (isChecked ? 'bg-indigo-50/20' : '') + '">' +
+        '<td style="text-align: center; padding: 10px; width: 40px;"><input type="checkbox" class="st-row-select" data-id="' + s.id + '" ' + isChecked + ' style="width:16px; height:16px; cursor:pointer;" /></td>' +
+        '<td style="font-weight: 700; color: #1e293b;">' + esc(s.name) + '</td>' +
+        '<td><span class="group-tag g-' + cls + '">' + esc(g ? g.name : 'بدون مجموعة') + '</span></td>' +
+        '<td class="right"><div class="actions" style="justify-content:flex-end; gap: 8px;">' +
+        '<button class="icon-btn" data-edit="' + s.id + '" title="تعديل">✏️</button>' +
+        '<button class="icon-btn danger" data-del="' + s.id + '" title="حذف">❌</button>' +
         '</div></td></tr>';
     }).join('');
+
+    // ربط مستمعي التحديد الفردي
+    $$('.st-row-select', body).forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var id = cb.dataset.id;
+        if (cb.checked) {
+          if (selectedStudentIds.indexOf(id) === -1) selectedStudentIds.push(id);
+        } else {
+          selectedStudentIds = selectedStudentIds.filter(function (x) { return x !== id; });
+        }
+        renderStudents();
+      });
+    });
 
     $$('[data-edit]', body).forEach(function (b) {
       b.addEventListener('click', function () {
