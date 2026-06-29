@@ -35,17 +35,29 @@
   </div>
 
   <div class="topbar">
-    <div class="brand"><span class="dot"></span> نظام نقاط الطلاب والمجموعات</div>
-    <div class="spacer"></div>
-    <div class="supervisor-box" style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:13px; font-weight:bold; color:#475569;">👤 المعلم:</span>
-      <span id="activeTeacherName" style="font-size:14px; font-weight:800; color:#1e293b;">—</span>
-      <button id="btnLogout" class="btn sm" style="background:#f43f5e; border:none; color:white; border-radius:6px; padding:4px 10px; font-weight:bold; font-size:11px; cursor:pointer;">🚪 خروج</button>
+    <div class="brand">
+      <div class="brand-logo">☀️</div>
+      <div class="brand-info text-right">
+        <div class="brand-name">لوحة المشرف</div>
+        <div class="brand-sub">برنامج صيف ٢٠٢٦ 🏆</div>
+      </div>
     </div>
-    <a class="btn ghost sm" href="index.html">🏠 الرئيسية</a>
-    <a class="btn ghost sm" href="attendance.html">✅ التحضير</a>
-    <a class="btn ghost sm" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
-    <a class="btn ghost sm" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">🏠 الرئيسية</a>
+      <a class="nav-link" href="attendance.html">✅ التحضير</a>
+      <a class="nav-link" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
+      <a class="nav-link" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
+    </div>
+    <div class="spacer"></div>
+    <div class="user-profile">
+      <div class="profile-avatar">👤</div>
+      <div class="profile-info text-right">
+        <div class="profile-name" id="activeTeacherName">—</div>
+        <div class="profile-role">مدير البرنامج 👑</div>
+      </div>
+      <button id="btnLogout" class="logout-btn" title="تسجيل الخروج">🚪</button>
+    </div>
   </div>
 
   <!-- واجهة رفض الوصول لغير المدراء -->
