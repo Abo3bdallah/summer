@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لجنة احصاء الباحة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #eff6ff; }
+        .tab-inactive { color: #64748b; border-top: 3px solid transparent; }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative pb-20 flex flex-col">
+        <header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10">
+            <h1 class="text-xl font-bold text-center">📋 لجنة احصاء الباحة</h1>
+        </header>
+
+        <main id="main-content" class="flex-1 p-4 overflow-y-auto">
+            <div class="flex justify-center items-center h-full">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            </div>
+        </main>
+
+        <nav class="bg-white border-t border-gray-200 fixed bottom-0 w-full max-w-md flex justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-10">
+            <button onclick="switchTab('attendance')" id="tab-attendance" class="tab-active flex-1 py-3 flex flex-col items-center transition-all">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                <span class="text-xs font-bold">التحضير</span>
+            </button>
+            <button onclick="switchTab('tracking')" id="tab-tracking" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all relative">
+                <span id="missing-badge" class="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <span class="text-xs font-bold">المتابعة والبحث</span>
+            </button>
+            <button onclick="switchTab('logs')" id="tab-logs" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-xs font-bold">السجل والخصم</span>
+            </button>
+            <button onclick="switchTab('students')" id="tab-students" class="tab-inactive flex-1 py-3 flex flex-col items-center transition-all">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span class="text-xs font-bold">الطلاب</span>
+            </button>
+        </nav>
+    </div>
+
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform transition-all">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-900 mb-2">تأكيد</h3>
+            <p id="modal-message" class="text-gray-600 mb-6 text-sm whitespace-pre-line">هل أنت متأكد؟</p>
+            <div class="flex justify-end space-x-3 space-x-reverse">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-bold hover:bg-gray-300 transition-colors">إلغاء</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إدارة المحضرين الجديدة -->
+    <div id="supervisors-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-black text-gray-900">إدارة المحضرين</h3>
+                <button onclick="closeSupervisorsModal()" class="text-gray-400 hover:text-red-500 font-bold text-2xl">&times;</button>
+            </div>
+            
+            <div class="flex space-x-2 space-x-reverse mb-4">
+                <input type="text" id="new-supervisor-input" class="flex-1 p-3 rounded-lg border font-bold text-sm bg-gray-50 focus:bg-white" placeholder="اسم المحضر الجديد...">
+                <button onclick="addNewSupervisor()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm shadow">إضافة</button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 border rounded-xl p-2 bg-gray-50 space-y-2 min-h-[150px]" id="supervisors-list-container">
+                <!-- سيتم حقن قائمة المحضرين هنا -->
+            </div>
+        </div>
+    </div>
+
+    <div id="offline-indicator" class="fixed top-0 left-0 w-full bg-red-500 text-white text-xs font-bold text-center py-1 hidden z-50 shadow-md">
+        ⚠️ لا يوجد اتصال بالإنترنت. سيتم حفظ التغييرات ومزامنتها لاحقاً.
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, setDoc, doc, addDoc, deleteDoc, enableIndexedDbPersistence, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSVQoUbC_3gdjfJ-cQt0zgHCVEENmd2tk",
+            authDomain: "dor-8d904.firebaseapp.com",
+            projectId: "dor-8d904",
+            storageBucket: "dor-8d904.firebasestorage.app",
+            messagingSenderId: "1052547052694",
+            appId: "1:1052547052694:web:5e43af00f902b91cd07eb7"
+        };
+
+        let app, auth, db, user;
+        let participants = [];
+        let supervisors = []; 
+        let currentTab = 'attendance';
+        let allLogs = []; 
+        let allSessions = []; 
+        let currentSession = null; 
+        let viewingSessionId = null; 
+        let logsViewMode = 'sessions'; 
+
+        async function initApp() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // تفعيل ميزة العمل بدون إنترنت
+                try {
+                    await enableIndexedDbPersistence(db);
+                    console.log("Offline persistence enabled");
+                } catch (err) {
+                    if (err.code == 'failed-precondition') {
+                        console.warn("Offline persistence failed: Multiple tabs open.");
+                    } else if (err.code == 'unimplemented') {
+                        console.warn("Offline persistence not supported by browser.");
+                    }
+                }
+
+                // مراقبة حالة الإنترنت
+                window.addEventListener('online', updateNetworkStatus);
+                window.addEventListener('offline', updateNetworkStatus);
+                updateNetworkStatus();
+
+                await signInAnonymously(auth);
+                user = auth.currentUser;
+
+                if (user) {
+                    startRealtimeListener(); 
+                    startStudentsListener(); 
+                    startSupervisorsListener(); 
+                }
+            } catch (error) {
+                console.error("Error initializing app:", error);
+                document.getElementById('main-content').innerHTML = `<div class="p-4 text-red-500 text-center font-bold">حدث خطأ في الاتصال بقاعدة البيانات. تأكد من إعداداتك.</div>`;
+            }
+        }
+
+        function updateNetworkStatus() {
+            const indicator = document.getElementById('offline-indicator');
+            if (navigator.onLine) {
+                indicator.classList.add('hidden');
+            } else {
+                indicator.classList.remove('hidden');
+            }
+        }
+
+        function startRealtimeListener() {
+            const sessionsCollection = collection(db, 'trip_sessions');
+            onSnapshot(sessionsCollection, (snapshot) => {
+                allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const activeSessions = allSessions.filter(s => s.status === 'active').sort((a, b) => b.createdAt - a.createdAt);
+                currentSession = activeSessions.length > 0 ? activeSessions[0] : null;
+                updateMissingBadge();
+                renderCurrentTab();
+            }, (error) => console.error("Sessions Error:", error));
+
+            const logsCollection = collection(db, 'trip_logs');
+            onSnapshot(logsCollection, (snapshot) => {
+                allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateMissingBadge();
+                if (currentTab !== 'students') renderCurrentTab();
+            }, (error) => console.error("Logs Error:", error));
+        }
+
+        function startStudentsListener() {
+            const studentsCollection = collection(db, 'students');
+            onSnapshot(studentsCollection, (snapshot) => {
+                participants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                participants.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+                if (currentTab === 'students' || currentTab === 'attendance') renderCurrentTab();
+            }, (error) => console.error("Students Error:", error));
+        }
+
+        function startSupervisorsListener() {
+            const supervisorsCollection = collection(db, 'supervisors');
+            onSnapshot(supervisorsCollection, (snapshot) => {
+                supervisors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                supervisors.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+                updateSupervisorSelect(); 
+                if (!document.getElementById('supervisors-modal').classList.contains('hidden')) {
+                    renderSupervisorsList(); 
+                }
+            }, (error) => console.error("Supervisors Error:", error));
+        }
+
+        function updateSupervisorSelect() {
+            const selectElement = document.getElementById('new-supervisor-name');
+            if (selectElement) {
+                const currentValue = selectElement.value;
+                selectElement.innerHTML = `<option value="" disabled ${!currentValue ? 'selected' : ''}>اختر اسم المحضر...</option>` +
+                    supervisors.map(sup => `<option value="${sup.name}" ${currentValue === sup.name ? 'selected' : ''}>${sup.name}</option>`).join('');
+            }
+        }
+
+        window.showModal = function(title, message, confirmCallback, confirmText = 'تأكيد', isDanger = false) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.innerText = confirmText;
+            confirmBtn.className = isDanger 
+                ? "px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
+                : "px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors";
+            confirmBtn.onclick = () => { confirmCallback(); closeModal(); };
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        window.closeModal = function() { document.getElementById('custom-modal').classList.add('hidden'); }
+        window.showAlert = function(title, message) { showModal(title, message, () => {}, 'حسناً'); }
+
+        window.openSupervisorsModal = function() {
+            renderSupervisorsList();
+            document.getElementById('supervisors-modal').classList.remove('hidden');
+        }
+
+        window.closeSupervisorsModal = function() {
+            document.getElementById('supervisors-modal').classList.add('hidden');
+        }
+
+        window.addNewSupervisor = async function() {
+            if (!user) return;
+            const inputElement = document.getElementById('new-supervisor-input');
+            const name = inputElement.value.trim();
+            if (!name) { showAlert("تنبيه", "الرجاء إدخال اسم المحضر."); return; }
+            if (supervisors.some(s => s.name === name)) { showAlert("تنبيه", "هذا الاسم موجود مسبقاً."); return; }
+            
+            try {
+                await addDoc(collection(db, 'supervisors'), { name: name, createdAt: Date.now() });
+                inputElement.value = '';
+            } catch (error) { console.error("Add supervisor error:", error); }
+        }
+
+        window.deleteSupervisor = function(id, name) {
+            showModal("حذف محضر", `هل تريد حذف "${name}" من قائمة المحضرين؟`, async () => {
+                try { await deleteDoc(doc(db, 'supervisors', id)); } 
+                catch (error) { console.error("Delete supervisor error:", error); }
+            }, "حذف", true);
+        }
+
+        function renderSupervisorsList() {
+            const container = document.getElementById('supervisors-list-container');
+            if (supervisors.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 text-sm py-6 font-bold">لا يوجد محضرين مضافين</p>';
+                return;
+            }
+            let html = '';
+            supervisors.forEach(sup => {
+                html += `
+                    <div class="bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center mb-2">
+                        <div class="font-bold text-sm text-gray-800">${sup.name}</div>
+                        <button onclick="deleteSupervisor('${sup.id}', '${sup.name}')" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        window.startNewSession = async function() {
+            const eventName = document.getElementById('new-event-name').value.trim();
+            const supervisorSelect = document.getElementById('new-supervisor-name');
+            const supervisor = supervisorSelect ? supervisorSelect.value : '';
+            if (!eventName || !supervisor) {
+                showAlert("تنبيه", "الرجاء إدخال اسم الفعالية واختيار اسم المسؤول.");
+                return;
+            }
+            try {
+                await addDoc(collection(db, 'trip_sessions'), {
+                    eventName: eventName,
+                    supervisor: supervisor,
+                    status: 'active',
+                    createdAt: Date.now()
+                });
+            } catch (error) { console.error("Error starting session:", error); }
+        };
+
+        window.endActiveSession = function() {
+            if (!currentSession) return;
+            const currentSessionLogs = allLogs.filter(log => log.sessionId === currentSession.id);
+            const markedStudentNames = currentSessionLogs.map(log => log.studentName);
+            const unmarkedStudents = participants.filter(p => !markedStudentNames.includes(p.name));
+
+            if (unmarkedStudents.length > 0) {
+                showModal(
+                    "تنبيه: تحضير غير مكتمل",
+                    `يوجد عدد (${unmarkedStudents.length}) من المشاركين لم يتم تحديد حالتهم.\nهل تريد العودة لتحضيرهم، أم اعتمادهم جميعاً كـ "حاضر" وإنهاء الجلسة؟`,
+                    async () => {
+                        try {
+                            const promises = unmarkedStudents.map(student => {
+                                const docId = `${currentSession.id}_${student.name}`.replace(/\s+/g, '_');
+                                const docRef = doc(db, 'trip_logs', docId);
+                                return setDoc(docRef, {
+                                    sessionId: currentSession.id,
+                                    studentName: student.name,
+                                    eventName: currentSession.eventName,
+                                    status: 'حاضر',
+                                    timestamp: Date.now()
+                                });
+                            });
+                            await Promise.all(promises);
+                            await setDoc(doc(db, 'trip_sessions', currentSession.id), { status: 'closed', endedAt: Date.now() }, { merge: true });
+                        } catch (error) { console.error("Error auto-marking:", error); }
+                    },
+                    "اعتمادهم كحاضر وإنهاء", false
+                );
+            } else {
+                showModal("إنهاء التحضير", "هل أنت متأكد من إنهاء التحضير واعتماده؟", async () => {
+                    try { await setDoc(doc(db, 'trip_sessions', currentSession.id), { status: 'closed', endedAt: Date.now() }, { merge: true }); } 
+                    catch (error) { console.error("Error ending:", error); }
+                }, "نعم، إنهاء واعتماد", true);
+            }
+        };
+
+        function updateMissingBadge() {
+            const badge = document.getElementById('missing-badge');
+            if (!currentSession) { badge.classList.add('hidden'); return; }
+            const missingCount = allLogs.filter(log => log.sessionId === currentSession.id && log.status === 'غائب').length;
+            if (missingCount > 0) { badge.innerText = missingCount; badge.classList.remove('hidden'); } 
+            else { badge.classList.add('hidden'); }
+        }
+
+        window.markStatus = async function(studentName, status) {
+            if (!user || !currentSession) return;
+            const docId = `${currentSession.id}_${studentName}`.replace(/\s+/g, '_');
+            try {
+                await setDoc(doc(db, 'trip_logs', docId), {
+                    sessionId: currentSession.id,
+                    studentName: studentName,
+                    eventName: currentSession.eventName,
+                    status: status,
+                    timestamp: Date.now()
+                });
+            } catch (error) { console.error("Error saving status:", error); }
+        };
+
+        window.addNewStudent = async function() {
+            if (!user) return;
+            const inputElement = document.getElementById('new-student-name');
+            const rawText = inputElement.value;
+            if (!rawText.trim()) { showAlert("تنبيه", "الرجاء إدخال أسماء!"); return; }
+            const namesArray = rawText.split(/[\n,،]+/).map(name => name.trim()).filter(name => name !== '');
+            if (namesArray.length === 0) return;
+
+            let addedCount = 0; let duplicateCount = 0;
+            const studentsCol = collection(db, 'students');
+
+            for (const studentName of namesArray) {
+                if (participants.some(p => p.name === studentName)) { duplicateCount++; continue; }
+                try {
+                    await addDoc(studentsCol, { name: studentName, createdAt: Date.now() });
+                    addedCount++;
+                } catch (error) { console.error("Add error:", error); }
+            }
+            inputElement.value = ''; 
+            showAlert("النتيجة", `تمت إضافة ${addedCount} مشارك.\n(تم تجاهل ${duplicateCount} اسم مكرر)`);
+        }
+
+        window.confirmDeleteStudent = function(studentId, studentName) {
+            showModal("حذف مشارك", `هل تريد حذف "${studentName}"؟`, async () => {
+                try { await deleteDoc(doc(db, 'students', studentId)); } 
+                catch (error) { console.error("Delete error:", error); }
+            }, "حذف", true);
+        }
+
+        window.confirmDeleteSession = function(sessionId, eventName) {
+            showModal("حذف سجل تحضير", `هل أنت متأكد من حذف سجل "${eventName}" بالكامل؟\nسيتم مسح هذا السجل وإلغاء الخصومات (الغياب/التأخير) التي سُجلت فيه لجميع الطلاب. لا يمكن التراجع عن هذا الإجراء.`, async () => {
+                try {
+                    // 1. جلب وحذف جميع سجلات الطلاب المرتبطة بهذه الجلسة (لتنظيف الإحصائيات)
+                    const logsQuery = query(collection(db, 'trip_logs'), where('sessionId', '==', sessionId));
+                    const querySnapshot = await getDocs(logsQuery);
+                    const deletePromises = querySnapshot.docs.map(logDoc => deleteDoc(doc(db, 'trip_logs', logDoc.id)));
+                    await Promise.all(deletePromises);
+
+                    // 2. حذف الجلسة نفسها
+                    await deleteDoc(doc(db, 'trip_sessions', sessionId));
+                    
+                    if (viewingSessionId === sessionId) viewingSessionId = null;
+                    renderCurrentTab();
+                } catch (error) { 
+                    console.error("Delete session error:", error); 
+                    showAlert("خطأ", "حدث خطأ أثناء محاولة الحذف.");
+                }
+            }, "حذف نهائي", true);
+        }
+
+        window.switchTab = function(tabName) {
+            currentTab = tabName; viewingSessionId = null;
+            ['attendance', 'tracking', 'logs', 'students'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                btn.className = (t === tabName) ? btn.className.replace('tab-inactive', 'tab-active') : btn.className.replace('tab-active', 'tab-inactive');
+            });
+            renderCurrentTab();
+        };
+
+        function renderCurrentTab() {
+            const container = document.getElementById('main-content');
+            if (currentTab === 'attendance') container.innerHTML = renderAttendanceHTML();
+            else if (currentTab === 'tracking') container.innerHTML = renderTrackingHTML();
+            else if (currentTab === 'logs') container.innerHTML = renderLogsHTML();
+            else if (currentTab === 'students') container.innerHTML = renderStudentsHTML();
+        }
+
+        function renderAttendanceHTML() {
+            if (!currentSession) {
+                return `
+                    <div class="mb-6 bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-center mt-4">
+                        <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5">
+                            <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-black text-gray-800 mb-2">بدء تحضير جديد</h2>
+                        <div class="space-y-5 text-right mt-8">
+                            <div><label class="block text-sm font-bold mb-2">اسم الفعالية / البرنامج:</label>
+                            <input type="text" id="new-event-name" class="w-full p-4 rounded-xl border shadow-sm font-bold bg-gray-50 focus:bg-white transition-colors" placeholder="مثال: ركوب حافلة 1"></div>
+                            
+                            <div>
+                                <div class="flex justify-between items-end mb-2">
+                                    <label class="block text-sm font-bold">المسؤول (المُحضّر):</label>
+                                    <button onclick="openSupervisorsModal()" class="text-blue-700 text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors shadow-sm flex items-center space-x-1 space-x-reverse">
+                                        <span>⚙️ إدارة المحضرين</span>
+                                    </button>
+                                </div>
+                                <select id="new-supervisor-name" class="w-full p-4 rounded-xl border shadow-sm font-bold bg-gray-50 focus:bg-white transition-colors appearance-none">
+                                    <option value="" disabled selected>اختر اسم المحضر...</option>
+                                    ${supervisors.map(sup => `<option value="${sup.name}">${sup.name}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <button onclick="startNewSession()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">فتح القائمة وبدء التحضير</button>
+                        </div>
+                    </div>`;
+            }
+
+            const currentSessionLogs = allLogs.filter(log => log.sessionId === currentSession.id);
+            let html = `
+                <div class="mb-4 bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm flex justify-between items-center border-r-4 border-r-blue-600">
+                    <div><h2 class="text-xl font-bold text-blue-900">${currentSession.eventName}</h2><p class="text-xs font-bold text-blue-600 mt-1">👤 ${currentSession.supervisor}</p></div>
+                    <span class="bg-green-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full animate-pulse">مفتوح الآن</span>
+                </div><div class="space-y-3 pb-24">`;
+
+            if (participants.length === 0) {
+                html += `<div class="text-center mt-10 text-gray-500 p-6"><p class="font-bold">قائمة الطلاب فارغة</p><button onclick="switchTab('students')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">إضافة</button></div>`;
+            } else {
+                participants.forEach(studentObj => {
+                    const student = studentObj.name;
+                    const log = currentSessionLogs.find(l => l.studentName === student);
+                    const status = log ? log.status : null;
+                    let pClass = status === 'حاضر' ? 'bg-green-500 text-white scale-105 border-2 border-green-600' : 'bg-gray-100 text-gray-600';
+                    let aClass = status === 'غائب' ? 'bg-red-500 text-white scale-105 border-2 border-red-600' : 'bg-gray-100 text-gray-600';
+                    let lClass = status === 'متأخر' ? 'bg-yellow-500 text-white scale-105 border-2 border-yellow-600' : 'bg-gray-100 text-gray-600';
+
+                    html += `
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col space-y-3">
+                            <div class="font-bold text-gray-800">${student}</div>
+                            <div class="flex space-x-2 space-x-reverse">
+                                <button onclick="markStatus('${student}', 'حاضر')" class="flex-1 py-2.5 rounded-lg text-sm font-bold ${pClass}">حاضر</button>
+                                <button onclick="markStatus('${student}', 'غائب')" class="flex-1 py-2.5 rounded-lg text-sm font-bold ${aClass}">غائب</button>
+                                <button onclick="markStatus('${student}', 'متأخر')" class="flex-1 py-2.5 rounded-lg text-sm font-bold ${lClass}">متأخر</button>
+                            </div>
+                        </div>`;
+                });
+            }
+            html += `</div>
+                <div class="fixed bottom-[80px] w-full px-4 max-w-md left-1/2 transform -translate-x-1/2 z-10">
+                    <button onclick="endActiveSession()" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-black">إنهاء واعتماد التحضير</button>
+                </div>`;
+            return html;
+        }
+
+        function renderTrackingHTML() {
+            if (!currentSession) return `<div class="text-center mt-32 text-gray-400"><p class="text-xl font-bold">لا يوجد تحضير نشط</p></div>`;
+            const missing = allLogs.filter(log => log.sessionId === currentSession.id && log.status === 'غائب');
+            let html = `<div class="mb-4 bg-white p-3 rounded-lg shadow-sm font-bold">جاري البحث عن (${missing.length})</div>`;
+            if (missing.length === 0) html += `<div class="text-center mt-20 text-green-500 font-bold text-lg">العدد مكتمل!</div>`;
+            else {
+                html += `<div class="space-y-4 pb-6">`;
+                missing.sort((a,b) => b.timestamp - a.timestamp).forEach(log => {
+                    html += `
+                        <div class="bg-red-50 border-r-4 border-red-500 p-4 rounded-xl shadow-sm">
+                            <h3 class="font-bold text-red-800 text-lg">⚠️ ${log.studentName}</h3>
+                            <button onclick="markStatus('${log.studentName}', 'متأخر')" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow">العثور عليه (تأخير)</button>
+                        </div>`;
+                });
+                html += `</div>`;
+            }
+            return html;
+        }
+
+        window.viewSessionDetails = function(id) { viewingSessionId = id; renderCurrentTab(); };
+        window.backToSessionsList = function() { viewingSessionId = null; renderCurrentTab(); };
+        window.setLogsViewMode = function(mode) { logsViewMode = mode; viewingSessionId = null; renderCurrentTab(); };
+
+        function renderLogsHTML() {
+            if (viewingSessionId) {
+                const session = allSessions.find(s => s.id === viewingSessionId);
+                const logs = allLogs.filter(log => log.sessionId === viewingSessionId);
+                let html = `
+                    <div class="flex items-center mb-4 pb-3 border-b"><button onclick="backToSessionsList()" class="bg-white border p-2 rounded-lg text-gray-600 ml-3">رجوع</button>
+                    <h2 class="text-lg font-black truncate">${session.eventName}</h2></div>
+                    <div class="space-y-2 pb-6">`;
+                logs.forEach(log => {
+                    let c = log.status === 'حاضر' ? 'text-green-700 bg-green-100' : (log.status === 'غائب' ? 'text-red-700 bg-red-100' : 'text-yellow-800 bg-yellow-200');
+                    html += `<div class="bg-white p-3 rounded-xl border flex justify-between"><p class="font-bold text-sm">${log.studentName}</p><span class="px-3 py-1 rounded-full text-xs font-bold ${c}">${log.status}</span></div>`;
+                });
+                return html + `</div>`;
+            }
+
+            let html = `
+                <div class="flex bg-gray-100 p-1 rounded-xl mb-5 shadow-sm border">
+                    <button onclick="setLogsViewMode('sessions')" class="flex-1 py-2.5 text-sm font-bold rounded-lg ${logsViewMode === 'sessions' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}">سجل الفعاليات</button>
+                    <button onclick="setLogsViewMode('statistics')" class="flex-1 py-2.5 text-sm font-bold rounded-lg ${logsViewMode === 'statistics' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}">ملخص الخصومات</button>
+                </div>`;
+
+            if (logsViewMode === 'statistics') {
+                html += `<div class="mb-4"><h2 class="text-xl font-black">إحصائيات الخصومات</h2></div>
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden mb-20"><table class="w-full text-right"><thead class="bg-gray-50 border-b"><tr>
+                    <th class="py-3 px-4 text-sm">اسم الطالب</th><th class="py-3 px-4 text-red-700 text-sm text-center">الغياب</th><th class="py-3 px-4 text-yellow-600 text-sm text-center">التأخير</th></tr></thead><tbody class="divide-y">`;
+                
+                let stats = {};
+                participants.forEach(p => { stats[p.name] = { absent: 0, late: 0 }; });
+                allLogs.forEach(log => {
+                    if (stats[log.studentName]) {
+                        if (log.status === 'غائب') stats[log.studentName].absent++;
+                        if (log.status === 'متأخر') stats[log.studentName].late++;
+                    }
+                });
+                let statsArr = Object.keys(stats).map(name => ({ name, ...stats[name] })).sort((a,b) => (b.absent*2+b.late) - (a.absent*2+a.late));
+                
+                statsArr.forEach(stat => {
+                    let isPen = stat.absent > 0 || stat.late > 0;
+                    html += `
+                        <tr class="${isPen ? 'bg-red-50' : ''}">
+                            <td class="py-3 px-4 font-bold text-sm">${stat.name}</td>
+                            <td class="py-3 px-4 text-center">${stat.absent > 0 ? `<span class="bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-full text-xs">${stat.absent}</span>` : '-'}</td>
+                            <td class="py-3 px-4 text-center">${stat.late > 0 ? `<span class="bg-yellow-100 text-yellow-700 font-bold px-2.5 py-1 rounded-full text-xs">${stat.late}</span>` : '-'}</td>
+                        </tr>`;
+                });
+                return html + `</tbody></table></div>`;
+            }
+
+            html += `<div class="space-y-3 pb-6">`;
+            const sortedSessions = [...allSessions].sort((a, b) => b.createdAt - a.createdAt);
+            sortedSessions.forEach(session => {
+                const isClosed = session.status === 'closed';
+                html += `
+                    <div class="bg-white p-4 rounded-xl border ${isClosed ? 'border-gray-200' : 'border-green-300'} shadow-sm flex justify-between items-center">
+                        <div onclick="viewSessionDetails('${session.id}')" class="flex-1 cursor-pointer">
+                            <div class="flex items-center space-x-2 space-x-reverse mb-1.5"><h3 class="font-bold text-base">${session.eventName}</h3>
+                            ${isClosed ? `<span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded font-bold">مغلق</span>` : `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded font-bold animate-pulse">مفتوح</span>`}</div>
+                            <p class="text-xs text-gray-500 font-medium">${session.supervisor} • ${new Date(session.createdAt).toLocaleDateString('ar-SA')}</p>
+                        </div>
+                        <button onclick="confirmDeleteSession('${session.id}', '${session.eventName}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors ml-1" title="حذف السجل">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>`;
+            });
+            return html + `</div>`;
+        }
+
+        function renderStudentsHTML() {
+            let html = `
+                <div class="mb-6"><h2 class="text-lg font-black mb-3">إدارة المشاركين (${participants.length})</h2>
+                <div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
+                    <textarea id="new-student-name" rows="3" class="w-full p-3 rounded-lg border font-bold" placeholder="أحمد محمد\nخالد..."></textarea>
+                    <button onclick="addNewStudent()" class="w-full mt-3 bg-gray-900 text-white py-3 rounded-lg font-bold">إضافة الأسماء</button>
+                </div><div class="space-y-2 pb-6">`;
+            participants.forEach(student => {
+                html += `
+                    <div class="bg-white p-3 rounded-xl border shadow-sm flex justify-between items-center">
+                        <div class="font-bold text-sm">${student.name}</div>
+                        <button onclick="confirmDeleteStudent('${student.id}', '${student.name}')" class="text-red-400 p-2">حذف</button>
+                    </div>`;
+            });
+            return html + `</div></div>`;
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
