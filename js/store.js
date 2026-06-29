@@ -21,6 +21,25 @@
   // الأسماء القانونية حسب المعرّف (تُطبَّق على البيانات القديمة عند التحميل)
   var CANON_NAMES = { qimma: 'البواسل', tumooh: 'الكواسر', sumood: 'المعالي', ruwwad: 'الشموخ' };
 
+  var DEFAULT_TEACHERS = {
+    "حاتم الحارثي": "1234",
+    "أحمد الذبياني": "1234",
+    "سليمان جهاد": "1234",
+    "أمجد العماري": "1234",
+    "عمار الصبحي": "1234",
+    "عمر فتني": "1234",
+    "عبدالعزيز باحيدرة": "1234",
+    "محمد باغزوزة": "1234"
+  };
+
+  function copyTeachers() {
+    var obj = {};
+    for (var k in DEFAULT_TEACHERS) {
+      if (DEFAULT_TEACHERS.hasOwnProperty(k)) obj[k] = DEFAULT_TEACHERS[k];
+    }
+    return obj;
+  }
+
   var channel = null;
   if ('BroadcastChannel' in global) {
     try { channel = new BroadcastChannel(CHANNEL_NAME); } catch (e) { channel = null; }
@@ -47,7 +66,8 @@
       // نقاط التحضير لكل حالة (قابلة للضبط من الإعدادات)
       attendancePoints: { early: 10, present: 5, absent: 0 },
       // سجل التحضير: { 'YYYY-MM-DD': { studentId: 'early'|'present'|'absent' } }
-      attendance: {}
+      attendance: {},
+      teachers: copyTeachers()
     };
   }
 
@@ -66,6 +86,11 @@
         });
       }
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
+      if (parsed.teachers && typeof parsed.teachers === 'object') {
+        for (var k in s.teachers) {
+          if (parsed.teachers.hasOwnProperty(k)) s.teachers[k] = parsed.teachers[k];
+        }
+      }
     }
     // ترحيل: فرض الأسماء الجديدة حسب المعرّف مع الحفاظ على الأهداف
     s.groups.forEach(function (g) { if (CANON_NAMES[g.id]) g.name = CANON_NAMES[g.id]; });
@@ -125,6 +150,7 @@
         if (data.groups) state.groups = data.groups;
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
         if (typeof data.supervisor === 'string') state.supervisor = data.supervisor;
+        if (data.teachers && typeof data.teachers === 'object') state.teachers = data.teachers;
         persist();
         emit(false);
         applyingRemote = false;
@@ -132,7 +158,8 @@
         db.collection('settings').doc('config').set({
           groups: state.groups,
           attendancePoints: state.attendancePoints,
-          supervisor: state.supervisor
+          supervisor: state.supervisor,
+          teachers: state.teachers
         }).catch(function () {});
       }
     }, function (err) {
@@ -726,6 +753,62 @@
     };
   }
 
+  function isLoggedIn() {
+    try {
+      return !!global.localStorage.getItem('logged_in_teacher');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function getLoggedInTeacher() {
+    try {
+      return global.localStorage.getItem('logged_in_teacher') || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function getTeachers() {
+    var obj = {};
+    for (var k in state.teachers) {
+      if (state.teachers.hasOwnProperty(k)) obj[k] = state.teachers[k];
+    }
+    return obj;
+  }
+
+  function setTeacherPassword(name, password) {
+    password = (password || '').trim();
+    if (!password) throw new Error('كلمة المرور مطلوبة');
+    if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
+    state.teachers[name] = password;
+    if (db) {
+      db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function() {});
+    }
+    commit();
+  }
+
+  function login(name, password) {
+    name = (name || '').trim();
+    password = (password || '').trim();
+    if (!state.teachers.hasOwnProperty(name)) return false;
+    if (state.teachers[name] === password) {
+      try {
+        global.localStorage.setItem('logged_in_teacher', name);
+      } catch (e) {}
+      setSupervisor(name);
+      return true;
+    }
+    return false;
+  }
+
+  function logout() {
+    try {
+      global.localStorage.removeItem('logged_in_teacher');
+    } catch (e) {}
+    setSupervisor('');
+  }
+
   global.Store = {
     getState: getState,
     getGroups: getGroups,
@@ -760,6 +843,12 @@
     resetAll: resetAll,
     exportData: exportData,
     importData: importData,
-    subscribe: subscribe
+    subscribe: subscribe,
+    isLoggedIn: isLoggedIn,
+    getLoggedInTeacher: getLoggedInTeacher,
+    getTeachers: getTeachers,
+    setTeacherPassword: setTeacherPassword,
+    login: login,
+    logout: logout
   };
 })(window);

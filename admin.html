@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام النقاط — لوحة المشرف</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- طبقة تسجيل الدخول للمعلمين -->
+  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
+    <div style="background:#1e293b; border:1px solid #334155; padding:30px; border-radius:16px; max-width:400px; width:100%; shadow-2xl space-y-5 text-right; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+      <div style="text-align:center; margin-bottom:20px;">
+        <span style="font-size:40px;">🔑</span>
+        <h2 style="font-size:20px; font-weight:800; color:#fff; margin-top:10px;">بوابة المعلمين</h2>
+        <p style="font-size:12px; color:#94a3b8; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:bold; color:#cbd5e1;">👤 اسم المعلم:</label>
+        <select id="loginTeacherSelect" style="width:100%; padding:12px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:14px;">
+          <!-- سيتم تعبئته بواسطة JS -->
+        </select>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:bold; color:#cbd5e1;">🔑 كلمة المرور:</label>
+        <input type="password" id="loginPasswordInput" style="width:100%; padding:12px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:14px;" placeholder="أدخل كلمة المرور..." />
+      </div>
+      
+      <button id="btnLoginSubmit" style="width:100%; padding:14px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; font-size:14px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.4);">دخول للمنصة</button>
+      
+      <div id="loginErrorMsg" style="color:#ef4444; font-size:12px; font-weight:bold; text-align:center; display:none; margin-top:12px;">❌ كلمة المرور غير صحيحة!</div>
+    </div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> نظام نقاط الطلاب والمجموعات</div>
+    <div class="spacer"></div>
+    <div class="supervisor-box" style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:13px; font-weight:bold; color:#94a3b8;">👤 المعلم:</span>
+      <span id="activeTeacherName" style="font-size:14px; font-weight:800; color:#f1f5f9;">—</span>
+      <button id="btnLogout" class="btn sm" style="background:#b91c1c; border:none; color:white; border-radius:6px; padding:4px 10px; font-weight:bold; font-size:11px; cursor:pointer;">🚪 خروج</button>
+    </div>
+    <a class="btn ghost sm" href="index.html">🏠 الرئيسية</a>
+    <a class="btn ghost sm" href="attendance.html">✅ التحضير</a>
+    <a class="btn ghost sm" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
+    <a class="btn ghost sm" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="points">⚡ إضافة نقاط</button>
+    <button class="tab" data-view="students">👥 إدارة الطلاب</button>
+    <button class="tab" data-view="individual">📋 النقاط الفردية</button>
+    <button class="tab" data-view="groups">🏆 المجموعات</button>
+    <button class="tab" data-view="reports">📊 التقارير</button>
+    <button class="tab" data-view="log">🧾 سجل العمليات</button>
+    <button class="tab" data-view="settings">⚙️ الإعدادات</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- ====================== إضافة نقاط ====================== -->
+    <section class="view active" id="view-points">
+      <h2 class="page-title">إضافة / خصم النقاط</h2>
+      <p class="page-sub">اختر الطالب، أدخل عدد النقاط ونوع العملية ثم احفظ.</p>
+
+      <div class="card points-form">
+        <!-- 1) اختيار الطالب -->
+        <div class="pp-step">
+          <label class="pp-label">1 · الطالب</label>
+          <div class="pp-select">
+            <input id="ppSearch" placeholder="🔎 ابحث بالاسم لتصفية القائمة..." />
+            <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
+          </div>
+        </div>
+
+        <!-- بطاقة الطالب المختار -->
+        <div class="student-preview" id="ppPreview">
+          <div class="avatar" id="ppAvatar">؟</div>
+          <div class="info">
+            <div class="nm" id="ppName">—</div>
+            <div class="gp" id="ppGroup">—</div>
+          </div>
+          <div class="cur">
+            <div class="v" id="ppCurrent">0</div>
+            <div class="l">النقاط الحالية</div>
+          </div>
+        </div>
+
+        <!-- 2) نوع العملية -->
+        <div class="pp-step">
+          <label class="pp-label">2 · نوع العملية</label>
+          <div class="seg big" id="ppType">
+            <button type="button" class="add active" data-type="add">➕ إضافة</button>
+            <button type="button" class="sub" data-type="subtract">➖ خصم</button>
+          </div>
+        </div>
+
+        <!-- 3) عدد النقاط -->
+        <div class="pp-step">
+          <label class="pp-label">3 · عدد النقاط</label>
+          <input id="ppAmount" type="number" min="1" step="1" placeholder="اكتب العدد أو اختر بسرعة" />
+          <div class="chip-filters mini" id="ppQuick">
+            <button type="button" class="chip" data-amt="1">1</button>
+            <button type="button" class="chip" data-amt="3">3</button>
+            <button type="button" class="chip" data-amt="5">5</button>
+            <button type="button" class="chip" data-amt="10">10</button>
+            <button type="button" class="chip" data-amt="25">25</button>
+            <button type="button" class="chip" data-amt="50">50</button>
+          </div>
+        </div>
+
+        <!-- 4) السبب -->
+        <div class="pp-step">
+          <label class="pp-label">4 · السبب <span class="muted">(اختياري)</span></label>
+          <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
+          <div class="chip-filters mini" id="ppReasons">
+            <button type="button" class="chip" data-reason="المشاركة">المشاركة</button>
+            <button type="button" class="chip" data-reason="الحضور المبكر">الحضور المبكر</button>
+            <button type="button" class="chip" data-reason="حسن السلوك">حسن السلوك</button>
+            <button type="button" class="chip" data-reason="إنجاز الواجب">إنجاز الواجب</button>
+            <button type="button" class="chip" data-reason="التميّز">التميّز</button>
+          </div>
+        </div>
+
+        <button class="btn green block" id="ppSave">💾 حفظ العملية</button>
+        <div class="pp-undo">
+          <button class="btn ghost sm" id="ppUndoLast">↩️ تراجع عن آخر عملية</button>
+          <span class="muted" id="ppLastInfo"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>أشرطة المجموعات (مباشر)</h3>
+        <div class="bars-grid" id="ppBars"></div>
+      </div>
+    </section>
+
+    <!-- ====================== إدارة الطلاب ====================== -->
+    <section class="view" id="view-students">
+      <h2 class="page-title">إدارة الطلاب</h2>
+      <p class="page-sub">إضافة، تعديل، وحذف الطلاب وتحديد مجموعاتهم.</p>
+
+      <div class="card">
+        <h3 id="stFormTitle">إضافة طالب جديد</h3>
+        <div class="row">
+          <div class="field" style="flex:2">
+            <label>الاسم</label>
+            <input id="stName" placeholder="اسم الطالب" />
+          </div>
+          <div class="field">
+            <label>المجموعة</label>
+            <select id="stGroup"></select>
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button class="btn" id="stSave">إضافة</button>
+              <button class="btn ghost" id="stCancel" style="display:none">إلغاء</button>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="stEditId" />
+      </div>
+
+      <div class="card">
+        <h3>➕ إضافة دفعة طلاب</h3>
+        <p class="page-sub" style="margin-bottom:12px">اكتب اسمًا في كل سطر، اختر المجموعة، ثم أضف الجميع دفعة واحدة.</p>
+        <div class="row">
+          <div class="field" style="flex:0; min-width:200px">
+            <label>المجموعة</label>
+            <select id="bulkGroup"></select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field">
+            <label>الأسماء (اسم بكل سطر)</label>
+            <textarea id="bulkNames" rows="5" placeholder="أحمد الذبياني&#10;محمد الغامدي&#10;سعد القحطاني"></textarea>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="bulkAdd">إضافة الجميع</button>
+          <span class="muted" id="bulkCount"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <input class="grow" id="stSearch" placeholder="🔎 بحث بالاسم..." />
+          <span class="muted" id="stCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>الاسم</th><th>المجموعة</th><th>النقاط</th><th class="right">إجراءات</th></tr>
+            </thead>
+            <tbody id="stBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="stEmpty" style="display:none">لا يوجد طلاب بعد.</div>
+      </div>
+    </section>
+
+    <!-- ====================== النقاط الفردية ====================== -->
+    <section class="view" id="view-individual">
+      <h2 class="page-title">النقاط الفردية</h2>
+      <p class="page-sub">جميع الطلاب ونقاطهم مع الفلترة والترتيب.</p>
+
+      <div class="card">
+        <div class="chip-filters" id="indFilters"></div>
+        <div class="toolbar" style="margin-top:14px">
+          <input class="grow" id="indSearch" placeholder="🔎 بحث بالاسم..." />
+          <div class="field" style="flex:0; min-width:200px">
+            <select id="indSort">
+              <option value="high">الأعلى نقاطًا</option>
+              <option value="low">الأقل نقاطًا</option>
+              <option value="alpha">الترتيب الأبجدي</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>الاسم</th><th>المجموعة</th><th>النقاط</th></tr>
+            </thead>
+            <tbody id="indBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="indEmpty" style="display:none">لا يوجد طلاب مطابقون.</div>
+      </div>
+    </section>
+
+    <!-- ====================== المجموعات ====================== -->
+    <section class="view" id="view-groups">
+      <h2 class="page-title">ترتيب المجموعات</h2>
+      <p class="page-sub">المجموع محسوب تلقائيًا من نقاط الطلاب.</p>
+      <div class="card">
+        <div class="bars-grid" id="grBars"></div>
+      </div>
+    </section>
+
+    <!-- ====================== التقارير والإحصائيات ====================== -->
+    <section class="view" id="view-reports">
+      <h2 class="page-title">التقارير والإحصائيات</h2>
+      <p class="page-sub">نظرة شاملة على أداء المجموعات والطلاب.</p>
+
+      <div class="stats-grid" id="repStats"></div>
+
+      <div class="card">
+        <h3>مقارنة المجموعات</h3>
+        <div id="repChart"></div>
+      </div>
+
+      <div class="card">
+        <h3>🏅 أعلى الطلاب</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>الاسم</th><th>المجموعة</th><th>النقاط</th></tr></thead>
+            <tbody id="repTop"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="repTopEmpty" style="display:none">لا توجد بيانات بعد.</div>
+      </div>
+
+      <div class="card">
+        <h3>🥇 متصدّر كل مجموعة</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>المجموعة</th><th>المتصدّر</th><th>نقاطه</th><th>عدد الطلاب</th><th>المتوسط</th></tr></thead>
+            <tbody id="repPerGroup"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== سجل العمليات ====================== -->
+    <section class="view" id="view-log">
+      <h2 class="page-title">سجل العمليات</h2>
+      <p class="page-sub">كل عملية إضافة أو خصم محفوظة هنا، مع إمكانية التراجع.</p>
+      <div class="card">
+        <div class="toolbar">
+          <input class="grow" id="logSearch" placeholder="🔎 بحث بالطالب أو المشرف أو السبب..." />
+          <span class="muted" id="logCount"></span>
+          <button class="btn ghost sm" id="logExport">⬇️ تصدير CSV</button>
+          <button class="btn red sm" id="logClear">🗑️ مسح السجل</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>التاريخ والوقت</th><th>الطالب</th><th>المجموعة</th><th>النوع</th><th>النقاط</th><th>السبب</th><th>المشرف</th><th class="right">تراجع</th></tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="logEmpty" style="display:none">السجل فارغ.</div>
+      </div>
+    </section>
+
+    <!-- ====================== الإعدادات ====================== -->
+    <section class="view" id="view-settings">
+      <h2 class="page-title">الإعدادات</h2>
+      <p class="page-sub">أهداف المجموعات، الجولات، والنسخ الاحتياطي.</p>
+
+      <div class="card">
+        <h3>🎯 أهداف المجموعات</h3>
+        <div id="setGoals"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field" style="flex:0; min-width:160px">
+            <label>تعيين هدف موحّد للجميع</label>
+            <input id="setAllGoal" type="number" min="1" step="1" placeholder="مثال: 100" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn ghost" id="setAllGoalBtn">تطبيق على الكل</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>✅ نقاط التحضير</h3>
+        <p class="page-sub" style="margin-bottom:12px">قيمة النقاط الممنوحة تلقائيًا لكل حالة تحضير.</p>
+        <div class="row">
+          <div class="field" style="flex:0; min-width:140px">
+            <label>⏰ حضور مبكر</label>
+            <input type="number" step="1" id="apEarly" />
+          </div>
+          <div class="field" style="flex:0; min-width:140px">
+            <label>✅ حاضر</label>
+            <input type="number" step="1" id="apPresent" />
+          </div>
+          <div class="field" style="flex:0; min-width:140px">
+            <label>❌ غائب</label>
+            <input type="number" step="1" id="apAbsent" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn" id="apSave">حفظ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🔑 حسابات وكلمات مرور المعلمين</h3>
+        <p class="page-sub" style="margin-bottom:12px">عرض وتعديل كلمات مرور المعلمين للمنصة.</p>
+        <div class="table-wrap">
+          <table style="width:100%; text-align:right;">
+            <thead>
+              <tr>
+                <th style="padding:8px;">👤 اسم المعلم</th>
+                <th style="padding:8px;">🔑 كلمة المرور</th>
+                <th style="padding:8px; text-align:center; width:120px;">حفظ التغيير</th>
+              </tr>
+            </thead>
+            <tbody id="teachersPasswordsTable">
+              <!-- سيتم تعبئته بواسطة JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🔄 الجولات</h3>
+        <p class="page-sub" style="margin-bottom:12px">بدء جولة جديدة يصفّر نقاط جميع الطلاب مع الإبقاء عليهم.</p>
+        <div class="row">
+          <button class="btn ghost" id="setResetPoints">تصفير النقاط (إبقاء السجل)</button>
+          <button class="btn ghost" id="setResetPointsLog">تصفير النقاط ومسح السجل</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💾 النسخ الاحتياطي</h3>
+        <div class="row">
+          <button class="btn ghost" id="setExport">⬇️ تصدير نسخة (JSON)</button>
+          <button class="btn ghost" id="setImportBtn">⬆️ استيراد نسخة</button>
+          <input type="file" id="setImportFile" accept="application/json" style="display:none" />
+        </div>
+        <p class="muted" style="margin-top:14px">منطقة الخطر:</p>
+        <button class="btn red" id="setReset">حذف كل البيانات وإعادة التهيئة</button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

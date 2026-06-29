@@ -30,6 +30,33 @@
 </head>
 <body class="bg-slate-950 min-h-screen pb-24 flex flex-col">
 
+  <!-- طبقة تسجيل الدخول للمعلمين -->
+  <div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:100000; align-items:center; justify-content:center; padding:20px; font-family:'Tajawal', sans-serif;">
+    <div style="background:#1e293b; border:1px solid #334155; padding:24px; border-radius:16px; max-width:360px; width:100%; shadow-2xl space-y-5 text-right; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+      <div style="text-align:center; margin-bottom:16px;">
+        <span style="font-size:36px;">🔑</span>
+        <h2 style="font-size:18px; font-weight:800; color:#fff; margin-top:8px;">بوابة المعلمين</h2>
+        <p style="font-size:11px; color:#94a3b8; margin-top:4px;">يرجى اختيار اسمك وإدخال كلمة المرور للمتابعة</p>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+        <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">👤 اسم المعلم:</label>
+        <select id="loginTeacherSelect" style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:13px;">
+          <!-- سيتم تعبئته بواسطة JS -->
+        </select>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+        <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">🔑 كلمة المرور:</label>
+        <input type="password" id="loginPasswordInput" style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; border-radius:8px; color:#f1f5f9; font-weight:bold; outline:none; font-size:13px;" placeholder="أدخل كلمة المرور..." />
+      </div>
+      
+      <button id="btnLoginSubmit" style="width:100%; padding:12px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer; margin-top:10px; box-shadow:0 4px 12px rgba(79, 70, 229, 0.4);">دخول للمنصة</button>
+      
+      <div id="loginErrorMsg" style="color:#ef4444; font-size:11px; font-weight:bold; text-align:center; display:none; margin-top:12px;">❌ كلمة المرور غير صحيحة!</div>
+    </div>
+  </div>
+
   <div id="app" class="max-w-md mx-auto bg-slate-900 min-h-screen shadow-2xl relative flex flex-col w-full border-x border-slate-800">
     <!-- الشريط العلوي -->
     <header class="bg-slate-800 border-b border-slate-700 text-white p-4 shadow-md sticky top-0 z-40 flex justify-between items-center">
@@ -38,8 +65,8 @@
         <h1 class="text-lg font-black">📋 التحضير والمتابعة</h1>
       </div>
       <div class="flex gap-2">
-        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="home.html">🏠 الرئيسية</a>
-        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="index.html">📋 البرنامج</a>
+        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="index.html">🏠 الرئيسية</a>
+        <a class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors" href="admin.html">📋 البرنامج</a>
       </div>
     </header>
 
@@ -52,7 +79,11 @@
         </div>
         <div class="flex-1">
           <label class="block text-xs font-bold text-slate-400 mb-1">👤 المشرف (المحضر):</label>
-          <input type="text" id="supervisorInput" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 font-bold outline-none focus:border-indigo-500" placeholder="اسم المشرف..." />
+          <div class="flex gap-1.5">
+            <input type="text" id="supervisorInput" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 font-bold outline-none" disabled />
+            <button id="btnLogout" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs px-2.5 rounded-lg transition-all shadow-md">خروج</button>
+          </div>
+        </div>
         </div>
       </div>
       <div class="flex gap-3" id="sub-filters">

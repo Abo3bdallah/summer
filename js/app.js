@@ -44,10 +44,60 @@
     });
   });
 
-  /* ---------------- المشرف ---------------- */
-  var supInput = $('#supervisorInput');
-  supInput.value = Store.getSupervisor();
-  supInput.addEventListener('change', function () { Store.setSupervisor(supInput.value); });
+  /* ---------------- المشرف والمصادقة ---------------- */
+  function checkAuth() {
+    var loggedIn = Store.isLoggedIn();
+    var overlay = $('#loginOverlay');
+    if (!overlay) return;
+    
+    if (!loggedIn) {
+      overlay.style.display = 'flex';
+      var select = $('#loginTeacherSelect');
+      if (select && select.children.length === 0) {
+        var teachers = Store.getTeachers();
+        select.innerHTML = Object.keys(teachers).map(function (t) {
+          return '<option value="' + esc(t) + '">' + esc(t) + '</option>';
+        }).join('');
+      }
+      $('#loginPasswordInput').value = '';
+      $('#loginErrorMsg').style.display = 'none';
+      $('#loginPasswordInput').focus();
+    } else {
+      overlay.style.display = 'none';
+      var activeTeacher = $('#activeTeacherName');
+      if (activeTeacher) activeTeacher.textContent = Store.getLoggedInTeacher();
+    }
+  }
+
+  $('#btnLoginSubmit').addEventListener('click', function () {
+    var teacher = $('#loginTeacherSelect').value;
+    var password = $('#loginPasswordInput').value;
+    if (Store.login(teacher, password)) {
+      toast('مرحباً بك، تم تسجيل الدخول بنجاح! 👋', 'ok');
+      checkAuth();
+      renderAll();
+    } else {
+      $('#loginErrorMsg').style.display = 'block';
+      $('#loginPasswordInput').focus();
+    }
+  });
+
+  $('#loginPasswordInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('#btnLoginSubmit').click();
+    }
+  });
+
+  $('#btnLogout').addEventListener('click', function () {
+    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+      Store.logout();
+      toast('تم تسجيل الخروج بنجاح.', 'ok');
+      checkAuth();
+    }
+  });
+
+  checkAuth();
 
   /* ====================================================
      قسم إضافة النقاط
@@ -414,7 +464,32 @@
         toast('تم تحديث الهدف', 'ok');
       });
     });
+    renderTeachersPasswords();
   }
+
+  function renderTeachersPasswords() {
+    var teachers = Store.getTeachers();
+    var tbody = $('#teachersPasswordsTable');
+    if (!tbody) return;
+    tbody.innerHTML = Object.keys(teachers).map(function (t) {
+      return '<tr>' +
+        '<td style="padding:8px; font-weight:bold; color:#cbd5e1;">👤 ' + esc(t) + '</td>' +
+        '<td style="padding:8px;"><input type="text" data-teacher-name="' + esc(t) + '" value="' + esc(teachers[t]) + '" style="padding:6px 10px; background:#0f172a; border:1px solid #475569; border-radius:6px; color:#f1f5f9; font-weight:bold; font-size:12px; width:100%; outline:none;" /></td>' +
+        '<td style="padding:8px; text-align:center;"><button onclick="saveTeacherPassword(\'' + esc(t) + '\')" class="btn sm" style="background:#4f46e5; border:none; color:white; border-radius:6px; padding:6px 12px; font-weight:bold; font-size:11px; cursor:pointer;">💾 حفظ</button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  window.saveTeacherPassword = function (name) {
+    var inp = $('input[data-teacher-name="' + name + '"]');
+    if (!inp) return;
+    try {
+      Store.setTeacherPassword(name, inp.value);
+      toast('تم تحديث كلمة مرور المعلم: ' + name, 'ok');
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  };
 
   // نقاط التحضير
   function renderAttendancePoints() {
@@ -555,7 +630,7 @@
     renderLog();
     renderSettings();
     renderAttendancePoints();
-    if (document.activeElement !== supInput) supInput.value = Store.getSupervisor();
+    checkAuth();
   }
 
   Store.subscribe(renderAll);

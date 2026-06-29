@@ -610,11 +610,65 @@
     }
   };
 
+  /* ---------------- المشرف والمصادقة ---------------- */
+  function checkAuth() {
+    var loggedIn = Store.isLoggedIn();
+    var overlay = $('#loginOverlay');
+    if (!overlay) return;
+    
+    if (!loggedIn) {
+      overlay.style.display = 'flex';
+      var select = $('#loginTeacherSelect');
+      if (select && select.children.length === 0) {
+        var teachers = Store.getTeachers();
+        select.innerHTML = Object.keys(teachers).map(function (t) {
+          return '<option value="' + esc(t) + '">' + esc(t) + '</option>';
+        }).join('');
+      }
+      $('#loginPasswordInput').value = '';
+      $('#loginErrorMsg').style.display = 'none';
+      $('#loginPasswordInput').focus();
+    } else {
+      overlay.style.display = 'none';
+      var activeTeacher = $('#supervisorInput');
+      if (activeTeacher) activeTeacher.value = Store.getLoggedInTeacher();
+    }
+  }
+
+  $('#btnLoginSubmit').addEventListener('click', function () {
+    var teacher = $('#loginTeacherSelect').value;
+    var password = $('#loginPasswordInput').value;
+    if (Store.login(teacher, password)) {
+      toast('مرحباً بك، تم تسجيل الدخول بنجاح! 👋', 'ok');
+      checkAuth();
+      render();
+    } else {
+      $('#loginErrorMsg').style.display = 'block';
+      $('#loginPasswordInput').focus();
+    }
+  });
+
+  $('#loginPasswordInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('#btnLoginSubmit').click();
+    }
+  });
+
+  $('#btnLogout').addEventListener('click', function () {
+    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+      Store.logout();
+      toast('تم تسجيل الخروج بنجاح.', 'ok');
+      checkAuth();
+    }
+  });
+
   /* ====================================================
      الدالة الأساسية لإعادة رسم محتويات التبويبات النشطة
      ==================================================== */
   function render() {
     try {
+      checkAuth();
       if (!tabContent) return;
 
       updateMissingBadge();
