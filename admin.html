@@ -35,6 +35,8 @@
   </div>
 
   <div class="topbar">
+    <button class="menu-toggle" id="btnMenuOpen" title="القائمة">☰</button>
+    
     <div class="topbar-right">
       <div class="brand">
         <span class="brand-logo">🏆</span>
@@ -64,6 +66,43 @@
           🚪 <span style="font-size:12px; font-weight:700; margin-right:4px;">خروج</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- طبقة الخلفية المعتمة للقائمة الجانبية للجوال -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <!-- القائمة الجانبية المنزلقة للجوال -->
+  <div class="nav-drawer" id="navDrawer">
+    <div class="drawer-header">
+      <div class="drawer-title">📁 التنقل السريع</div>
+      <button class="drawer-close" id="btnMenuClose">✕</button>
+    </div>
+    
+    <div class="drawer-profile">
+      <div class="user-profile">
+        <div class="profile-avatar-wrapper">
+          <div class="profile-avatar">👤</div>
+          <span class="active-dot"></span>
+        </div>
+        <div class="profile-info text-right">
+          <div class="profile-name" id="drawerTeacherName">—</div>
+          <div class="profile-role">المشرف العام</div>
+        </div>
+      </div>
+    </div>
+    
+    <nav class="drawer-links">
+      <a class="nav-link" href="index.html">🏠 الرئيسية</a>
+      <a class="nav-link" href="attendance.html">✅ التحضير</a>
+      <a class="nav-link" href="display.html" target="_blank" rel="noopener">📺 شاشة المجموعات</a>
+      <a class="nav-link" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
+    </nav>
+    
+    <div style="margin-top:auto; padding-top:20px; border-top:1px solid rgba(0,0,0,0.05);">
+      <button id="btnDrawerLogout" class="logout-btn" style="width:100%; justify-content:center;">
+        🚪 <span style="margin-right:8px;">تسجيل الخروج</span>
+      </button>
     </div>
   </div>
 
@@ -420,5 +459,44 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/store.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // تشغيل القائمة الجانبية (Hamburger Menu Drawer) للجوال
+    (function() {
+      var btnMenuOpen = document.getElementById('btnMenuOpen');
+      var btnMenuClose = document.getElementById('btnMenuClose');
+      var navDrawer = document.getElementById('navDrawer');
+      var drawerBackdrop = document.getElementById('drawerBackdrop');
+      var btnDrawerLogout = document.getElementById('btnDrawerLogout');
+      var drawerTeacherName = document.getElementById('drawerTeacherName');
+      var activeTeacherName = document.getElementById('activeTeacherName');
+
+      function openDrawer() {
+        // تحديث اسم المعلم في القائمة الجانبية
+        if (activeTeacherName && drawerTeacherName) {
+          drawerTeacherName.innerText = activeTeacherName.innerText;
+        }
+        navDrawer.classList.add('active');
+        drawerBackdrop.classList.add('active');
+      }
+
+      function closeDrawer() {
+        navDrawer.classList.remove('active');
+        drawerBackdrop.classList.remove('active');
+      }
+
+      if (btnMenuOpen) btnMenuOpen.addEventListener('click', openDrawer);
+      if (btnMenuClose) btnMenuClose.addEventListener('click', closeDrawer);
+      if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
+
+      // ربط زر تسجيل خروج القائمة الجانبية بالزر الرئيسي لسطح المكتب
+      if (btnDrawerLogout) {
+        btnDrawerLogout.addEventListener('click', function() {
+          closeDrawer();
+          var btnLogout = document.getElementById('btnLogout');
+          if (btnLogout) btnLogout.click();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
