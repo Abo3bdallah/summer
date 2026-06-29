@@ -616,8 +616,18 @@
     var overlay = $('#loginOverlay');
     if (!overlay) return;
     
+    var tabSt = $('#tab-students');
+    var mainContent = $('#main-content');
+    var bottomNav = $('nav');
+    var denied = $('#accessDeniedOverlay');
+    
     if (!loggedIn) {
       overlay.style.display = 'flex';
+      if (tabSt) tabSt.style.display = 'none';
+      if (mainContent) mainContent.style.display = 'none';
+      if (bottomNav) bottomNav.style.display = 'none';
+      if (denied) denied.style.display = 'none';
+      
       var select = $('#loginTeacherSelect');
       if (select && select.children.length === 0) {
         var teachers = Store.getTeachers();
@@ -632,6 +642,25 @@
       overlay.style.display = 'none';
       var activeTeacher = $('#supervisorInput');
       if (activeTeacher) activeTeacher.value = Store.getLoggedInTeacher();
+      
+      if (!Store.hasPermission('attendance')) {
+        if (mainContent) mainContent.style.display = 'none';
+        if (bottomNav) bottomNav.style.display = 'none';
+        if (denied) denied.style.display = 'flex';
+      } else {
+        if (mainContent) mainContent.style.display = 'block';
+        if (bottomNav) bottomNav.style.display = 'flex';
+        if (denied) denied.style.display = 'none';
+        
+        if (!Store.hasPermission('manageStudents')) {
+          if (tabSt) tabSt.style.display = 'none';
+          if (currentTab === 'students') {
+            switchTab('attendance');
+          }
+        } else {
+          if (tabSt) tabSt.style.display = 'flex';
+        }
+      }
     }
   }
 

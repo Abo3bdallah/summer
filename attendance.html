@@ -70,6 +70,18 @@
       </div>
     </header>
 
+    <!-- واجهة رفض الوصول لغير المخولين بالتحضير -->
+    <div id="accessDeniedOverlay" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; text-align:center; min-height:60vh; font-family:'Tajawal', sans-serif;">
+      <div style="background:#1e293b; border:1px solid #334155; padding:30px 20px; border-radius:16px; max-width:320px; width:100%; box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);" class="space-y-4">
+        <span style="font-size:40px;">⚠️</span>
+        <h2 style="font-weight:800; color:#fff; font-size:16px; margin-top:8px;">عذراً، لا توجد صلاحيات!</h2>
+        <p style="font-size:12px; color:#94a3b8; line-height:1.6; margin-top:8px;">ليس لديك صلاحية الوصول لشاشة التحضير والمتابعة حالياً. يرجى مراجعة المعلم <b style="color:#818cf8;">أحمد الذبياني</b> لتفعيل حسابك.</p>
+        <div style="margin-top:16px;">
+          <button onclick="Store.logout(); location.reload();" style="width:100%; padding:10px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer;">🚪 خروج وتسجيل دخول آخر</button>
+        </div>
+      </div>
+    </div>
+
     <!-- الكرت الدائم للفلاتر (يمنع الفقدان المتكرر للتركيز وحلقات الأحداث اللانهائية) -->
     <div id="filters-card" class="p-4 bg-slate-800 border-b border-slate-700 space-y-3 hidden shadow-lg">
       <div class="flex gap-3">

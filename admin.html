@@ -48,6 +48,18 @@
     <a class="btn ghost sm" href="individual-display.html" target="_blank" rel="noopener">🧑‍🤝‍🧑 شاشة الأفراد</a>
   </div>
 
+  <!-- واجهة رفض الوصول لغير المدراء -->
+  <div id="accessDeniedOverlay" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; text-align:center; min-height:60vh; font-family:'Tajawal', sans-serif;">
+    <div style="background:#1e293b; border:1px solid #334155; padding:40px 20px; border-radius:16px; max-width:480px; width:100%; box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);" class="space-y-4">
+      <span style="font-size:48px;">⚠️</span>
+      <h2 style="font-weight:800; color:#fff; font-size:18px; margin-top:10px;">عذراً، الوصول غير مصرح!</h2>
+      <p style="font-size:13px; color:#94a3b8; line-height:1.6; margin-top:8px;">هذه الصفحة مخصصة لمدير المنصة والمتحكم بها (<b style="color:#818cf8;">المعلم أحمد الذبياني</b>) فقط، ولا يمكن لبقية المعلمين دخولها.</p>
+      <div style="margin-top:20px;">
+        <a href="attendance.html" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:8px; font-weight:bold; font-size:13px; text-decoration:none; box-shadow:0 4px 12px rgba(79,70,229,0.4); transition:all hover:bg-indigo-700">👈 الانتقال لصفحة التحضير والمتابعة</a>
+      </div>
+    </div>
+  </div>
+
   <nav class="tabs">
     <button class="tab active" data-view="points">⚡ إضافة نقاط</button>
     <button class="tab" data-view="students">👥 إدارة الطلاب</button>

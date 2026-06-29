@@ -50,8 +50,16 @@
     var overlay = $('#loginOverlay');
     if (!overlay) return;
     
+    var tabs = $('.tabs');
+    var container = $('.container');
+    var denied = $('#accessDeniedOverlay');
+    
     if (!loggedIn) {
       overlay.style.display = 'flex';
+      if (tabs) tabs.style.display = 'none';
+      if (container) container.style.display = 'none';
+      if (denied) denied.style.display = 'none';
+      
       var select = $('#loginTeacherSelect');
       if (select && select.children.length === 0) {
         var teachers = Store.getTeachers();
@@ -66,6 +74,16 @@
       overlay.style.display = 'none';
       var activeTeacher = $('#activeTeacherName');
       if (activeTeacher) activeTeacher.textContent = Store.getLoggedInTeacher();
+      
+      if (!Store.hasPermission('adminPanel')) {
+        if (tabs) tabs.style.display = 'none';
+        if (container) container.style.display = 'none';
+        if (denied) denied.style.display = 'flex';
+      } else {
+        if (tabs) tabs.style.display = 'flex';
+        if (container) container.style.display = 'block';
+        if (denied) denied.style.display = 'none';
+      }
     }
   }
 
@@ -392,7 +410,8 @@
       var color = isAdd ? 'var(--green)' : 'var(--red)';
       var undoCell;
       if (e.undone) {
-        undoCell = '<span class="badge" style="background:rgba(148,163,184,.18);color:var(--muted)">متراجَع عنها</span>';
+        var byStr = e.undoneBy ? ' (بواسطة ' + e.undoneBy + ')' : '';
+        undoCell = '<span class="badge" style="background:rgba(148,163,184,.18);color:var(--muted)">متراجَع عنها' + esc(byStr) + '</span>';
       } else if (e.kind === 'attendance') {
         undoCell = '<span class="muted" style="font-size:12px">من التحضير</span>';
       } else {
@@ -472,13 +491,43 @@
     var tbody = $('#teachersPasswordsTable');
     if (!tbody) return;
     tbody.innerHTML = Object.keys(teachers).map(function (t) {
-      return '<tr>' +
-        '<td style="padding:8px; font-weight:bold; color:#cbd5e1;">👤 ' + esc(t) + '</td>' +
-        '<td style="padding:8px;"><input type="text" data-teacher-name="' + esc(t) + '" value="' + esc(teachers[t]) + '" style="padding:6px 10px; background:#0f172a; border:1px solid #475569; border-radius:6px; color:#f1f5f9; font-weight:bold; font-size:12px; width:100%; outline:none;" /></td>' +
-        '<td style="padding:8px; text-align:center;"><button onclick="saveTeacherPassword(\'' + esc(t) + '\')" class="btn sm" style="background:#4f46e5; border:none; color:white; border-radius:6px; padding:6px 12px; font-weight:bold; font-size:11px; cursor:pointer;">💾 حفظ</button></td>' +
+      var teacherObj = teachers[t];
+      var pass = typeof teacherObj === 'string' ? teacherObj : (teacherObj.password || '1234');
+      var perms = (teacherObj && teacherObj.permissions) || { adminPanel: t === "أحمد الذبياني", manageStudents: t === "أحمد الذبياني", attendance: true };
+      
+      var isOwner = t === "أحمد الذبياني";
+      var disabledAttr = isOwner ? ' disabled style="opacity:0.6; cursor:not-allowed;" ' : '';
+      
+      return '<tr style="border-bottom:1px solid #334155;">' +
+        '<td style="padding:10px; font-weight:bold; color:#cbd5e1;">👤 ' + esc(t) + (isOwner ? ' <span style="font-size:10px; background:#4f46e5; color:white; padding:2px 6px; border-radius:4px; margin-right:4px;">المالك 👑</span>' : '') + '</td>' +
+        '<td style="padding:10px;"><input type="text" data-teacher-name="' + esc(t) + '" value="' + esc(pass) + '" style="padding:6px 10px; background:#0f172a; border:1px solid #475569; border-radius:6px; color:#f1f5f9; font-weight:bold; font-size:12px; width:100%; outline:none;" /></td>' +
+        '<td style="padding:10px; font-size:11px; color:#94a3b8; text-align:right; direction:rtl;" class="space-y-1">' +
+          '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
+            '<input type="checkbox" id="p-admin-' + esc(t) + '" ' + (perms.adminPanel ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'adminPanel\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
+            '<label for="p-admin-' + esc(t) + '" style="cursor:pointer;">لوحة التحكم ⚙️</label>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
+            '<input type="checkbox" id="p-students-' + esc(t) + '" ' + (perms.manageStudents ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'manageStudents\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
+            '<label for="p-students-' + esc(t) + '" style="cursor:pointer;">إدارة الطلاب 👥</label>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:6px;">' +
+            '<input type="checkbox" id="p-attendance-' + esc(t) + '" ' + (perms.attendance ? 'checked' : '') + disabledAttr + ' onchange="togglePermission(\'' + esc(t) + '\', \'attendance\', this.checked)" style="width:14px; height:14px; cursor:pointer;" />' +
+            '<label for="p-attendance-' + esc(t) + '" style="cursor:pointer;">التحضير والمتابعة ✅</label>' +
+          '</div>' +
+        '</td>' +
+        '<td style="padding:10px; text-align:center;"><button onclick="saveTeacherPassword(\'' + esc(t) + '\')" class="btn sm" style="background:#4f46e5; border:none; color:white; border-radius:6px; padding:6px 12px; font-weight:bold; font-size:11px; cursor:pointer;">💾 حفظ كلمة المرور</button></td>' +
         '</tr>';
     }).join('');
   }
+
+  window.togglePermission = function (name, permissionKey, checked) {
+    try {
+      Store.setTeacherPermission(name, permissionKey, checked);
+      toast('تم تحديث صلاحية ' + name + ' بنجاح ✅', 'ok');
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+  };
 
   window.saveTeacherPassword = function (name) {
     var inp = $('input[data-teacher-name="' + name + '"]');

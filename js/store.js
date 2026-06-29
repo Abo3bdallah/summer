@@ -22,20 +22,30 @@
   var CANON_NAMES = { qimma: 'البواسل', tumooh: 'الكواسر', sumood: 'المعالي', ruwwad: 'الشموخ' };
 
   var DEFAULT_TEACHERS = {
-    "حاتم الحارثي": "1234",
-    "أحمد الذبياني": "1234",
-    "سليمان جهاد": "1234",
-    "أمجد العماري": "1234",
-    "عمار الصبحي": "1234",
-    "عمر فتني": "1234",
-    "عبدالعزيز باحيدرة": "1234",
-    "محمد باغزوزة": "1234"
+    "حاتم الحارثي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "أحمد الذبياني": { password: "1234", permissions: { adminPanel: true, manageStudents: true, attendance: true } },
+    "سليمان جهاد": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "أمجد العماري": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "عمار الصبحي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "عمر فتني": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "عبدالعزيز باحيدرة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } },
+    "محمد باغزوزة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true } }
   };
 
   function copyTeachers() {
     var obj = {};
     for (var k in DEFAULT_TEACHERS) {
-      if (DEFAULT_TEACHERS.hasOwnProperty(k)) obj[k] = DEFAULT_TEACHERS[k];
+      if (DEFAULT_TEACHERS.hasOwnProperty(k)) {
+        var t = DEFAULT_TEACHERS[k];
+        obj[k] = {
+          password: t.password,
+          permissions: {
+            adminPanel: t.permissions.adminPanel,
+            manageStudents: t.permissions.manageStudents,
+            attendance: t.permissions.attendance
+          }
+        };
+      }
     }
     return obj;
   }
@@ -88,7 +98,28 @@
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
       if (parsed.teachers && typeof parsed.teachers === 'object') {
         for (var k in s.teachers) {
-          if (parsed.teachers.hasOwnProperty(k)) s.teachers[k] = parsed.teachers[k];
+          if (parsed.teachers.hasOwnProperty(k)) {
+            var rawT = parsed.teachers[k];
+            if (typeof rawT === 'string') {
+              s.teachers[k] = {
+                password: rawT,
+                permissions: {
+                  adminPanel: k === "أحمد الذبياني",
+                  manageStudents: k === "أحمد الذبياني",
+                  attendance: true
+                }
+              };
+            } else if (rawT && typeof rawT === 'object') {
+              s.teachers[k] = {
+                password: typeof rawT.password === 'string' ? rawT.password : '1234',
+                permissions: {
+                  adminPanel: !!(rawT.permissions && rawT.permissions.adminPanel),
+                  manageStudents: !!(rawT.permissions && rawT.permissions.manageStudents),
+                  attendance: rawT.permissions ? !!rawT.permissions.attendance : true
+                }
+              };
+            }
+          }
         }
       }
     }
@@ -781,7 +812,11 @@
     password = (password || '').trim();
     if (!password) throw new Error('كلمة المرور مطلوبة');
     if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
-    state.teachers[name] = password;
+    if (typeof state.teachers[name] === 'string') {
+      state.teachers[name] = { password: password, permissions: { adminPanel: name === "أحمد الذبياني", manageStudents: name === "أحمد الذبياني", attendance: true } };
+    } else {
+      state.teachers[name].password = password;
+    }
     if (db) {
       db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function() {});
     }
@@ -792,7 +827,9 @@
     name = (name || '').trim();
     password = (password || '').trim();
     if (!state.teachers.hasOwnProperty(name)) return false;
-    if (state.teachers[name] === password) {
+    var t = state.teachers[name];
+    var actualPass = typeof t === 'string' ? t : (t.password || '1234');
+    if (actualPass === password) {
       try {
         global.localStorage.setItem('logged_in_teacher', name);
       } catch (e) {}
@@ -807,6 +844,41 @@
       global.localStorage.removeItem('logged_in_teacher');
     } catch (e) {}
     setSupervisor('');
+  }
+
+  function isAdmin() {
+    return getLoggedInTeacher() === "أحمد الذبياني";
+  }
+
+  function hasPermission(permissionKey) {
+    var loggedIn = getLoggedInTeacher();
+    if (!loggedIn) return false;
+    if (loggedIn === "أحمد الذبياني") return true;
+    var t = state.teachers[loggedIn];
+    if (t && t.permissions) {
+      return !!t.permissions[permissionKey];
+    }
+    return permissionKey === 'attendance';
+  }
+
+  function setTeacherPermission(name, permissionKey, value) {
+    if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
+    if (name === "أحمد الذبياني") return; // تأمين المالك
+    var t = state.teachers[name];
+    if (typeof t === 'string') {
+      state.teachers[name] = {
+        password: t,
+        permissions: { adminPanel: false, manageStudents: false, attendance: true }
+      };
+    }
+    if (!state.teachers[name].permissions) {
+      state.teachers[name].permissions = { adminPanel: false, manageStudents: false, attendance: true };
+    }
+    state.teachers[name].permissions[permissionKey] = !!value;
+    if (db) {
+      db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function() {});
+    }
+    commit();
   }
 
   global.Store = {
@@ -849,6 +921,9 @@
     getTeachers: getTeachers,
     setTeacherPassword: setTeacherPassword,
     login: login,
-    logout: logout
+    logout: logout,
+    isAdmin: isAdmin,
+    hasPermission: hasPermission,
+    setTeacherPermission: setTeacherPermission
   };
 })(window);
