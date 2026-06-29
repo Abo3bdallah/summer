@@ -388,7 +388,8 @@
 
       // ترتيب الطلاب تنازلياً حسب إجمالي المخالفات (الغياب بوزن 2، والتأخر بوزن 1)
       var statsArr = Object.keys(stats).map(function (id) {
-        return { id: id, ...stats[id] };
+        var item = stats[id];
+        return { id: id, name: item.name, group: item.group, absent: item.absent, late: item.late };
       }).sort(function (a, b) {
         return (b.absent * 2 + b.late) - (a.absent * 2 + a.late);
       });
