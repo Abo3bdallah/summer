@@ -221,7 +221,7 @@
         
         var auditTitle = 'لم يُحضّر بعد';
         if (details && details.by) {
-          auditTitle = 'حضّره المعلم: ' + details.by + ' في ' + fmtTime(details.at);
+          auditTitle = '👤 ' + details.by + ' · ' + fmtTime(details.at);
         }
 
         var btns = STATUSES.map(function (st) {
@@ -231,17 +231,17 @@
                  ' class="flex-1 text-xs font-black py-2 rounded-lg border transition-all active:scale-95' + activeClass + '">' + st.label.split(' ')[1] + '</button>';
         }).join('');
 
-        html += '<div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-3 transition-all hover:border-slate-600" title="' + esc(auditTitle) + '">' +
-          '<div class="flex justify-between items-center">' +
+        html += '<div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-3 transition-all hover:border-slate-600">' +
+          '<div class="flex items-center justify-between">' +
             '<div class="flex items-center gap-2.5">' +
-              '<span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
-              '<div>' +
+              '<span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] text-white shrink-0" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
+              '<div class="text-right">' +
                 '<h3 class="font-bold text-sm text-slate-200">' + esc(s.name) + '</h3>' +
-                '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
+                '<div class="flex flex-wrap items-center gap-1.5 mt-0.5">' +
+                  '<span class="text-[10px] font-bold" style="color:' + hexColor + '">' + esc(g ? g.name : '') + '</span>' +
+                  '<span class="text-[9px] font-bold text-slate-400 bg-slate-900/60 border border-slate-700 px-1.5 py-0.5 rounded">' + esc(auditTitle) + '</span>' +
+                '</div>' +
               '</div>' +
-            '</div>' +
-            '<div class="text-left">' +
-              '<span class="text-[10px] font-bold text-slate-400 block">' + auditTitle + '</span>' +
             '</div>' +
           '</div>' +
           '<div class="flex gap-1.5 w-full">' + btns + '</div>' +
