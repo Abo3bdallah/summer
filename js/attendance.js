@@ -580,36 +580,45 @@
      الدالة الأساسية لإعادة رسم محتويات التبويبات النشطة
      ==================================================== */
   function render() {
-    if (!tabContent) return;
+    try {
+      if (!tabContent) return;
 
-    updateMissingBadge();
+      updateMissingBadge();
 
-    // تحديث قيم الفلاتر الدائمة فقط إذا لم يكن المستخدم يكتب بداخلها (يمنع Loops والـ focus loss)
-    if (document.activeElement !== attDate && attDate.value !== selectedDate) {
-      attDate.value = selectedDate;
-    }
-    if (document.activeElement !== supervisorInput) {
-      var storeSup = Store.getSupervisor();
-      if (supervisorInput.value !== storeSup) supervisorInput.value = storeSup;
-    }
+      // تحديث قيم الفلاتر الدائمة فقط إذا لم يكن المستخدم يكتب بداخلها (يمنع Loops والـ focus loss)
+      if (document.activeElement !== attDate && attDate.value !== selectedDate) {
+        attDate.value = selectedDate;
+      }
+      if (document.activeElement !== supervisorInput) {
+        var storeSup = Store.getSupervisor();
+        if (supervisorInput.value !== storeSup) supervisorInput.value = storeSup;
+      }
 
-    // إظهار وإخفاء شريط الفلاتر الدائم حسب التبويب النشط
-    if (currentTab === 'attendance' || currentTab === 'tracking') {
-      filtersCard.classList.remove('hidden');
-    } else {
-      filtersCard.classList.add('hidden');
-    }
+      // إظهار وإخفاء شريط الفلاتر الدائم حسب التبويب النشط
+      if (currentTab === 'attendance' || currentTab === 'tracking') {
+        filtersCard.classList.remove('hidden');
+      } else {
+        filtersCard.classList.add('hidden');
+      }
 
-    // رسم واجهة التبويب النشط
-    if (currentTab === 'attendance') {
-      tabContent.innerHTML = renderAttendanceHTML();
-    } else if (currentTab === 'tracking') {
-      tabContent.innerHTML = renderTrackingHTML();
-    } else if (currentTab === 'logs') {
-      tabContent.innerHTML = renderLogsHTML();
-    } else if (currentTab === 'students') {
-      tabContent.innerHTML = renderStudentsHTML();
-      fillGroupsDropdownOnly($('#addStGroup'));
+      // رسم واجهة التبويب النشط
+      if (currentTab === 'attendance') {
+        tabContent.innerHTML = renderAttendanceHTML();
+      } else if (currentTab === 'tracking') {
+        tabContent.innerHTML = renderTrackingHTML();
+      } else if (currentTab === 'logs') {
+        tabContent.innerHTML = renderLogsHTML();
+      } else if (currentTab === 'students') {
+        tabContent.innerHTML = renderStudentsHTML();
+        fillGroupsDropdownOnly($('#addStGroup'));
+      }
+    } catch (err) {
+      if (window.console) console.error("Render Error: ", err);
+      tabContent.innerHTML = '<div class="p-6 bg-red-950/40 border border-red-900/60 text-red-300 rounded-xl text-center font-bold text-xs space-y-2">' +
+        '<div>⚠️ حدث خطأ في معالجة واجهة التحضير:</div>' +
+        '<div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-left font-mono overflow-x-auto text-[11px] text-red-400">' + esc(err.stack || err.message) + '</div>' +
+        '<div class="text-[10px] text-slate-400">يرجى تصوير هذه الشاشة للمطور لحل المشكلة.</div>' +
+        '</div>';
     }
   }
 
