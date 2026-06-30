@@ -558,8 +558,9 @@
                   ) +
                 '</p>' +
               '</div>' +
-              '<div>' +
-                '<button onclick="viewDayDetails(\'' + d + '\')" class="bg-white hover:bg-slate-50 border border-slate-200/60 active:scale-95 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm">🔍 عرض وتعديل</button>' +
+              '<div class="flex gap-1.5 shrink-0">' +
+                '<button onclick="viewDayDetails(\'' + d + '\')" class="bg-white hover:bg-slate-50 border border-slate-200/60 active:scale-95 text-indigo-600 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all shadow-sm">🔍 عرض</button>' +
+                '<button onclick="openExportMenu(\'' + d + '\')" class="bg-white hover:bg-slate-50 border border-slate-200/60 active:scale-95 text-emerald-600 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all shadow-sm">📤 تصدير</button>' +
               '</div>' +
             '</div>' +
             '<div class="flex justify-between text-[11px] font-bold text-slate-500 border-t border-slate-700/60 pt-2.5">' +
@@ -799,6 +800,160 @@
   window.toggleFilters = function () {
     filtersExpanded = !filtersExpanded;
     render();
+  };
+
+  // فتح نافذة خيارات التصدير (تصدير كـ إكسل أو نسخ للنصوص)
+  window.openExportMenu = function (dateStr) {
+    var old = $('#exportModal');
+    if (old) old.remove();
+
+    var formattedDate = fmtDateAr(dateStr);
+    var modal = document.createElement('div');
+    modal.id = 'exportModal';
+    modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in';
+    modal.innerHTML = 
+      '<div class="bg-white/95 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-right animate-scale-up">' +
+        '<div class="flex justify-between items-center pb-3 border-b border-slate-100">' +
+          '<h3 class="font-black text-slate-800 text-base">📤 تصدير قائمة التحضير</h3>' +
+          '<button onclick="closeExportMenu()" class="text-slate-400 hover:text-slate-600 font-bold text-lg p-1">&times;</button>' +
+        '</div>' +
+        '<p class="text-xs text-slate-500 font-bold">📅 اليوم: ' + formattedDate + '</p>' +
+        '<div class="space-y-3 pt-2">' +
+          '<button onclick="exportToClipboard(\'' + dateStr + '\')" class="w-full p-4 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3 transition-all active:scale-[0.98] text-right shadow-sm group">' +
+            '<span class="text-2xl bg-indigo-50 p-2 rounded-xl group-hover:bg-indigo-100 transition-colors">📋</span>' +
+            '<div>' +
+              '<div class="font-extrabold text-slate-800 text-xs">نسخ القائمة للنصوص</div>' +
+              '<div class="text-[10px] text-slate-400 font-bold mt-0.5">جاهزة للمشاركة على الواتساب والتليجرام</div>' +
+            '</div>' +
+          '</button>' +
+          '<button onclick="exportToExcel(\'' + dateStr + '\')" class="w-full p-4 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3 transition-all active:scale-[0.98] text-right shadow-sm group">' +
+            '<span class="text-2xl bg-emerald-50 p-2 rounded-xl group-hover:bg-emerald-100 transition-colors">🟢</span>' +
+            '<div>' +
+              '<div class="font-extrabold text-slate-800 text-xs">تصدير ملف إكسل (Excel)</div>' +
+              '<div class="text-[10px] text-slate-400 font-bold mt-0.5">تحميل القائمة كملف جدول بيانات CSV متوافق</div>' +
+            '</div>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+      
+    document.body.appendChild(modal);
+  };
+
+  window.closeExportMenu = function () {
+    var modal = $('#exportModal');
+    if (modal) modal.remove();
+  };
+
+  window.exportToClipboard = function (dateStr) {
+    var stateData = Store.getState();
+    var day = (stateData.attendance && stateData.attendance[dateStr]) || {};
+    var records = day.records || {};
+    var students = Store.getStudents().sort(function (a, b) {
+      return a.name.localeCompare(b.name, 'ar');
+    });
+
+    var title = '📋 تقرير تحضير يوم: ' + fmtDateAr(dateStr);
+    var separator = '----------------------------------';
+    var lines = [title, separator];
+    
+    var count = 0;
+    students.forEach(function (s) {
+      var rec = records[s.id];
+      var status = (rec && typeof rec === 'object') ? rec.status : rec;
+      var statusText = 'لم يُحضّر ⚪';
+      if (status === 'early') statusText = 'مبكر ⏰';
+      if (status === 'present') statusText = 'حاضر ✅';
+      if (status === 'absent') statusText = 'غائب ❌';
+      if (status === 'late') statusText = 'متأخر ⏳';
+      
+      count++;
+      lines.push(count + '. ' + s.name + ' - ' + statusText);
+    });
+
+    lines.push(separator);
+    
+    var sum = { early: 0, present: 0, absent: 0 };
+    Object.keys(records).forEach(function (sid) {
+      var r = records[sid];
+      var status = (r && typeof r === 'object') ? r.status : r;
+      if (status === 'early') sum.early++;
+      if (status === 'present') sum.present++;
+      if (status === 'absent') sum.absent++;
+    });
+    
+    lines.push('⏰ مبكر: ' + sum.early);
+    lines.push('✅ حاضر: ' + sum.present);
+    lines.push('❌ غائب: ' + sum.absent);
+    
+    var finalBox = lines.join('\n');
+    navigator.clipboard.writeText(finalBox).then(function () {
+      showToast('📋 تم نسخ تقرير التحضير للحافظة بنجاح!');
+      closeExportMenu();
+    }).catch(function (err) {
+      showToast('⚠️ فشل نسخ التقرير');
+    });
+  };
+
+  window.exportToExcel = function (dateStr) {
+    var stateData = Store.getState();
+    var day = (stateData.attendance && stateData.attendance[dateStr]) || {};
+    var records = day.records || {};
+    var students = Store.getStudents().sort(function (a, b) {
+      return a.name.localeCompare(b.name, 'ar');
+    });
+
+    var headers = ['الرقم', 'اسم الطالب', 'المجموعة', 'حالة التحضير', 'المعلم الذي حضره', 'وقت التحضير'];
+    var rows = [headers];
+    
+    var count = 0;
+    students.forEach(function (s) {
+      var rec = records[s.id];
+      var status = (rec && typeof rec === 'object') ? rec.status : rec;
+      var statusText = 'لم يُحضّر';
+      if (status === 'early') statusText = 'مبكر';
+      if (status === 'present') statusText = 'حاضر';
+      if (status === 'absent') statusText = 'غائب';
+      if (status === 'late') statusText = 'متأخر';
+      
+      var groupObj = Store.getGroup(s.groupId);
+      var groupName = groupObj ? groupObj.name : '';
+      
+      var closedBy = '';
+      var closedAt = '';
+      if (rec && typeof rec === 'object' && rec.by) {
+        closedBy = rec.by;
+        closedAt = fmtTime(rec.at);
+      }
+      
+      count++;
+      rows.push([
+        count,
+        s.name,
+        groupName,
+        statusText,
+        closedBy,
+        closedAt
+      ]);
+    });
+
+    var csvContent = rows.map(function (e) {
+      return e.map(function (val) {
+        var str = String(val === null || val === undefined ? '' : val);
+        return '"' + str.replace(/"/g, '""') + '"';
+      }).join(',');
+    }).join('\n');
+
+    var blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "تحضير_يوم_" + dateStr + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('🟢 تم تصدير ملف إكسل (CSV) بنجاح!');
+    closeExportMenu();
   };
 
   // الاشتراك في تحديثات المتجر
