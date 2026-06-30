@@ -128,39 +128,26 @@
           </div>
         </div>
 
-        <!-- التاريخ -->
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">📅 التاريخ:</label>
-          <input type="date" id="attDate" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
-        </div>
-      </div>
-    </div>
-
-    <!-- كرت الفلاتر والعمليات السريعة للتحضير (دائماً ظاهر عند تبويب التحضير) -->
-    <div id="attOperationsCard" class="p-4 bg-white/45 backdrop-blur-md border-b border-white/60 shadow-md text-right">
-      <div class="max-w-7xl mx-auto w-full space-y-3.5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- التاريخ والمجموعة جنباً إلى جنب -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">📅 التاريخ:</label>
+            <input type="date" id="attDate" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
+          </div>
           <div>
             <label class="block text-xs font-bold text-slate-500 mb-1">🏆 تصفية المجموعات:</label>
             <select id="attGroup" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none"></select>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 mb-1">🔎 البحث السريع باسم الطالب:</label>
-            <input type="text" id="attSearch" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" placeholder="اكتب اسم الطالب هنا للبحث السريع..." />
-          </div>
-        </div>
-        
-        <!-- صف الأزرار للعمليات الجماعية الثلاثة (بدون الكل غائب) -->
-        <div id="attActionsRow" class="flex gap-2 flex-wrap pt-2 border-t border-slate-200/40">
-          <button onclick="applyAllStatus('early')" class="flex-1 min-w-[70px] bg-blue-50/80 border border-blue-100 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>
-          <button onclick="applyAllStatus('present')" class="flex-1 min-w-[70px] bg-green-50/80 border border-green-100 hover:bg-green-100 text-green-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>
-          <button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50/80 border border-red-100 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>
         </div>
       </div>
     </div>
 
     <!-- المحتوى الرئيسي للمحاذاة التلقائية للتبويبات -->
     <main id="main-content" class="flex-1 p-4 space-y-4 max-w-7xl mx-auto w-full">
+      <!-- شريط البحث الفوري فقط (ظاهر دائماً فوق قائمة الطلاب مباشرة) -->
+      <div id="attSearchContainer" class="w-full">
+        <input type="text" id="attSearch" class="w-full p-3.5 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 shadow-sm" placeholder="🔎 ابحث باسم الطالب هنا للرصد السريع..." />
+      </div>
       <div id="tab-content" class="space-y-4">
         <!-- المحتوى التفاعلي للتبويبات سيتم حقنه هنا -->
         <div class="flex justify-center items-center h-48">

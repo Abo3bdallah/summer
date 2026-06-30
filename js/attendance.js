@@ -133,10 +133,10 @@
       }
     });
 
-    // إظهار/إخفاء كرت العمليات السريعة للتحضير
-    var opCard = $('#attOperationsCard');
-    if (opCard) {
-      opCard.style.display = tabName === 'attendance' ? 'block' : 'none';
+    // إظهار/إخفاء شريط البحث الفوري فوق بطاقات الطلاب
+    var searchContainer = $('#attSearchContainer');
+    if (searchContainer) {
+      searchContainer.style.display = (tabName === 'attendance' || tabName === 'tracking') ? 'block' : 'none';
     }
 
     render();
@@ -188,12 +188,6 @@
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
 
-    // التحكم في إظهار وإخفاء أزرار العمليات الجماعية الاستاتيكية في كرت العمليات
-    var actRow = $('#attActionsRow');
-    if (actRow) {
-      actRow.style.display = isClosed ? 'none' : 'flex';
-    }
-
     // بناء اللافتة وهيكل الشبكة
     var html = '<div class="space-y-4">' +
       // لافتة قفل التحضير
@@ -211,6 +205,14 @@
         '<div class="bg-green-900/40 border border-green-800 p-2 rounded-xl text-green-300">✅ حاضر (' + ap.present + 'ن): <b class="block text-base mt-1">' + sum.present + '</b></div>' +
         '<div class="bg-red-900/40 border border-red-800 p-2 rounded-xl text-rose-700">❌ غائب (' + ap.absent + 'ن): <b class="block text-base mt-1">' + sum.absent + '</b></div>' +
       '</div>' +
+
+      // أزرار العمليات الجماعية الثلاثة (تظهر فقط إذا كان التحضير مفتوحاً)
+      (!isClosed ? 
+      '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
+        '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>' +
+        '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-green-50 border border-green-100 hover:bg-green-100 text-green-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>' +
+        '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>' +
+      '</div>' : '') +
 
       // قائمة الطلاب للتحضير
       '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-24 md:pb-6">';
