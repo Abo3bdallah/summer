@@ -61,13 +61,12 @@
   function render() {
     renderLegend();
 
-    // رتّب: حسب المجموعة (لتجميع الألوان) ثم النقاط تنازليًا
-    var order = { qimma: 0, tumooh: 1, sumood: 2, ruwwad: 3, nogroup: 4 };
+    // رتّب: حسب النقاط تنازلياً ثم الاسم أبجدياً
     var students = Store.getStudents().slice().sort(function (a, b) {
-      var ga = order[a.groupId] != null ? order[a.groupId] : 9;
-      var gb = order[b.groupId] != null ? order[b.groupId] : 9;
-      if (ga !== gb) return ga - gb;
-      return b.points - a.points || a.name.localeCompare(b.name, 'ar');
+      if (b.points !== a.points) {
+        return b.points - a.points;
+      }
+      return a.name.localeCompare(b.name, 'ar');
     });
 
     empty.style.display = students.length ? 'none' : 'block';
