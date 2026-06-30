@@ -233,12 +233,9 @@
                  ' class="text-[10px] font-black px-2.5 py-1 rounded-md border transition-all active:scale-95' + activeClass + '">' + st.label.split(' ')[1] + '</button>';
         }).join('');
 
-        html += '<div class="bg-white/70 backdrop-blur-md p-3 px-4 rounded-xl border border-white/80 shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md hover:border-white">' +
+        html += '<div class="bg-white/70 backdrop-blur-md p-3 px-4 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md hover:bg-white" style="border: 1px solid rgba(0,0,0,0.05); border-right: 4px solid ' + hexColor + ';">' +
           '<div class="flex flex-col gap-1 min-w-0 text-right">' +
-            '<div class="flex items-center gap-2 flex-wrap">' +
-              '<h3 class="font-extrabold text-sm sm:text-base text-slate-800 truncate" style="font-family:\'Tajawal\', sans-serif;">' + esc(s.name) + '</h3>' +
-              '<span class="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 g-' + cls + '">' + esc(g ? g.name : 'بدون') + '</span>' +
-            '</div>' +
+            '<h3 class="font-extrabold text-sm sm:text-base text-slate-800 truncate" style="font-family:\'Tajawal\', sans-serif;">' + esc(s.name) + '</h3>' +
           '</div>' +
           '<div class="flex gap-1 shrink-0">' +
             btns +
