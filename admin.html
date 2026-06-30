@@ -146,9 +146,10 @@
           </div>
 
           <!-- واجهة اختيار طالب فردي -->
-          <div class="pp-select" id="ppSingleTargetSection">
-            <input id="ppSearch" placeholder="🔎 ابحث بالاسم لتصفية القائمة..." />
-            <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
+          <div id="ppSingleTargetSection" style="display: flex; flex-direction: column; width: 100%;">
+            <input id="ppSearch" placeholder="🔎 ابحث بالاسم لتصفية قائمة الطلاب..." style="width: 100%;" />
+            <select id="ppStudent" style="display: none;"><option value="">— اختر طالبًا —</option></select>
+            <div id="ppSuggestions" class="suggestions-list" style="display: none;"></div>
           </div>
 
           <!-- واجهة اختيار طلاب محددين (تحديد متعدد) -->

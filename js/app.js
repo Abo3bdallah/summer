@@ -140,7 +140,7 @@
       b.classList.add('active');
       ppTargetMode = b.dataset.target;
       if (ppTargetMode === 'single') {
-        $('#ppSingleTargetSection').style.display = 'grid';
+        $('#ppSingleTargetSection').style.display = 'flex';
         $('#ppMultiTargetSection').style.display = 'none';
         $('#ppGroupTargetSection').style.display = 'none';
         $('#ppPreview').style.display = 'flex';
@@ -180,6 +180,34 @@
       return '<option value="' + s.id + '">' + esc(s.name) + ' — ' + esc(g ? g.name : '') + '</option>';
     }).join('');
     if (cur && Store.getStudent(cur)) sel.value = cur;
+
+    var sug = $('#ppSuggestions');
+    if (sug) {
+      if (students.length > 0) {
+        sug.style.display = 'flex';
+        sug.innerHTML = students.map(function (s) {
+          var g = Store.getGroup(s.groupId);
+          var cls = groupClass(s.groupId);
+          var isSelected = s.id === cur ? 'active' : '';
+          return '<div class="suggestion-item ' + isSelected + '" data-id="' + s.id + '">' +
+            '<span style="color: inherit;">' + esc(s.name) + '</span>' +
+            '<span class="group-tag g-' + cls + '">' + esc(g ? g.name : 'بدون') + '</span>' +
+          '</div>';
+        }).join('');
+
+        $$('.suggestion-item', sug).forEach(function (el) {
+          el.addEventListener('click', function () {
+            sel.value = el.dataset.id;
+            updatePreview();
+            renderPointStudentOptions();
+          });
+        });
+      } else {
+        sug.style.display = 'none';
+        sug.innerHTML = '';
+      }
+    }
+
     updatePreview();
   }
   $('#ppSearch').addEventListener('input', renderPointStudentOptions);
