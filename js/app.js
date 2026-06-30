@@ -184,12 +184,21 @@
   }
   $('#ppSearch').addEventListener('input', renderPointStudentOptions);
 
-  // اختصارات سريعة لعدد النقاط (تراكمي)
-  $$('#ppQuick .chip').forEach(function (b) {
+  // اختصارات سريعة لزيادة النقاط (تراكمي)
+  $$('#ppQuickAdd .chip').forEach(function (b) {
     b.addEventListener('click', function () {
       var curVal = parseInt($('#ppAmount').value, 10) || 0;
       var addVal = parseInt(b.dataset.amt, 10) || 0;
       $('#ppAmount').value = curVal + addVal;
+    });
+  });
+
+  // اختصارات سريعة لخصم النقاط (تراكمي)
+  $$('#ppQuickSub .chip').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var curVal = parseInt($('#ppAmount').value, 10) || 0;
+      var subVal = parseInt(b.dataset.amt, 10) || 0;
+      $('#ppAmount').value = Math.max(0, curVal - subVal);
     });
   });
   // أسباب جاهزة

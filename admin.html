@@ -111,7 +111,7 @@
     <div style="background:rgba(255, 255, 255, 0.65); backdrop-filter:blur(16px); border:1px solid rgba(255, 255, 255, 0.7); padding:40px 20px; border-radius:24px; max-width:480px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.08);" class="space-y-4">
       <span style="font-size:48px;">⚠️</span>
       <h2 style="font-weight:800; color:#1e293b; font-size:18px; margin-top:10px;">عذراً، الوصول غير مصرح!</h2>
-      <p style="font-size:13px; color:#475569; line-height:1.6; margin-top:8px;">هذه الصفحة مخصصة لمدير المنصة والمتحكم بها (<b style="color:#4f46e5;">المعلم أحمد الذبياني</b>) فقط، ولا يمكن لبقية المعلمين دخولها.</p>
+      <p style="font-size:13px; color:#475569; line-height:1.6; margin-top:8px;">الدخول هنا خاص بالأدمن من اللجنة المصاحبة.</p>
       <div style="margin-top:20px;">
         <a href="attendance.html" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:10px; font-weight:bold; font-size:13px; text-decoration:none; box-shadow:0 4px 12px rgba(79,70,229,0.25); transition:all">👈 الانتقال لصفحة التحضير والمتابعة</a>
       </div>
@@ -220,14 +220,32 @@
         <!-- 3) عدد النقاط -->
         <div class="pp-step">
           <label class="pp-label">3 · عدد النقاط</label>
-          <input id="ppAmount" type="number" min="1" step="1" placeholder="اكتب العدد أو اختر بسرعة" />
-          <div class="chip-filters mini" id="ppQuick">
-            <button type="button" class="chip" data-amt="1">1</button>
-            <button type="button" class="chip" data-amt="3">3</button>
-            <button type="button" class="chip" data-amt="5">5</button>
-            <button type="button" class="chip" data-amt="10">10</button>
-            <button type="button" class="chip" data-amt="25">25</button>
-            <button type="button" class="chip" data-amt="50">50</button>
+          <input id="ppAmount" type="number" min="0" step="1" placeholder="اكتب العدد أو اختر بسرعة" value="0" />
+          
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+            <!-- صف الإضافة (أخضر) -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 11px; font-weight: 800; color: #16a34a; width: 64px;">➕ إضافة:</span>
+              <div class="chip-filters mini" id="ppQuickAdd" style="margin-top: 0;">
+                <button type="button" class="chip chip-add" data-amt="1">+1</button>
+                <button type="button" class="chip chip-add" data-amt="3">+3</button>
+                <button type="button" class="chip chip-add" data-amt="5">+5</button>
+                <button type="button" class="chip chip-add" data-amt="10">+10</button>
+                <button type="button" class="chip chip-add" data-amt="25">+25</button>
+                <button type="button" class="chip chip-add" data-amt="50">+50</button>
+              </div>
+            </div>
+
+            <!-- صف الخصم (أحمر) -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 11px; font-weight: 800; color: #dc2626; width: 64px;">➖ خصم:</span>
+              <div class="chip-filters mini" id="ppQuickSub" style="margin-top: 0;">
+                <button type="button" class="chip chip-sub" data-amt="1">-1</button>
+                <button type="button" class="chip chip-sub" data-amt="5">-5</button>
+                <button type="button" class="chip chip-sub" data-amt="10">-10</button>
+                <button type="button" class="chip chip-sub" data-amt="50">-50</button>
+              </div>
+            </div>
           </div>
         </div>
 

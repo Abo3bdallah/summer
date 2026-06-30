@@ -391,6 +391,26 @@ tr:hover td { background: rgba(255,255,255,.02); }
   border-color: transparent;
   box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
 }
+.chip.chip-add {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.25);
+  color: #16a34a;
+}
+.chip.chip-add:hover {
+  background: rgba(22, 163, 74, 0.2);
+  border-color: rgba(22, 163, 74, 0.35);
+  color: #15803d;
+}
+.chip.chip-sub {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+}
+.chip.chip-sub:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #b91c1c;
+}
 .chip-filters.mini { margin-top: 8px; gap: 6px; }
 .chip-filters.mini .chip { padding: 6px 12px; font-size: 12.5px; border-radius: 10px; }
 
