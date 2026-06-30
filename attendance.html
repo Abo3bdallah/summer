@@ -128,17 +128,14 @@
           </div>
         </div>
 
-        <!-- التاريخ والمجموعة جنباً إلى جنب -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-500 mb-1">📅 التاريخ:</label>
-            <input type="date" id="attDate" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 mb-1">🏆 تصفية المجموعات:</label>
-            <select id="attGroup" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none"></select>
-          </div>
+        <!-- التاريخ -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">📅 التاريخ:</label>
+          <input type="date" id="attDate" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
         </div>
+
+        <!-- أزرار العمليات الجماعية الثلاثة داخل الإعدادات (تغذيها JS ديناميكياً) -->
+        <div id="attBulkActionsContainer" class="pt-3 border-t border-slate-200/40 w-full"></div>
       </div>
     </div>
 
@@ -147,9 +144,13 @@
       <!-- لافتات استاتيكية للتحضير (يتم تغذيتها بالـ JS ديناميكياً) -->
       <div id="attStatusBanner" class="w-full space-y-2"></div>
       <div id="attStatsContainer" class="w-full"></div>
-      <div id="attBulkActionsContainer" class="w-full"></div>
 
-      <!-- شريط البحث الفوري (ظاهر دائماً فوق قائمة الطلاب مباشرة وتحت الإحصائيات والأزرار) -->
+      <!-- تصفية المجموعات (منقول من الإعدادات للواجهة الرئيسية) -->
+      <div id="attGroupFilterContainer" class="w-full">
+        <select id="attGroup" class="w-full p-3.5 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none shadow-sm"></select>
+      </div>
+
+      <!-- شريط البحث الفوري (ظاهر دائماً فوق قائمة الطلاب مباشرة وتحت التصفية والإحصائيات) -->
       <div id="attSearchContainer" class="w-full">
         <input type="text" id="attSearch" class="w-full p-3.5 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 shadow-sm" placeholder="🔎 ابحث باسم الطالب هنا للرصد السريع..." />
       </div>

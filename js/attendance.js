@@ -133,10 +133,14 @@
       }
     });
 
-    // إظهار/إخفاء شريط البحث واللافتات الاستاتيكية حسب التبويب النشط
+    // إظهار/إخفاء شريط البحث، المجموعات، واللافتات الاستاتيكية حسب التبويب النشط
     var searchContainer = $('#attSearchContainer');
     if (searchContainer) {
       searchContainer.style.display = (tabName === 'attendance' || tabName === 'tracking') ? 'block' : 'none';
+    }
+    var groupFilterContainer = $('#attGroupFilterContainer');
+    if (groupFilterContainer) {
+      groupFilterContainer.style.display = (tabName === 'attendance' || tabName === 'tracking') ? 'block' : 'none';
     }
     var statusBanner = $('#attStatusBanner');
     if (statusBanner) {
@@ -234,14 +238,17 @@
       '</div>';
     }
 
-    // 3. أزرار العمليات الجماعية الثلاثة
+    // 3. أزرار العمليات الجماعية الثلاثة داخل الإعدادات
     var bulkContainer = $('#attBulkActionsContainer');
     if (bulkContainer) {
       bulkContainer.innerHTML = (!isClosed ? 
-      '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
-        '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>' +
-        '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-green-50 border border-green-100 hover:bg-green-100 text-green-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>' +
-        '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>' +
+      '<div class="flex flex-col gap-1.5">' +
+        '<label class="block text-[10px] font-bold text-slate-400">⚡ عمليات جماعية سريعة:</label>' +
+        '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
+          '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>' +
+          '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-green-50 border border-green-100 hover:bg-green-100 text-green-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>' +
+          '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>' +
+        '</div>' +
       '</div>' : '');
     }
 
