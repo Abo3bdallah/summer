@@ -184,9 +184,13 @@
   }
   $('#ppSearch').addEventListener('input', renderPointStudentOptions);
 
-  // اختصارات سريعة لعدد النقاط
+  // اختصارات سريعة لعدد النقاط (تراكمي)
   $$('#ppQuick .chip').forEach(function (b) {
-    b.addEventListener('click', function () { $('#ppAmount').value = b.dataset.amt; });
+    b.addEventListener('click', function () {
+      var curVal = parseInt($('#ppAmount').value, 10) || 0;
+      var addVal = parseInt(b.dataset.amt, 10) || 0;
+      $('#ppAmount').value = curVal + addVal;
+    });
   });
   // أسباب جاهزة
   $$('#ppReasons .chip').forEach(function (b) {
