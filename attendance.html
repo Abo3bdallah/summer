@@ -144,10 +144,16 @@
 
     <!-- المحتوى الرئيسي للمحاذاة التلقائية للتبويبات -->
     <main id="main-content" class="flex-1 p-4 space-y-4 max-w-7xl mx-auto w-full">
-      <!-- شريط البحث الفوري فقط (ظاهر دائماً فوق قائمة الطلاب مباشرة) -->
+      <!-- لافتات استاتيكية للتحضير (يتم تغذيتها بالـ JS ديناميكياً) -->
+      <div id="attStatusBanner" class="w-full space-y-2"></div>
+      <div id="attStatsContainer" class="w-full"></div>
+      <div id="attBulkActionsContainer" class="w-full"></div>
+
+      <!-- شريط البحث الفوري (ظاهر دائماً فوق قائمة الطلاب مباشرة وتحت الإحصائيات والأزرار) -->
       <div id="attSearchContainer" class="w-full">
         <input type="text" id="attSearch" class="w-full p-3.5 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 shadow-sm" placeholder="🔎 ابحث باسم الطالب هنا للرصد السريع..." />
       </div>
+      
       <div id="tab-content" class="space-y-4">
         <!-- المحتوى التفاعلي للتبويبات سيتم حقنه هنا -->
         <div class="flex justify-center items-center h-48">

@@ -133,10 +133,22 @@
       }
     });
 
-    // إظهار/إخفاء شريط البحث الفوري فوق بطاقات الطلاب
+    // إظهار/إخفاء شريط البحث واللافتات الاستاتيكية حسب التبويب النشط
     var searchContainer = $('#attSearchContainer');
     if (searchContainer) {
       searchContainer.style.display = (tabName === 'attendance' || tabName === 'tracking') ? 'block' : 'none';
+    }
+    var statusBanner = $('#attStatusBanner');
+    if (statusBanner) {
+      statusBanner.style.display = (tabName === 'attendance') ? 'block' : 'none';
+    }
+    var statsContainer = $('#attStatsContainer');
+    if (statsContainer) {
+      statsContainer.style.display = (tabName === 'attendance') ? 'block' : 'none';
+    }
+    var bulkContainer = $('#attBulkActionsContainer');
+    if (bulkContainer) {
+      bulkContainer.style.display = (tabName === 'attendance') ? 'block' : 'none';
     }
 
     render();
@@ -188,37 +200,43 @@
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
 
-    // بناء اللافتة وهيكل الشبكة
-    var html = '<div class="space-y-4">' +
-      // لافتة قفل التحضير
-      (isClosed ? 
+    // 1. لافتة حالة قفل واعتماد اليوم
+    var bannerContainer = $('#attStatusBanner');
+    if (bannerContainer) {
+      bannerContainer.innerHTML = isClosed ? 
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-rose-700 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
         (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔓 إعادة فتح التحضير</button>' : '') + '</div>'
         :
         '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-green-950/40 text-green-300 border-green-900/60 flex flex-col gap-2 justify-center items-center"><div>🔓 التحضير مفتوح حالياً لتسجيل حضور الطلاب.</div>' +
-        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔒 إغلاق واعتماد اليوم</button>' : '') + '</div>'
-      ) +
+        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔒 إغلاق واعتماد اليوم</button>' : '') + '</div>';
+    }
 
-      // إحصاءات اليوم ونقاطه
-      '<div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">' +
+    // 2. إحصاءات اليوم ونقاطه
+    var statsContainer = $('#attStatsContainer');
+    if (statsContainer) {
+      statsContainer.innerHTML = '<div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">' +
         '<div class="bg-blue-900/40 border border-blue-800 p-2 rounded-xl text-blue-300">⏰ مبكر (' + ap.early + 'ن): <b class="block text-base mt-1">' + sum.early + '</b></div>' +
         '<div class="bg-green-900/40 border border-green-800 p-2 rounded-xl text-green-300">✅ حاضر (' + ap.present + 'ن): <b class="block text-base mt-1">' + sum.present + '</b></div>' +
         '<div class="bg-red-900/40 border border-red-800 p-2 rounded-xl text-rose-700">❌ غائب (' + ap.absent + 'ن): <b class="block text-base mt-1">' + sum.absent + '</b></div>' +
-      '</div>' +
+      '</div>';
+    }
 
-      // أزرار العمليات الجماعية الثلاثة (تظهر فقط إذا كان التحضير مفتوحاً)
-      (!isClosed ? 
+    // 3. أزرار العمليات الجماعية الثلاثة
+    var bulkContainer = $('#attBulkActionsContainer');
+    if (bulkContainer) {
+      bulkContainer.innerHTML = (!isClosed ? 
       '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
         '<button onclick="applyAllStatus(\'early\')" class="flex-1 min-w-[70px] bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">⏰ الكل مبكر</button>' +
         '<button onclick="applyAllStatus(\'present\')" class="flex-1 min-w-[70px] bg-green-50 border border-green-100 hover:bg-green-100 text-green-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">✅ الكل حاضر</button>' +
         '<button onclick="clearAllAttendance()" class="flex-1 min-w-[70px] bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-lg transition-transform active:scale-95 shadow-sm">↩️ تصفير اليوم</button>' +
-      '</div>' : '') +
+      '</div>' : '');
+    }
 
-      // قائمة الطلاب للتحضير
-      '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-24 md:pb-6">';
+    // 4. بناء قائمة الطلاب للتحضير
+    var html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-24 md:pb-6">';
 
     if (students.length === 0) {
-      html += '<div class="text-center text-slate-500 p-8 bg-white/50 rounded-2xl border border-white/80 font-bold">لا يوجد طلاب مطابقون</div>';
+      html += '<div class="text-center text-slate-500 p-8 bg-white/50 rounded-2xl border border-white/80 font-bold col-span-full">لا يوجد طلاب مطابقون</div>';
     } else {
       students.forEach(function (s) {
         var g = Store.getGroup(s.groupId);
