@@ -183,7 +183,6 @@
         var data = snap.data();
         if (data.groups) state.groups = data.groups;
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
-        if (typeof data.supervisor === 'string') state.supervisor = data.supervisor;
         if (data.teachers && typeof data.teachers === 'object') state.teachers = data.teachers;
         persist();
         emit(false);
@@ -192,7 +191,6 @@
         db.collection('settings').doc('config').set({
           groups: state.groups,
           attendancePoints: state.attendancePoints,
-          supervisor: state.supervisor,
           teachers: state.teachers
         }).catch(function () {});
       }
@@ -313,15 +311,22 @@
 
   function getLog() { return state.log.slice(); }
 
-  function getSupervisor() { return state.supervisor; }
+  function getSupervisor() {
+    return getLoggedInTeacher() || state.supervisor || '';
+  }
 
   /* ---------------- واجهة الكتابة ---------------- */
 
   function setSupervisor(name) {
-    state.supervisor = (name || '').trim();
-    if (db) {
-      db.collection('settings').doc('config').set({ supervisor: state.supervisor }, { merge: true }).catch(function() {});
-    }
+    var cleanName = (name || '').trim();
+    state.supervisor = cleanName;
+    try {
+      if (cleanName) {
+        global.localStorage.setItem('logged_in_teacher', cleanName);
+      } else {
+        global.localStorage.removeItem('logged_in_teacher');
+      }
+    } catch (e) {}
     commit();
   }
 
@@ -843,8 +848,7 @@
     if (db) {
       db.collection('settings').doc('config').set({
         groups: state.groups,
-        attendancePoints: state.attendancePoints,
-        supervisor: state.supervisor
+        attendancePoints: state.attendancePoints
       }).catch(function() {});
 
       state.students.forEach(function(s) {
