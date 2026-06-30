@@ -136,12 +136,23 @@
       <p class="page-sub">اختر الطالب، أدخل عدد النقاط ونوع العملية ثم احفظ.</p>
 
       <div class="card points-form">
-        <!-- 1) اختيار الطالب -->
+        <!-- 1) اختيار المستهدف (طالب أو مجموعة) -->
         <div class="pp-step">
-          <label class="pp-label">1 · الطالب</label>
-          <div class="pp-select">
+          <label class="pp-label">1 · المستهدف</label>
+          <div class="seg" id="ppTargetType" style="margin-bottom: 8px; display: flex; width: 100%;">
+            <button type="button" class="active" data-target="single" style="flex: 1; padding: 10px; font-size: 13px;">👤 طالب فردي</button>
+            <button type="button" data-target="group" style="flex: 1; padding: 10px; font-size: 13px;">⛱️ مجموعة كاملة</button>
+          </div>
+
+          <!-- واجهة اختيار طالب فردي -->
+          <div class="pp-select" id="ppSingleTargetSection">
             <input id="ppSearch" placeholder="🔎 ابحث بالاسم لتصفية القائمة..." />
             <select id="ppStudent"><option value="">— اختر طالبًا —</option></select>
+          </div>
+
+          <!-- واجهة اختيار مجموعة كاملة -->
+          <div class="pp-select" id="ppGroupTargetSection" style="display: none;">
+            <select id="ppGroupSelect" style="grid-column: span 2; width: 100%;"><option value="">— اختر مجموعة —</option></select>
           </div>
         </div>
 
@@ -155,6 +166,19 @@
           <div class="cur">
             <div class="v" id="ppCurrent">0</div>
             <div class="l">النقاط الحالية</div>
+          </div>
+        </div>
+
+        <!-- بطاقة المجموعة المختارة -->
+        <div class="student-preview" id="ppGroupPreview" style="display: none;">
+          <div class="avatar" id="ppGroupAvatar" style="background: linear-gradient(135deg, #f97316, #ea580c)">⛱️</div>
+          <div class="info">
+            <div class="nm" id="ppGroupName">—</div>
+            <div class="gp" id="ppGroupMemberCount">عدد الطلاب: 0</div>
+          </div>
+          <div class="cur">
+            <div class="v" id="ppGroupCurrent">0</div>
+            <div class="l">مجموع النقاط</div>
           </div>
         </div>
 

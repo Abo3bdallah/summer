@@ -122,11 +122,33 @@
      قسم إضافة النقاط
      ==================================================== */
   var ppType = 'add';
+  var ppTargetMode = 'single';
+
   $$('#ppType button').forEach(function (b) {
     b.addEventListener('click', function () {
       $$('#ppType button').forEach(function (x) { x.classList.remove('active'); });
       b.classList.add('active');
       ppType = b.dataset.type;
+    });
+  });
+
+  // اختيار نوع المستهدف (طالب فردي أو مجموعة كاملة)
+  $$('#ppTargetType button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      $$('#ppTargetType button').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      ppTargetMode = b.dataset.target;
+      if (ppTargetMode === 'single') {
+        $('#ppSingleTargetSection').style.display = 'grid';
+        $('#ppGroupTargetSection').style.display = 'none';
+        $('#ppGroupPreview').style.display = 'none';
+        updatePreview();
+      } else {
+        $('#ppSingleTargetSection').style.display = 'none';
+        $('#ppGroupTargetSection').style.display = 'grid';
+        $('#ppPreview').style.display = 'none';
+        updateGroupPreview();
+      }
     });
   });
 
@@ -165,7 +187,7 @@
     var id = $('#ppStudent').value;
     var box = $('#ppPreview');
     var st = id ? Store.getStudent(id) : null;
-    if (!st) { box.classList.remove('show'); return; }
+    if (!st || ppTargetMode !== 'single') { box.classList.remove('show'); return; }
     var g = Store.getGroup(st.groupId);
     box.classList.add('show');
     var av = $('#ppAvatar');
@@ -177,23 +199,72 @@
   }
   $('#ppStudent').addEventListener('change', updatePreview);
 
+  function updateGroupPreview() {
+    var gid = $('#ppGroupSelect').value;
+    var box = $('#ppGroupPreview');
+    if (!gid || ppTargetMode !== 'group') { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    var g = Store.getGroup(gid);
+    var students = Store.getStudents().filter(function (s) { return s.groupId === gid; });
+    var sum = students.reduce(function (acc, s) { return acc + s.points; }, 0);
+    
+    var av = $('#ppGroupAvatar');
+    av.className = 'avatar bg-' + groupClass(gid);
+    av.textContent = '⛱️';
+    
+    $('#ppGroupName').textContent = g ? g.name : '';
+    $('#ppGroupMemberCount').textContent = 'عدد الطلاب: ' + students.length;
+    $('#ppGroupCurrent').textContent = sum;
+  }
+  $('#ppGroupSelect').addEventListener('change', updateGroupPreview);
+
   $('#ppSave').addEventListener('click', function () {
-    var id = $('#ppStudent').value;
-    if (!id) { toast('اختر طالبًا أولًا', 'err'); return; }
     var amount = parseInt($('#ppAmount').value, 10);
     if (isNaN(amount) || amount <= 0) { toast('أدخل عددًا صحيحًا أكبر من صفر', 'err'); return; }
-    try {
-      var res = Store.applyPoints(id, amount, ppType, $('#ppReason').value, Store.getSupervisor());
-      var e = res.entry;
-      if (ppType === 'subtract' && e.amount < e.requested) {
-        toast('تم الخصم حتى الصفر (لا يمكن أن تقل النقاط عن صفر)', 'ok');
-      } else {
-        toast((ppType === 'add' ? 'تمت إضافة ' : 'تم خصم ') + e.amount + ' نقطة لـ ' + e.studentName, 'ok');
+    var reason = ($('#ppReason').value || '').trim();
+
+    if (ppTargetMode === 'single') {
+      var id = $('#ppStudent').value;
+      if (!id) { toast('اختر طالبًا أولًا', 'err'); return; }
+      try {
+        var res = Store.applyPoints(id, amount, ppType, reason, Store.getSupervisor());
+        var e = res.entry;
+        if (ppType === 'subtract' && e.amount < e.requested) {
+          toast('تم الخصم حتى الصفر (لا يمكن أن تقل النقاط عن صفر)', 'ok');
+        } else {
+          toast((ppType === 'add' ? 'تمت إضافة ' : 'تم خصم ') + e.amount + ' نقطة لـ ' + e.studentName, 'ok');
+        }
+        $('#ppAmount').value = '';
+        $('#ppReason').value = '';
+      } catch (err) {
+        toast(err.message, 'err');
       }
-      $('#ppAmount').value = '';
-      $('#ppReason').value = '';
-    } catch (err) {
-      toast(err.message, 'err');
+    } else {
+      var gid = $('#ppGroupSelect').value;
+      if (!gid) { toast('اختر مجموعة أولًا', 'err'); return; }
+      var g = Store.getGroup(gid);
+      var groupName = g ? g.name : '';
+      var students = Store.getStudents().filter(function (s) { return s.groupId === gid; });
+      if (!students.length) { toast('المجموعة المختارة لا تحتوي على طلاب حالياً', 'err'); return; }
+      
+      var opText = ppType === 'add' ? 'إضافة' : 'خصم';
+      showConfirm('هل تريد ' + opText + ' ' + amount + ' نقطة لجميع طلاب مجموعة "' + groupName + '" وعددهم (' + students.length + ') طلاب؟', function (confirmed) {
+        if (!confirmed) return;
+        try {
+          var count = 0;
+          students.forEach(function (s) {
+            Store.applyPoints(s.id, amount, ppType, reason, Store.getSupervisor());
+            count++;
+          });
+          toast('تم بنجاح ' + opText + ' ' + amount + ' نقطة لـ (' + count + ') طالب في مجموعة "' + groupName + '"', 'ok');
+          $('#ppAmount').value = '';
+          $('#ppReason').value = '';
+          $('#ppGroupSelect').value = '';
+          updateGroupPreview();
+        } catch (err) {
+          toast(err.message, 'err');
+        }
+      });
     }
   });
 
@@ -795,6 +866,17 @@
     renderLastInfo();
     fillGroupSelect($('#stGroup'));
     fillGroupSelect($('#bulkGroup'));
+
+    var ppGroupSel = $('#ppGroupSelect');
+    if (ppGroupSel) {
+      var curGroup = ppGroupSel.value;
+      ppGroupSel.innerHTML = '<option value="">— اختر مجموعة —</option>' + Store.getGroups().map(function (g) {
+        return '<option value="' + g.id + '">' + esc(g.name) + '</option>';
+      }).join('');
+      ppGroupSel.value = curGroup;
+    }
+    updateGroupPreview();
+
     renderStudents();
     renderIndFilters();
     renderIndividual();
