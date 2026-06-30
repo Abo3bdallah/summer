@@ -75,9 +75,23 @@
     var ids = students.map(function (s) { return s.id; }).join(',');
     if (grid.dataset.ids !== ids) {
       grid.dataset.ids = ids;
-      grid.innerHTML = students.map(function (s) {
+      grid.innerHTML = students.map(function (s, i) {
         var cls = groupClass(s.groupId);
-        return '<div class="scard ' + cls + '" data-id="' + s.id + '">' +
+        var rankClass = '';
+        var medal = '';
+        if (i === 0) {
+          rankClass = ' rank-gold';
+          medal = '<span class="medal-badge">👑</span>';
+        } else if (i === 1) {
+          rankClass = ' rank-silver';
+          medal = '<span class="medal-badge">🥈</span>';
+        } else if (i === 2) {
+          rankClass = ' rank-bronze';
+          medal = '<span class="medal-badge">🥉</span>';
+        }
+
+        return '<div class="scard ' + cls + rankClass + '" data-id="' + s.id + '">' +
+          medal +
           '<span class="pbadge">' + s.points + '</span>' +
           '<span class="pname">' + esc(s.name) + '</span>' +
         '</div>';
