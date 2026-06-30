@@ -200,24 +200,37 @@
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
 
-    // 1. لافتة حالة قفل واعتماد اليوم
+    // 1. لافتة حالة قفل واعتماد اليوم (تصميم زجاجي خفيف ومبسط)
     var bannerContainer = $('#attStatusBanner');
     if (bannerContainer) {
       bannerContainer.innerHTML = isClosed ? 
-        '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-red-950/40 text-rose-700 border-red-900/60 flex flex-col gap-2 justify-center items-center"><div>🔒 التحضير مغلق وموثق لهذا اليوم ولا يمكن تعديله.</div>' +
-        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔓 إعادة فتح التحضير</button>' : '') + '</div>'
+        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm">' +
+          '<div class="flex items-center gap-1.5"><span class="text-rose-600">🔒 التحضير مغلق وموثق</span></div>' +
+          (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-rose-500 hover:bg-rose-600 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔓 إعادة فتح</button>' : '') +
+        '</div>'
         :
-        '<div class="p-3.5 rounded-xl text-center text-sm font-bold shadow-md border bg-green-950/40 text-green-300 border-green-900/60 flex flex-col gap-2 justify-center items-center"><div>🔓 التحضير مفتوح حالياً لتسجيل حضور الطلاب.</div>' +
-        (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 shadow-md">🔒 إغلاق واعتماد اليوم</button>' : '') + '</div>';
+        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm">' +
+          '<div class="flex items-center gap-1.5"><span class="text-emerald-600">🟢 التحضير مفتوح حالياً</span></div>' +
+          (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔒 إغلاق واعتماد</button>' : '') +
+        '</div>';
     }
 
-    // 2. إحصاءات اليوم ونقاطه
+    // 2. إحصاءات اليوم ونقاطه (تصميم زجاجي أبيض خفيف وناعم)
     var statsContainer = $('#attStatsContainer');
     if (statsContainer) {
-      statsContainer.innerHTML = '<div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">' +
-        '<div class="bg-blue-900/40 border border-blue-800 p-2 rounded-xl text-blue-300">⏰ مبكر (' + ap.early + 'ن): <b class="block text-base mt-1">' + sum.early + '</b></div>' +
-        '<div class="bg-green-900/40 border border-green-800 p-2 rounded-xl text-green-300">✅ حاضر (' + ap.present + 'ن): <b class="block text-base mt-1">' + sum.present + '</b></div>' +
-        '<div class="bg-red-900/40 border border-red-800 p-2 rounded-xl text-rose-700">❌ غائب (' + ap.absent + 'ن): <b class="block text-base mt-1">' + sum.absent + '</b></div>' +
+      statsContainer.innerHTML = '<div class="flex gap-2 justify-between items-center text-xs font-bold">' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+          '<span>⏰ مبكر</span>' +
+          '<b class="text-blue-600 text-sm font-extrabold">' + sum.early + '</b>' +
+        '</div>' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+          '<span>✅ حاضر</span>' +
+          '<b class="text-emerald-600 text-sm font-extrabold">' + sum.present + '</b>' +
+        '</div>' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+          '<span>❌ غائب</span>' +
+          '<b class="text-rose-600 text-sm font-extrabold">' + sum.absent + '</b>' +
+        '</div>' +
       '</div>';
     }
 
