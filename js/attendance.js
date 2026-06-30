@@ -234,8 +234,9 @@
         }).join('');
 
         html += '<div class="bg-white/70 backdrop-blur-md p-3 px-4 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md hover:bg-white" style="border: 1px solid rgba(0,0,0,0.05); border-right: 4px solid ' + hexColor + ';">' +
-          '<div class="flex flex-col gap-1 min-w-0 text-right">' +
+          '<div class="flex flex-col min-w-0 text-right">' +
             '<h3 class="font-extrabold text-sm sm:text-base text-slate-800 truncate" style="font-family:\'Tajawal\', sans-serif;">' + esc(s.name) + '</h3>' +
+            '<span class="text-[9px] font-bold text-slate-400/80 block mt-0.5" style="font-family:\'Tajawal\', sans-serif;">' + auditTitle + '</span>' +
           '</div>' +
           '<div class="flex gap-1 shrink-0">' +
             btns +
