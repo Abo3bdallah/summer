@@ -1383,15 +1383,48 @@ body.att-page {
   animation: bronzeGlow 2.5s infinite alternate ease-in-out;
 }
 
-/* شارات الميداليات */
-.medal-badge {
+/* شارات الترتيب والميداليات بالزاوية اليسرى العليا */
+.rank-badge {
   position: absolute;
-  top: -14px;
-  right: -10px;
-  font-size: 18px;
+  top: 6px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  direction: ltr;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 10;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+}
+
+.rank-badge.gold-badge {
+  background: rgba(251, 191, 36, 0.22);
+  color: #fef08a;
+  border: 1px solid rgba(251, 191, 36, 0.4);
   animation: floatMedal 3s infinite ease-in-out;
+}
+
+.rank-badge.silver-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation: floatMedal 3s infinite ease-in-out;
+}
+
+.rank-badge.bronze-badge {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fed7aa;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  animation: floatMedal 3s infinite ease-in-out;
+}
+
+.rank-badge.std-badge {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* حركات التوهج */
@@ -1408,9 +1441,9 @@ body.att-page {
   100% { box-shadow: 0 0 16px rgba(217, 119, 6, 0.45), inset 0 0 6px rgba(217, 119, 6, 0.1); }
 }
 
-/* حركة طفو الميداليات */
+/* حركة طفو الميداليات والشارات */
 @keyframes floatMedal {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(4deg); }
+  50% { transform: translateY(-1.5px) rotate(2deg); }
 }
 

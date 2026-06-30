@@ -78,20 +78,22 @@
       grid.innerHTML = students.map(function (s, i) {
         var cls = groupClass(s.groupId);
         var rankClass = '';
-        var medal = '';
+        var rankBadge = '';
         if (i === 0) {
           rankClass = ' rank-gold';
-          medal = '<span class="medal-badge">👑</span>';
+          rankBadge = '<span class="rank-badge gold-badge">#1 👑</span>';
         } else if (i === 1) {
           rankClass = ' rank-silver';
-          medal = '<span class="medal-badge">🥈</span>';
+          rankBadge = '<span class="rank-badge silver-badge">#2 🥈</span>';
         } else if (i === 2) {
           rankClass = ' rank-bronze';
-          medal = '<span class="medal-badge">🥉</span>';
+          rankBadge = '<span class="rank-badge bronze-badge">#3 🥉</span>';
+        } else {
+          rankBadge = '<span class="rank-badge std-badge">#' + (i + 1) + '</span>';
         }
 
         return '<div class="scard ' + cls + rankClass + '" data-id="' + s.id + '">' +
-          medal +
+          rankBadge +
           '<span class="pbadge">' + s.points + '</span>' +
           '<span class="pname">' + esc(s.name) + '</span>' +
         '</div>';
