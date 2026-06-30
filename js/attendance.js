@@ -233,15 +233,11 @@
                  ' class="text-[10px] font-black px-2.5 py-1 rounded-md border transition-all active:scale-95' + activeClass + '">' + st.label.split(' ')[1] + '</button>';
         }).join('');
 
-        html += '<div class="bg-white/70 backdrop-blur-md p-2.5 px-3.5 rounded-xl border border-white/80 shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md hover:border-white">' +
-          '<div class="flex items-center gap-2.5 min-w-0">' +
-            '<span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] text-white shrink-0" style="background-color:' + hexColor + '">' + initials(s.name) + '</span>' +
-            '<div class="text-right min-w-0">' +
-              '<div class="flex items-center gap-1.5 flex-wrap">' +
-                '<h3 class="font-bold text-xs sm:text-sm text-slate-800 truncate max-w-[140px] sm:max-w-none">' + esc(s.name) + '</h3>' +
-                '<span class="text-[8px] font-black px-1.5 py-0.5 rounded-full shrink-0 g-' + cls + '">' + esc(g ? g.name : 'بدون') + '</span>' +
-              '</div>' +
-              '<span class="text-[9px] font-bold text-slate-400 block mt-0.5">' + auditTitle + '</span>' +
+        html += '<div class="bg-white/70 backdrop-blur-md p-3 px-4 rounded-xl border border-white/80 shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md hover:border-white">' +
+          '<div class="flex flex-col gap-1 min-w-0 text-right">' +
+            '<div class="flex items-center gap-2 flex-wrap">' +
+              '<h3 class="font-extrabold text-sm sm:text-base text-slate-800 truncate" style="font-family:\'Tajawal\', sans-serif;">' + esc(s.name) + '</h3>' +
+              '<span class="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 g-' + cls + '">' + esc(g ? g.name : 'بدون') + '</span>' +
             '</div>' +
           '</div>' +
           '<div class="flex gap-1 shrink-0">' +
