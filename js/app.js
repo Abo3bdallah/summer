@@ -181,10 +181,21 @@
     }).join('');
     if (cur && Store.getStudent(cur)) sel.value = cur;
 
+    // تحديث تسمية زر التحديد
+    var activeSt = cur ? Store.getStudent(cur) : null;
+    var labelSpan = $('#ppSelectStudentLabel');
+    if (labelSpan) {
+      if (activeSt) {
+        var groupObj = Store.getGroup(activeSt.groupId);
+        labelSpan.textContent = '👤 ' + activeSt.name + (groupObj ? ' — ' + groupObj.name : '');
+      } else {
+        labelSpan.textContent = '👤 اختر طالبًا...';
+      }
+    }
+
     var sug = $('#ppSuggestions');
     if (sug) {
       if (students.length > 0) {
-        sug.style.display = 'flex';
         sug.innerHTML = students.map(function (s) {
           var g = Store.getGroup(s.groupId);
           var cls = groupClass(s.groupId);
@@ -198,19 +209,52 @@
         $$('.suggestion-item', sug).forEach(function (el) {
           el.addEventListener('click', function () {
             sel.value = el.dataset.id;
+            var dropdown = $('#ppSearchDropdown');
+            if (dropdown) dropdown.style.display = 'none';
             updatePreview();
             renderPointStudentOptions();
           });
         });
       } else {
-        sug.style.display = 'none';
-        sug.innerHTML = '';
+        sug.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--muted);">لا توجد نتائج مطابقة</div>';
       }
     }
 
     updatePreview();
   }
   $('#ppSearch').addEventListener('input', renderPointStudentOptions);
+
+  // إظهار/إخفاء القائمة المنسدلة للبحث
+  var selectStudentBtn = $('#ppSelectStudentBtn');
+  if (selectStudentBtn) {
+    selectStudentBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var dropdown = $('#ppSearchDropdown');
+      if (dropdown) {
+        var isShown = dropdown.style.display === 'flex';
+        dropdown.style.display = isShown ? 'none' : 'flex';
+        if (!isShown) {
+          var searchInput = $('#ppSearch');
+          if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+          }
+          renderPointStudentOptions();
+        }
+      }
+    });
+  }
+
+  // إغلاق قائمة البحث عند النقر خارجها
+  document.addEventListener('click', function (e) {
+    var dropdown = $('#ppSearchDropdown');
+    var btn = $('#ppSelectStudentBtn');
+    if (dropdown && btn && dropdown.style.display === 'flex') {
+      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    }
+  });
 
   // اختصارات سريعة لزيادة النقاط (تراكمي)
   $$('#ppQuickAdd .chip').forEach(function (b) {
