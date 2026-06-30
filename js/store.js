@@ -713,6 +713,89 @@
     commit();
   }
 
+  function setBulkAttendance(date, studentIds, status, supervisor) {
+    if (isAttendanceClosed(date)) {
+      throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
+    }
+    if (!state.attendance[date]) {
+      state.attendance[date] = { records: {}, status: 'active' };
+    }
+    var records = state.attendance[date].records;
+    var batch = db ? db.batch() : null;
+    var hasChanges = false;
+
+    studentIds.forEach(function (studentId) {
+      var st = getStudent(studentId);
+      if (!st) return;
+
+      var prevRec = records[studentId] || null;
+      var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
+      if (prev === status) return; // لا تغيير
+
+      var oldPts = prev ? pointsForStatus(prev) : 0;
+      var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
+      var delta = newPts - oldPts;
+
+      if (delta !== 0) {
+        st.points = Math.max(0, (st.points || 0) + delta);
+      }
+
+      if (status === 'none' || !status) {
+        delete records[studentId];
+      } else {
+        records[studentId] = {
+          status: status,
+          by: (supervisor || state.supervisor || '').trim(),
+          at: Date.now()
+        };
+      }
+
+      var logEntry = null;
+      if (delta !== 0) {
+        var grp = getGroup(st.groupId);
+        logEntry = {
+          id: uid(),
+          studentId: st.id,
+          studentName: st.name,
+          groupId: st.groupId,
+          groupName: grp ? grp.name : '',
+          amount: Math.abs(delta),
+          requested: Math.abs(delta),
+          type: delta >= 0 ? 'add' : 'subtract',
+          reason: 'تحضير جماعي (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء'),
+          supervisor: (supervisor || state.supervisor || '').trim(),
+          timestamp: Date.now(),
+          kind: 'attendance'
+        };
+        state.log.unshift(logEntry);
+      }
+
+      hasChanges = true;
+
+      if (batch) {
+        if (delta !== 0) {
+          batch.update(db.collection('students').doc(studentId), { points: st.points });
+        }
+        if (logEntry) {
+          batch.set(db.collection('logs').doc(logEntry.id), logEntry);
+        }
+      }
+    });
+
+    if (hasChanges) {
+      if (batch) {
+        batch.set(db.collection('attendance').doc(date), { 
+          records: records,
+          status: state.attendance[date].status || 'active'
+        }, { merge: true });
+        batch.commit().catch(function(e) {
+          if (window.console) console.error("Bulk commit error: ", e);
+        });
+      }
+      commit();
+    }
+  }
+
   // ملخّص يوم: أعداد كل حالة + إجمالي نقاط ذلك اليوم
   function getAttendanceSummary(date) {
     var day = state.attendance[date];
@@ -916,6 +999,7 @@
     closeAttendance: closeAttendance,
     reopenAttendance: reopenAttendance,
     setAttendance: setAttendance,
+    setBulkAttendance: setBulkAttendance,
     getAttendanceSummary: getAttendanceSummary,
     clearLog: clearLog,
     resetPoints: resetPoints,

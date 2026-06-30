@@ -306,20 +306,26 @@
 
   window.applyAllStatus = function (statusKey) {
     if (Store.isAttendanceClosed(selectedDate)) return;
-    visibleStudents().forEach(function (s) {
-      Store.setAttendance(selectedDate, s.id, statusKey, Store.getSupervisor());
-    });
-    toast('تم تحضير الطلاب الظاهرين كـ ' + (statusKey === 'early' ? 'مبكر' : statusKey === 'present' ? 'حاضر' : 'غائب'), 'ok');
+    var ids = visibleStudents().map(function(s) { return s.id; });
+    try {
+      Store.setBulkAttendance(selectedDate, ids, statusKey, Store.getSupervisor());
+      toast('تم تحضير الطلاب الظاهرين كـ ' + (statusKey === 'early' ? 'مبكر' : statusKey === 'present' ? 'حاضر' : 'غائب'), 'ok');
+    } catch(e) {
+      toast(e.message, 'err');
+    }
   };
 
   window.clearAllAttendance = function () {
     if (Store.isAttendanceClosed(selectedDate)) return;
     showConfirm('تصفير تحضير اليوم للطلاب الظاهرين؟ ستُسحب أي نقاط تم منحها لهم في تحضير اليوم.', function (confirmed) {
       if (!confirmed) return;
-      visibleStudents().forEach(function (s) {
-        Store.setAttendance(selectedDate, s.id, 'none', Store.getSupervisor());
-      });
-      toast('تم تصفير تحضير اليوم', 'ok');
+      var ids = visibleStudents().map(function(s) { return s.id; });
+      try {
+        Store.setBulkAttendance(selectedDate, ids, 'none', Store.getSupervisor());
+        toast('تم تصفير تحضير اليوم', 'ok');
+      } catch(e) {
+        toast(e.message, 'err');
+      }
     });
   };
 
