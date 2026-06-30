@@ -204,12 +204,12 @@
     var bannerContainer = $('#attStatusBanner');
     if (bannerContainer) {
       bannerContainer.innerHTML = isClosed ? 
-        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm">' +
+        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm att-status-banner banner-closed">' +
           '<div class="flex items-center gap-1.5"><span class="text-rose-600">🔒 التحضير مغلق وموثق</span></div>' +
           (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-rose-500 hover:bg-rose-600 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔓 إعادة فتح</button>' : '') +
         '</div>'
         :
-        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm">' +
+        '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm att-status-banner banner-open">' +
           '<div class="flex items-center gap-1.5"><span class="text-emerald-600">🟢 التحضير مفتوح حالياً</span></div>' +
           (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔒 إغلاق واعتماد</button>' : '') +
         '</div>';
@@ -219,15 +219,15 @@
     var statsContainer = $('#attStatsContainer');
     if (statsContainer) {
       statsContainer.innerHTML = '<div class="flex gap-2 justify-between items-center text-xs font-bold">' +
-        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm att-stats-card stats-early">' +
           '<span>⏰ مبكر</span>' +
           '<b class="text-blue-600 text-sm font-extrabold">' + sum.early + '</b>' +
         '</div>' +
-        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm att-stats-card stats-present">' +
           '<span>✅ حاضر</span>' +
           '<b class="text-emerald-600 text-sm font-extrabold">' + sum.present + '</b>' +
         '</div>' +
-        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm">' +
+        '<div class="flex-1 bg-white/45 backdrop-blur-md border border-white/60 p-2 px-3 rounded-xl text-slate-700 flex justify-between items-center shadow-sm att-stats-card stats-absent">' +
           '<span>❌ غائب</span>' +
           '<b class="text-rose-600 text-sm font-extrabold">' + sum.absent + '</b>' +
         '</div>' +

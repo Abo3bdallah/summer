@@ -1299,3 +1299,51 @@ body.att-page {
   border-color: transparent;
 }
 
+/* تصميم متطور وبسيط لعدادات التحضير */
+.att-stats-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+}
+.att-stats-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+.att-stats-card.stats-early { border-bottom-color: #3b82f6; }
+.att-stats-card.stats-early:hover {
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.att-stats-card.stats-present { border-bottom-color: #10b981; }
+.att-stats-card.stats-present:hover {
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.att-stats-card.stats-absent { border-bottom-color: #f43f5e; }
+.att-stats-card.stats-absent:hover {
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+/* لافتة قفل التحضير المتطورة */
+.att-status-banner {
+  transition: all 0.3s ease;
+}
+.att-status-banner.banner-closed {
+  border-color: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05);
+}
+.att-status-banner.banner-closed:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+}
+.att-status-banner.banner-open {
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.05);
+}
+.att-status-banner.banner-open:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+}
+
