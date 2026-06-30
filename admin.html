@@ -153,6 +153,14 @@
             </button>
             
             <div id="ppSearchDropdown" style="display: none; flex-direction: column; gap: 8px; background: rgba(255, 255, 255, 0.95); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 6px; box-shadow: var(--shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 10;">
+              <!-- فلاتر المجموعات السريعة -->
+              <div id="ppSearchGroupFilters" class="chip-filters mini" style="margin-top: 0; margin-bottom: 2px;">
+                <button type="button" class="chip active" data-group="all">الكل</button>
+                <button type="button" class="chip" data-group="qimma">البواسل</button>
+                <button type="button" class="chip" data-group="tumooh">الكواسر</button>
+                <button type="button" class="chip" data-group="sumood">المعالي</button>
+                <button type="button" class="chip" data-group="ruwwad">الشموخ</button>
+              </div>
               <input id="ppSearch" placeholder="🔎 اكتب اسم الطالب للبحث..." style="width: 100%; background: #fff;" />
               <div id="ppSuggestions" class="suggestions-list" style="margin-top: 0; max-height: 180px;"></div>
             </div>

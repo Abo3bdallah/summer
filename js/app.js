@@ -124,6 +124,7 @@
   var ppType = 'add';
   var ppTargetMode = 'single';
   var ppMultiSelectedIds = [];
+  var ppSearchGroupFilter = 'all';
 
   $$('#ppType button').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -172,9 +173,12 @@
     var sel = $('#ppStudent');
     var cur = sel.value;
     var q = ($('#ppSearch').value || '').trim().toLowerCase();
-    var students = Store.getStudents()
-      .filter(function (s) { return !q || s.name.toLowerCase().indexOf(q) !== -1; })
-      .sort(function (a, b) { return a.name.localeCompare(b.name, 'ar'); });
+    var students = Store.getStudents().filter(function (s) {
+      if (!s) return false;
+      var matchesSearch = !q || s.name.toLowerCase().indexOf(q) !== -1;
+      var matchesGroup = ppSearchGroupFilter === 'all' || s.groupId === ppSearchGroupFilter;
+      return matchesSearch && matchesGroup;
+    }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ar'); });
     sel.innerHTML = '<option value="">— اختر طالبًا —</option>' + students.map(function (s) {
       var g = Store.getGroup(s.groupId);
       return '<option value="' + s.id + '">' + esc(s.name) + ' — ' + esc(g ? g.name : '') + '</option>';
@@ -256,7 +260,16 @@
     }
   });
 
-  // اختصارات سريعة لزيادة النقاط (تراكمي)
+  // ربط فلاتر المجموعات السريعة في منسدلة البحث الفردي
+  $$('#ppSearchGroupFilters .chip').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation(); // منع إغلاق المنسدلة عند النقر على الفلتر
+      $$('#ppSearchGroupFilters .chip').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      ppSearchGroupFilter = b.dataset.group;
+      renderPointStudentOptions();
+    });
+  });
   $$('#ppQuickAdd .chip').forEach(function (b) {
     b.addEventListener('click', function () {
       var curVal = parseInt($('#ppAmount').value, 10) || 0;
