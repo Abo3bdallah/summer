@@ -123,6 +123,7 @@
      ==================================================== */
   var ppType = 'add';
   var ppTargetMode = 'single';
+  var ppMultiSelectedIds = [];
 
   $$('#ppType button').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -132,7 +133,7 @@
     });
   });
 
-  // اختيار نوع المستهدف (طالب فردي أو مجموعة كاملة)
+  // اختيار نوع المستهدف (طالب فردي، طلاب محددون، أو مجموعة كاملة)
   $$('#ppTargetType button').forEach(function (b) {
     b.addEventListener('click', function () {
       $$('#ppTargetType button').forEach(function (x) { x.classList.remove('active'); });
@@ -140,13 +141,28 @@
       ppTargetMode = b.dataset.target;
       if (ppTargetMode === 'single') {
         $('#ppSingleTargetSection').style.display = 'grid';
+        $('#ppMultiTargetSection').style.display = 'none';
         $('#ppGroupTargetSection').style.display = 'none';
+        $('#ppPreview').style.display = 'flex';
+        $('#ppMultiPreview').style.display = 'none';
         $('#ppGroupPreview').style.display = 'none';
         updatePreview();
+      } else if (ppTargetMode === 'multi') {
+        $('#ppSingleTargetSection').style.display = 'none';
+        $('#ppMultiTargetSection').style.display = 'flex';
+        $('#ppGroupTargetSection').style.display = 'none';
+        $('#ppPreview').style.display = 'none';
+        $('#ppMultiPreview').style.display = 'flex';
+        $('#ppGroupPreview').style.display = 'none';
+        renderMultiChecklist();
+        updateMultiPreview();
       } else {
         $('#ppSingleTargetSection').style.display = 'none';
+        $('#ppMultiTargetSection').style.display = 'none';
         $('#ppGroupTargetSection').style.display = 'grid';
         $('#ppPreview').style.display = 'none';
+        $('#ppMultiPreview').style.display = 'none';
+        $('#ppGroupPreview').style.display = 'flex';
         updateGroupPreview();
       }
     });
@@ -199,6 +215,74 @@
   }
   $('#ppStudent').addEventListener('change', updatePreview);
 
+  function renderMultiChecklist() {
+    var container = $('#ppMultiChecklist');
+    if (!container) return;
+    var q = ($('#ppMultiSearch').value || '').trim().toLowerCase();
+    var students = Store.getStudents().filter(function (s) {
+      return !q || s.name.toLowerCase().indexOf(q) !== -1;
+    }).sort(function (a, b) {
+      return a.name.localeCompare(b.name, 'ar');
+    });
+
+    container.innerHTML = students.map(function (s) {
+      var g = Store.getGroup(s.groupId);
+      var cls = groupClass(s.groupId);
+      var isChecked = ppMultiSelectedIds.indexOf(s.id) !== -1 ? 'checked' : '';
+      return '<label style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700; font-size:12.5px; transition: background 0.15s; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.03); margin:0;" class="hover-bg">' +
+        '<div style="display:flex; align-items:center; gap:8px;">' +
+          '<input type="checkbox" class="pp-multi-cb" data-id="' + s.id + '" ' + isChecked + ' style="width:15px; height:15px; cursor:pointer;" />' +
+          '<span style="color:#1e293b;">' + esc(s.name) + '</span>' +
+        '</div>' +
+        '<span class="group-tag g-' + cls + '" style="font-size:9px; padding:2px 6px; font-weight:800;">' + esc(g ? g.name : 'بدون') + '</span>' +
+      '</label>';
+    }).join('');
+
+    $$('.pp-multi-cb', container).forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var id = cb.dataset.id;
+        if (cb.checked) {
+          if (ppMultiSelectedIds.indexOf(id) === -1) ppMultiSelectedIds.push(id);
+        } else {
+          ppMultiSelectedIds = ppMultiSelectedIds.filter(function (x) { return x !== id; });
+        }
+        updateMultiPreview();
+      });
+    });
+  }
+  $('#ppMultiSearch').addEventListener('input', renderMultiChecklist);
+
+  $('#ppMultiSelectAll').addEventListener('click', function () {
+    var q = ($('#ppMultiSearch').value || '').trim().toLowerCase();
+    Store.getStudents().filter(function (s) {
+      return !q || s.name.toLowerCase().indexOf(q) !== -1;
+    }).forEach(function (s) {
+      if (ppMultiSelectedIds.indexOf(s.id) === -1) ppMultiSelectedIds.push(s.id);
+    });
+    renderMultiChecklist();
+    updateMultiPreview();
+  });
+
+  $('#ppMultiDeselectAll').addEventListener('click', function () {
+    var q = ($('#ppMultiSearch').value || '').trim().toLowerCase();
+    var filteredIds = Store.getStudents().filter(function (s) {
+      return !q || s.name.toLowerCase().indexOf(q) !== -1;
+    }).map(function (s) { return s.id; });
+    ppMultiSelectedIds = ppMultiSelectedIds.filter(function (id) {
+      return filteredIds.indexOf(id) === -1;
+    });
+    renderMultiChecklist();
+    updateMultiPreview();
+  });
+
+  function updateMultiPreview() {
+    var box = $('#ppMultiPreview');
+    if (ppTargetMode !== 'multi') { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    $('#ppMultiCount').textContent = 'المحدد: ' + ppMultiSelectedIds.length + ' طلاب';
+    $('#ppMultiCurrent').textContent = ppMultiSelectedIds.length;
+  }
+
   function updateGroupPreview() {
     var gid = $('#ppGroupSelect').value;
     var box = $('#ppGroupPreview');
@@ -239,6 +323,27 @@
       } catch (err) {
         toast(err.message, 'err');
       }
+    } else if (ppTargetMode === 'multi') {
+      if (!ppMultiSelectedIds.length) { toast('حدد طالبًا واحدًا على الأقل أولًا', 'err'); return; }
+      var opText = ppType === 'add' ? 'إضافة' : 'خصم';
+      showConfirm('هل تريد ' + opText + ' ' + amount + ' نقطة لـ (' + ppMultiSelectedIds.length + ') طالب تم اختيارهم؟', function (confirmed) {
+        if (!confirmed) return;
+        try {
+          var count = 0;
+          ppMultiSelectedIds.forEach(function (id) {
+            Store.applyPoints(id, amount, ppType, reason, Store.getSupervisor());
+            count++;
+          });
+          toast('تم بنجاح ' + opText + ' ' + amount + ' نقطة لـ (' + count + ') طالب محددين', 'ok');
+          $('#ppAmount').value = '';
+          $('#ppReason').value = '';
+          ppMultiSelectedIds = [];
+          renderMultiChecklist();
+          updateMultiPreview();
+        } catch (err) {
+          toast(err.message, 'err');
+        }
+      });
     } else {
       var gid = $('#ppGroupSelect').value;
       if (!gid) { toast('اختر مجموعة أولًا', 'err'); return; }
@@ -876,6 +981,14 @@
       ppGroupSel.value = curGroup;
     }
     updateGroupPreview();
+
+    // تحديث قائمة التحديد المتعدد
+    var allStudents = Store.getStudents().map(function (s) { return s.id; });
+    ppMultiSelectedIds = ppMultiSelectedIds.filter(function (id) {
+      return allStudents.indexOf(id) !== -1;
+    });
+    renderMultiChecklist();
+    updateMultiPreview();
 
     renderStudents();
     renderIndFilters();
