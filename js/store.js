@@ -693,7 +693,7 @@
         amount: Math.abs(delta),
         requested: Math.abs(delta),
         type: delta >= 0 ? 'add' : 'subtract',
-        reason: 'تحضير (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء'),
+        reason: 'تحضير (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء') + (prev && prev !== 'none' && prev !== status ? ' (تعديل من ' + (ATT_LABELS[prev] || prev) + ')' : ''),
         supervisor: (supervisor || state.supervisor || '').trim(),
         timestamp: Date.now(),
         kind: 'attendance'
@@ -767,7 +767,7 @@
           amount: Math.abs(delta),
           requested: Math.abs(delta),
           type: delta >= 0 ? 'add' : 'subtract',
-          reason: 'تحضير جماعي (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء'),
+          reason: 'تحضير جماعي (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء') + (prev && prev !== 'none' && prev !== status ? ' (تعديل من ' + (ATT_LABELS[prev] || prev) + ')' : ''),
           supervisor: (supervisor || state.supervisor || '').trim(),
           timestamp: Date.now(),
           kind: 'attendance'
