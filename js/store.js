@@ -76,7 +76,7 @@
       supervisor: '',
       // نقاط التحضير لكل حالة (قابلة للضبط من الإعدادات)
       attendancePoints: { early: 10, present: 5, absent: 0 },
-      // سجل التحضير: { 'YYYY-MM-DD': { studentId: 'early'|'present'|'absent' } }
+      fastReasons: ['المشاركة', 'التفاعل', 'لغز المبكرين', 'التميز', 'الأذان والإقامة'],
       attendance: {},
       teachers: copyTeachers()
     };
@@ -95,6 +95,9 @@
           var v = parseInt(parsed.attendancePoints[k], 10);
           if (!isNaN(v)) s.attendancePoints[k] = v;
         });
+      }
+      if (parsed.fastReasons && Array.isArray(parsed.fastReasons)) {
+        s.fastReasons = parsed.fastReasons;
       }
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
       if (parsed.teachers && typeof parsed.teachers === 'object') {
@@ -183,6 +186,7 @@
         var data = snap.data();
         if (data.groups) state.groups = data.groups;
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
+        if (data.fastReasons) state.fastReasons = data.fastReasons;
         if (data.teachers && typeof data.teachers === 'object') state.teachers = data.teachers;
         persist();
         emit(false);
@@ -191,6 +195,7 @@
         db.collection('settings').doc('config').set({
           groups: state.groups,
           attendancePoints: state.attendancePoints,
+          fastReasons: state.fastReasons,
           teachers: state.teachers
         }).catch(function () {});
       }
@@ -993,7 +998,23 @@
     commit();
   }
 
+  function getFastReasons() {
+    return state.fastReasons || ['المشاركة', 'التفاعل', 'لغز المبكرين', 'التميز', 'الأذان والإقامة'];
+  }
+
+  function setFastReasons(arr) {
+    if (Array.isArray(arr)) {
+      state.fastReasons = arr.map(function(x) { return x.trim(); }).filter(Boolean);
+      if (db) {
+        db.collection('settings').doc('config').set({ fastReasons: state.fastReasons }, { merge: true }).catch(function() {});
+      }
+      commit();
+    }
+  }
+
   global.Store = {
+    getFastReasons: getFastReasons,
+    setFastReasons: setFastReasons,
     getState: getState,
     getGroups: getGroups,
     getGroup: getGroup,

@@ -272,10 +272,10 @@
           <input id="ppReason" placeholder="مثال: المشاركة في النشاط" />
           <div class="chip-filters mini" id="ppReasons">
             <button type="button" class="chip" data-reason="المشاركة">المشاركة</button>
-            <button type="button" class="chip" data-reason="الحضور المبكر">الحضور المبكر</button>
-            <button type="button" class="chip" data-reason="حسن السلوك">حسن السلوك</button>
-            <button type="button" class="chip" data-reason="إنجاز الواجب">إنجاز الواجب</button>
-            <button type="button" class="chip" data-reason="التميّز">التميّز</button>
+            <button type="button" class="chip" data-reason="التفاعل">التفاعل</button>
+            <button type="button" class="chip" data-reason="لغز المبكرين">لغز المبكرين</button>
+            <button type="button" class="chip" data-reason="التميز">التميز</button>
+            <button type="button" class="chip" data-reason="الأذان والإقامة">الأذان والإقامة</button>
           </div>
         </div>
 
@@ -519,6 +519,21 @@
           <div class="field" style="flex:0; min-width:auto">
             <label>&nbsp;</label>
             <button class="btn" id="apSave">حفظ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>⚡ أسباب النقاط السريعة</h3>
+        <p class="page-sub" style="margin-bottom:12px">الأسباب الجاهزة التي تظهر تحت حقل السبب في نافذة إضافة النقاط الفردية (افصل بين الأسباب بفاصلة).</p>
+        <div class="row">
+          <div class="field" style="flex:1;">
+            <label>الأسباب الجاهزة (مفصولة بفاصلة)</label>
+            <input type="text" id="setFastReasons" placeholder="مثال: المشاركة، التفاعل، لغز المبكرين، التميز، الأذان والإقامة" style="width: 100%;" />
+          </div>
+          <div class="field" style="flex:0; min-width:auto">
+            <label>&nbsp;</label>
+            <button class="btn" id="fastReasonsSave">حفظ الأسباب</button>
           </div>
         </div>
       </div>

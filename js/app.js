@@ -286,10 +286,7 @@
       $('#ppAmount').value = Math.max(0, curVal - subVal);
     });
   });
-  // أسباب جاهزة
-  $$('#ppReasons .chip').forEach(function (b) {
-    b.addEventListener('click', function () { $('#ppReason').value = b.dataset.reason; });
-  });
+  // سيتم ربط أسباب النقاط السريعة ديناميكياً بواسطة دالة renderFastReasons
   // حفظ بمفتاح Enter
   ['ppAmount', 'ppReason'].forEach(function (id) {
     $('#' + id).addEventListener('keydown', function (e) {
@@ -952,6 +949,37 @@
     toast('تم حفظ نقاط التحضير', 'ok');
   });
 
+  // أسباب النقاط السريعة في الإعدادات
+  function renderFastReasonsSettings() {
+    var input = $('#setFastReasons');
+    if (!input) return;
+    if (document.activeElement === input) return;
+    input.value = Store.getFastReasons().join('، ');
+  }
+
+  $('#fastReasonsSave').addEventListener('click', function () {
+    var raw = $('#setFastReasons').value || '';
+    var arr = raw.split(/[،,]/).map(function (x) { return x.trim(); }).filter(Boolean);
+    Store.setFastReasons(arr);
+    toast('تم حفظ أسباب النقاط السريعة بنجاح ✅', 'ok');
+  });
+
+  // عرض أسباب النقاط السريعة في بطاقة الطالب لإضافة النقاط
+  function renderFastReasons() {
+    var container = $('#ppReasons');
+    if (!container) return;
+    var reasons = Store.getFastReasons();
+    container.innerHTML = reasons.map(function (r) {
+      return '<button type="button" class="chip" data-reason="' + esc(r) + '">' + esc(r) + '</button>';
+    }).join('');
+
+    $$('.chip', container).forEach(function (b) {
+      b.addEventListener('click', function () {
+        $('#ppReason').value = b.dataset.reason;
+      });
+    });
+  }
+
   $('#setExport').addEventListener('click', function () {
     downloadFile(Store.exportData(), 'نسخة-النقاط.json', 'application/json');
     toast('تم تصدير النسخة', 'ok');
@@ -1099,6 +1127,8 @@
     renderLog();
     renderSettings();
     renderAttendancePoints();
+    renderFastReasonsSettings();
+    renderFastReasons();
     checkAuth();
   }
 
