@@ -645,10 +645,10 @@
     var body = $('#stBody');
     $('#stEmpty').style.display = students.length ? 'none' : 'block';
 
-    // فلترة المعرفات المحددة غير الموجودة حالياً (في حال تم حذف بعضهم مثلاً)
-    var allIds = students.map(function(s) { return s.id; });
+    // فلترة المعرفات المحددة غير الموجودة حالياً بقاعدة البيانات (في حال تم حذف بعضهم مثلاً)
+    var dbStudentIds = Store.getStudents().map(function(s) { return s.id; });
     selectedStudentIds = selectedStudentIds.filter(function(id) {
-      return allIds.indexOf(id) !== -1;
+      return dbStudentIds.indexOf(id) !== -1;
     });
 
     // فحص إذا كان الجميع محددين
