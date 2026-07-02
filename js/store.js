@@ -662,7 +662,16 @@
     var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
     if (prev === status) return; // لا تغيير
 
-    var oldPts = prev ? pointsForStatus(prev) : 0;
+    var oldPts = 0;
+    if (prev) {
+      state.log.forEach(function (l) {
+        if (l.studentId === studentId && l.kind === 'attendance' && l.reason.indexOf(date) !== -1) {
+          var amt = parseInt(l.amount || 0, 10);
+          if (l.type === 'add') oldPts += amt;
+          if (l.type === 'subtract') oldPts -= amt;
+        }
+      });
+    }
     var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
     var delta = newPts - oldPts;
 
@@ -737,9 +746,18 @@
       var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
       if (prev === status) return; // لا تغيير
 
-      var oldPts = prev ? pointsForStatus(prev) : 0;
-      var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
-      var delta = newPts - oldPts;
+       var oldPts = 0;
+       if (prev) {
+         state.log.forEach(function (l) {
+           if (l.studentId === studentId && l.kind === 'attendance' && l.reason.indexOf(date) !== -1) {
+             var amt = parseInt(l.amount || 0, 10);
+             if (l.type === 'add') oldPts += amt;
+             if (l.type === 'subtract') oldPts -= amt;
+           }
+         });
+       }
+       var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
+       var delta = newPts - oldPts;
 
       if (delta !== 0) {
         st.points = Math.max(0, (st.points || 0) + delta);
