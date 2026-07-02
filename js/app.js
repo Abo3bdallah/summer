@@ -878,7 +878,10 @@
     var teachers = Store.getTeachers();
     var tbody = $('#teachersPasswordsTable');
     if (!tbody) return;
-    tbody.innerHTML = Object.keys(teachers).map(function (t) {
+    var sortedNames = Object.keys(teachers).sort(function (a, b) {
+      return a.localeCompare(b, 'ar');
+    });
+    tbody.innerHTML = sortedNames.map(function (t) {
       var teacherObj = teachers[t];
       var pass = typeof teacherObj === 'string' ? teacherObj : (teacherObj.password || '1234');
       var perms = (teacherObj && teacherObj.permissions) || { adminPanel: t === "أحمد الذبياني", manageStudents: t === "أحمد الذبياني", attendance: true, closeAttendance: t === "أحمد الذبياني" };
