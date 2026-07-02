@@ -21,15 +21,16 @@
   // الأسماء القانونية حسب المعرّف (تُطبَّق على البيانات القديمة عند التحميل)
   var CANON_NAMES = { qimma: 'البواسل', tumooh: 'الكواسر', sumood: 'المعالي', ruwwad: 'الشموخ' };
 
+  var OWNER_NAME = "أحمد الذبياني";
   var DEFAULT_TEACHERS = {
-    "حاتم الحارثي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "أحمد الذبياني": { password: "1234", permissions: { adminPanel: true, manageStudents: true, attendance: true, closeAttendance: true } },
-    "سليمان جهاد": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "أمجد العماري": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "عمار الصبحي": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "عمر فتني": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "عبدالعزيز باحيدرة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } },
-    "محمد باغزوزة": { password: "1234", permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false } }
+    "حاتم الحارثي": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "أحمد الذبياني": { password: "1234", role: "owner", stage: "all", active: true, permissions: { adminPanel: true, manageStudents: true, attendance: true, closeAttendance: true, viewDisplays: true, managePlatform: true, viewReports: true } },
+    "سليمان جهاد": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "أمجد العماري": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "عمار الصبحي": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "عمر فتني": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "عبدالعزيز باحيدرة": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } },
+    "محمد باغزوزة": { password: "1234", role: "teacher", stage: "middle", active: true, permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true } }
   };
 
   function copyTeachers() {
@@ -39,11 +40,17 @@
         var t = DEFAULT_TEACHERS[k];
         obj[k] = {
           password: t.password,
+          role: t.role,
+          stage: t.stage,
+          active: t.active,
           permissions: {
             adminPanel: t.permissions.adminPanel,
             manageStudents: t.permissions.manageStudents,
             attendance: t.permissions.attendance,
-            closeAttendance: !!t.permissions.closeAttendance
+            closeAttendance: !!t.permissions.closeAttendance,
+            viewDisplays: t.permissions.viewDisplays !== false,
+            managePlatform: !!t.permissions.managePlatform,
+            viewReports: !!t.permissions.viewReports
           }
         };
       }
@@ -78,6 +85,8 @@
       attendancePoints: { early: 10, present: 5, absent: 0 },
       fastReasons: ['المشاركة', 'التفاعل', 'لغز المبكرين', 'التميز', 'الأذان والإقامة'],
       attendance: {},
+      highStudents: [],
+      highAttendance: {},
       teachers: copyTeachers()
     };
   }
@@ -100,28 +109,42 @@
         s.fastReasons = parsed.fastReasons;
       }
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
+      if (Array.isArray(parsed.highStudents)) s.highStudents = parsed.highStudents;
+      if (parsed.highAttendance && typeof parsed.highAttendance === 'object') s.highAttendance = parsed.highAttendance;
       if (parsed.teachers && typeof parsed.teachers === 'object') {
-        for (var k in s.teachers) {
+        for (var k in parsed.teachers) {
           if (parsed.teachers.hasOwnProperty(k)) {
             var rawT = parsed.teachers[k];
             if (typeof rawT === 'string') {
               s.teachers[k] = {
                 password: rawT,
+                role: k === OWNER_NAME ? 'owner' : 'teacher',
+                stage: k === OWNER_NAME ? 'all' : 'middle',
+                active: true,
                 permissions: {
-                  adminPanel: k === "أحمد الذبياني",
-                  manageStudents: k === "أحمد الذبياني",
+                  adminPanel: k === OWNER_NAME,
+                  manageStudents: k === OWNER_NAME,
                   attendance: true,
-                  closeAttendance: k === "أحمد الذبياني"
+                  closeAttendance: k === OWNER_NAME,
+                  viewDisplays: true,
+                  managePlatform: k === OWNER_NAME,
+                  viewReports: k === OWNER_NAME
                 }
               };
             } else if (rawT && typeof rawT === 'object') {
               s.teachers[k] = {
                 password: typeof rawT.password === 'string' ? rawT.password : '1234',
+                role: k === OWNER_NAME ? 'owner' : (rawT.role || 'teacher'),
+                stage: k === OWNER_NAME ? 'all' : (rawT.stage || 'middle'),
+                active: k === OWNER_NAME ? true : rawT.active !== false,
                 permissions: {
                   adminPanel: !!(rawT.permissions && rawT.permissions.adminPanel),
                   manageStudents: !!(rawT.permissions && rawT.permissions.manageStudents),
                   attendance: rawT.permissions ? !!rawT.permissions.attendance : true,
-                  closeAttendance: rawT.permissions ? !!rawT.permissions.closeAttendance : (k === "أحمد الذبياني")
+                  closeAttendance: rawT.permissions ? !!rawT.permissions.closeAttendance : (k === OWNER_NAME),
+                  viewDisplays: rawT.permissions ? rawT.permissions.viewDisplays !== false : true,
+                  managePlatform: k === OWNER_NAME || !!(rawT.permissions && rawT.permissions.managePlatform),
+                  viewReports: k === OWNER_NAME || !!(rawT.permissions && rawT.permissions.viewReports)
                 }
               };
             }
@@ -256,6 +279,45 @@
       applyingRemote = false;
     }, function (err) {
       if (global.console) console.warn('تعذّر الاتصال بـ Firebase (التحضير):', err && err.message);
+    });
+
+    // 5. طلاب المرحلة الثانوية
+    db.collection('stages').doc('high').collection('students').onSnapshot(function (snap) {
+      applyingRemote = true;
+      var highStudents = [];
+      snap.forEach(function (doc) {
+        var student = doc.data();
+        student.id = doc.id;
+        highStudents.push(student);
+      });
+      state.highStudents = highStudents;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (طلاب الثانوية):', err && err.message);
+    });
+
+    // 6. التحضير اليومي للمرحلة الثانوية
+    db.collection('stages').doc('high').collection('attendance').onSnapshot(function (snap) {
+      applyingRemote = true;
+      var highAttendance = {};
+      snap.forEach(function (doc) {
+        var data = doc.data();
+        highAttendance[doc.id] = {
+          records: data.records || {},
+          summary: data.summary || null,
+          status: data.status || 'active',
+          closedAt: data.closedAt || null,
+          closedBy: data.closedBy || null
+        };
+      });
+      state.highAttendance = highAttendance;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (تحضير الثانوية):', err && err.message);
     });
   }
 
@@ -543,6 +605,16 @@
         snap.forEach(function (doc) { batch.delete(doc.ref); });
         batch.commit().catch(function() {});
       }).catch(function() {});
+      highStudentsCollection().get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
+      highAttendanceCollection().get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
 
       if (clearLogToo) {
         db.collection('logs').get().then(function (snap) {
@@ -840,6 +912,283 @@
     return sum;
   }
 
+  /* ---------------- المرحلة الثانوية: الطلاب والتحضير بلا نقاط ---------------- */
+
+  function highStudentsCollection() {
+    return db ? db.collection('stages').doc('high').collection('students') : null;
+  }
+
+  function highAttendanceCollection() {
+    return db ? db.collection('stages').doc('high').collection('attendance') : null;
+  }
+
+  function getHighStudents() {
+    return state.highStudents.slice().sort(function (a, b) {
+      return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+    });
+  }
+
+  function getHighStudent(id) {
+    for (var i = 0; i < state.highStudents.length; i++) {
+      if (state.highStudents[i].id === id) return state.highStudents[i];
+    }
+    return null;
+  }
+
+  function requireHighStudentManager() {
+    if (!hasPermission('manageStudents')) {
+      throw new Error('لا تملك صلاحية إدارة طلاب الثانوية');
+    }
+  }
+
+  function requireHighAttendanceAccess() {
+    if (!belongsToStage('high') || !hasPermission('attendance')) {
+      throw new Error('لا تملك صلاحية تحضير المرحلة الثانوية');
+    }
+  }
+
+  function addHighStudent(name) {
+    requireHighStudentManager();
+    name = String(name || '').trim();
+    if (!name) throw new Error('اسم الطالب مطلوب');
+    var duplicate = state.highStudents.some(function (student) {
+      return String(student.name || '').trim().toLowerCase() === name.toLowerCase();
+    });
+    if (duplicate) throw new Error('الطالب موجود مسبقًا');
+
+    var student = { id: uid(), name: name, active: true, createdAt: Date.now() };
+    state.highStudents.push(student);
+    var collection = highStudentsCollection();
+    if (collection) collection.doc(student.id).set(student).catch(function () {});
+    commit();
+    return student.id;
+  }
+
+  function addHighStudents(names) {
+    requireHighStudentManager();
+    if (!Array.isArray(names)) return 0;
+    var existing = {};
+    state.highStudents.forEach(function (student) {
+      existing[String(student.name || '').trim().toLowerCase()] = true;
+    });
+    var added = [];
+    names.forEach(function (rawName) {
+      var name = String(rawName || '').trim();
+      var key = name.toLowerCase();
+      if (!name || existing[key]) return;
+      existing[key] = true;
+      added.push({ id: uid(), name: name, active: true, createdAt: Date.now() });
+    });
+    if (!added.length) return 0;
+
+    Array.prototype.push.apply(state.highStudents, added);
+    var collection = highStudentsCollection();
+    if (collection) {
+      var batch = db.batch();
+      added.forEach(function (student) { batch.set(collection.doc(student.id), student); });
+      batch.commit().catch(function () {});
+    }
+    commit();
+    return added.length;
+  }
+
+  function updateHighStudent(id, data) {
+    requireHighStudentManager();
+    var student = getHighStudent(id);
+    if (!student) throw new Error('الطالب غير موجود');
+    data = data || {};
+    var name = String(data.name || student.name || '').trim();
+    if (!name) throw new Error('اسم الطالب مطلوب');
+    student.name = name;
+    if (typeof data.active === 'boolean') student.active = data.active;
+    student.updatedAt = Date.now();
+    var collection = highStudentsCollection();
+    if (collection) collection.doc(id).set(student, { merge: true }).catch(function () {});
+    commit();
+  }
+
+  function deleteHighStudent(id) {
+    requireHighStudentManager();
+    var index = -1;
+    for (var i = 0; i < state.highStudents.length; i++) {
+      if (state.highStudents[i].id === id) { index = i; break; }
+    }
+    if (index === -1) throw new Error('الطالب غير موجود');
+    state.highStudents.splice(index, 1);
+    var collection = highStudentsCollection();
+    if (collection) collection.doc(id).delete().catch(function () {});
+    commit();
+  }
+
+  function getHighAttendance(date) {
+    var day = state.highAttendance[date];
+    return day || { records: {}, status: 'active', summary: computeHighAttendanceSummary({}) };
+  }
+
+  function getHighStudentAttendance(date, studentId) {
+    var day = state.highAttendance[date];
+    return (day && day.records && day.records[studentId]) || null;
+  }
+
+  function computeHighAttendanceSummary(records) {
+    records = records || {};
+    var summary = {
+      total: 0,
+      early: 0,
+      present: 0,
+      absent: 0,
+      unmarked: 0
+    };
+    state.highStudents.forEach(function (student) {
+      if (student.active === false) return;
+      summary.total++;
+      var record = records[student.id];
+      var status = record && typeof record === 'object' ? record.status : record;
+      if (status === 'early') summary.early++;
+      else if (status === 'present') summary.present++;
+      else if (status === 'absent') summary.absent++;
+      else summary.unmarked++;
+    });
+    return summary;
+  }
+
+  function getHighAttendanceSummary(date) {
+    var day = state.highAttendance[date];
+    return computeHighAttendanceSummary((day && day.records) || {});
+  }
+
+  function isHighAttendanceClosed(date) {
+    var day = state.highAttendance[date];
+    if (day && day.status === 'closed') return true;
+    if (day && day.status === 'active') return false;
+    return date < todayStr();
+  }
+
+  function writeHighAttendanceTransaction(date, changes, supervisor) {
+    var collection = highAttendanceCollection();
+    if (!collection) return Promise.resolve();
+    var ref = collection.doc(date);
+    var localDay = state.highAttendance[date];
+
+    return db.runTransaction(function (transaction) {
+      return transaction.get(ref).then(function (snapshot) {
+        var remote = snapshot.exists ? snapshot.data() : {};
+        if (remote.status === 'closed') throw new Error('التحضير مغلق لهذا اليوم');
+        var records = Object.assign({}, remote.records || {});
+        Object.keys(changes).forEach(function (studentId) {
+          var status = changes[studentId];
+          if (!status || status === 'none') delete records[studentId];
+          else {
+            records[studentId] = {
+              status: status,
+              by: (supervisor || getSupervisor() || '').trim(),
+              at: Date.now()
+            };
+          }
+        });
+        transaction.set(ref, {
+          records: records,
+          summary: computeHighAttendanceSummary(records),
+          status: remote.status || 'active',
+          updatedAt: Date.now()
+        }, { merge: true });
+      });
+    }).catch(function (error) {
+      if (error && /مغلق/.test(error.message || '')) throw error;
+      var offlineError = !error || !error.code ||
+        error.code === 'unavailable' || error.code === 'deadline-exceeded' || error.code === 'failed-precondition';
+      if (!offlineError) throw error;
+      // عند انقطاع الاتصال تحفظ نسخة اليوم محليًا وتُرسل ككتابة عادية عند عودة الشبكة.
+      if (localDay) {
+        return ref.set({
+          records: localDay.records,
+          summary: localDay.summary,
+          status: localDay.status || 'active',
+          updatedAt: Date.now()
+        }, { merge: true });
+      }
+      throw error;
+    });
+  }
+
+  function setHighAttendance(date, studentId, status, supervisor) {
+    requireHighAttendanceAccess();
+    if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
+    if (!getHighStudent(studentId)) throw new Error('الطالب غير موجود');
+    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+    var records = state.highAttendance[date].records;
+    if (!status || status === 'none') delete records[studentId];
+    else {
+      records[studentId] = {
+        status: status,
+        by: (supervisor || getSupervisor() || '').trim(),
+        at: Date.now()
+      };
+    }
+    state.highAttendance[date].summary = computeHighAttendanceSummary(records);
+    commit();
+    var changes = {};
+    changes[studentId] = status;
+    return writeHighAttendanceTransaction(date, changes, supervisor);
+  }
+
+  function setBulkHighAttendance(date, studentIds, status, supervisor) {
+    requireHighAttendanceAccess();
+    if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
+    if (!Array.isArray(studentIds) || !studentIds.length) throw new Error('حدد طالبًا واحدًا على الأقل');
+    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+    var records = state.highAttendance[date].records;
+    var changes = {};
+    studentIds.forEach(function (studentId) {
+      if (!getHighStudent(studentId)) return;
+      changes[studentId] = status;
+      if (!status || status === 'none') delete records[studentId];
+      else {
+        records[studentId] = {
+          status: status,
+          by: (supervisor || getSupervisor() || '').trim(),
+          at: Date.now()
+        };
+      }
+    });
+    state.highAttendance[date].summary = computeHighAttendanceSummary(records);
+    commit();
+    return writeHighAttendanceTransaction(date, changes, supervisor);
+  }
+
+  function closeHighAttendance(date, supervisor) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
+      throw new Error('لا تملك صلاحية إغلاق تحضير الثانوية');
+    }
+    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+    var day = state.highAttendance[date];
+    day.status = 'closed';
+    day.closedAt = Date.now();
+    day.closedBy = (supervisor || getSupervisor() || '').trim();
+    day.summary = computeHighAttendanceSummary(day.records);
+    var collection = highAttendanceCollection();
+    if (collection) {
+      collection.doc(date).set({
+        status: 'closed',
+        closedAt: day.closedAt,
+        closedBy: day.closedBy,
+        summary: day.summary
+      }, { merge: true }).catch(function () {});
+    }
+    commit();
+  }
+
+  function reopenHighAttendance(date) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
+      throw new Error('لا تملك صلاحية إعادة فتح تحضير الثانوية');
+    }
+    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+    state.highAttendance[date].status = 'active';
+    var collection = highAttendanceCollection();
+    if (collection) collection.doc(date).set({ status: 'active' }, { merge: true }).catch(function () {});
+    commit();
+  }
+
   function resetAll() {
     state = defaultState();
     if (db) {
@@ -890,6 +1239,21 @@
           status: (day && day.status) || 'active'
         }).catch(function() {});
       });
+
+      state.highStudents.forEach(function (student) {
+        highStudentsCollection().doc(student.id).set(student).catch(function () {});
+      });
+
+      Object.keys(state.highAttendance).forEach(function (date) {
+        var day = state.highAttendance[date];
+        highAttendanceCollection().doc(date).set({
+          records: day.records || {},
+          summary: day.summary || computeHighAttendanceSummary(day.records || {}),
+          status: day.status || 'active',
+          closedAt: day.closedAt || null,
+          closedBy: day.closedBy || null
+        }).catch(function () {});
+      });
     }
     commit();
   }
@@ -903,7 +1267,10 @@
 
   function isLoggedIn() {
     try {
-      return !!global.localStorage.getItem('logged_in_teacher');
+      var name = global.localStorage.getItem('logged_in_teacher');
+      if (!name || !state.teachers.hasOwnProperty(name)) return false;
+      var teacher = state.teachers[name];
+      return name === OWNER_NAME || !teacher || typeof teacher === 'string' || teacher.active !== false;
     } catch (e) {
       return false;
     }
@@ -925,12 +1292,174 @@
     return obj;
   }
 
+  function persistTeachers() {
+    if (db) {
+      db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function () {});
+    }
+    commit();
+  }
+
+  function requireOwnerAccess() {
+    if (getLoggedInTeacher() !== OWNER_NAME) {
+      throw new Error('هذه العملية متاحة لمالك المنصة فقط');
+    }
+  }
+
+  function defaultPermissions(role, stage) {
+    if (role === 'admin') {
+      return {
+        adminPanel: true,
+        manageStudents: true,
+        attendance: true,
+        closeAttendance: true,
+        viewDisplays: true,
+        managePlatform: false,
+        viewReports: true
+      };
+    }
+    return {
+      adminPanel: false,
+      manageStudents: false,
+      attendance: stage !== 'all',
+      closeAttendance: false,
+      viewDisplays: stage !== 'high',
+      managePlatform: false,
+      viewReports: false
+    };
+  }
+
+  function addTeacherAccount(data) {
+    requireOwnerAccess();
+    data = data || {};
+    var name = String(data.name || '').trim();
+    var password = String(data.password || '').trim();
+    var role = data.role === 'admin' ? 'admin' : 'teacher';
+    var stage = data.stage === 'high' || data.stage === 'all' ? data.stage : 'middle';
+    if (!name) throw new Error('اسم الحساب مطلوب');
+    if (!password) throw new Error('كلمة المرور مطلوبة');
+    if (state.teachers.hasOwnProperty(name)) throw new Error('يوجد حساب بهذا الاسم');
+
+    state.teachers[name] = {
+      password: password,
+      role: role,
+      stage: role === 'admin' && stage === 'middle' ? 'middle' : stage,
+      active: data.active !== false,
+      permissions: Object.assign(defaultPermissions(role, stage), data.permissions || {})
+    };
+    persistTeachers();
+    return name;
+  }
+
+  function updateTeacherAccount(originalName, data) {
+    requireOwnerAccess();
+    originalName = String(originalName || '').trim();
+    data = data || {};
+    if (!state.teachers.hasOwnProperty(originalName)) throw new Error('الحساب غير موجود');
+
+    var current = state.teachers[originalName];
+    if (typeof current === 'string') {
+      current = {
+        password: current,
+        role: originalName === OWNER_NAME ? 'owner' : 'teacher',
+        stage: originalName === OWNER_NAME ? 'all' : 'middle',
+        active: true,
+        permissions: defaultPermissions(originalName === OWNER_NAME ? 'admin' : 'teacher', originalName === OWNER_NAME ? 'all' : 'middle')
+      };
+    }
+
+    if (originalName === OWNER_NAME) {
+      if (String(data.password || '').trim()) current.password = String(data.password).trim();
+      current.role = 'owner';
+      current.stage = 'all';
+      current.active = true;
+      current.permissions = {
+        adminPanel: true,
+        manageStudents: true,
+        attendance: true,
+        closeAttendance: true,
+        viewDisplays: true,
+        managePlatform: true,
+        viewReports: true
+      };
+      state.teachers[OWNER_NAME] = current;
+      persistTeachers();
+      return OWNER_NAME;
+    }
+
+    var newName = String(data.name || originalName).trim();
+    if (!newName) throw new Error('اسم الحساب مطلوب');
+    if (newName !== originalName && state.teachers.hasOwnProperty(newName)) throw new Error('يوجد حساب بهذا الاسم');
+
+    var role = data.role === 'admin' ? 'admin' : 'teacher';
+    var stage = data.stage === 'high' || data.stage === 'all' ? data.stage : 'middle';
+    var updated = {
+      password: String(data.password || '').trim() || current.password || '1234',
+      role: role,
+      stage: stage,
+      active: data.active !== false,
+      permissions: Object.assign(defaultPermissions(role, stage), current.permissions || {}, data.permissions || {})
+    };
+    updated.permissions.managePlatform = false;
+
+    if (newName !== originalName) delete state.teachers[originalName];
+    state.teachers[newName] = updated;
+    persistTeachers();
+    return newName;
+  }
+
+  function deleteTeacherAccount(name) {
+    requireOwnerAccess();
+    name = String(name || '').trim();
+    if (name === OWNER_NAME) throw new Error('لا يمكن حذف حساب مالك المنصة');
+    if (!state.teachers.hasOwnProperty(name)) throw new Error('الحساب غير موجود');
+    if (name === getLoggedInTeacher()) throw new Error('لا يمكن حذف الحساب المستخدم حاليًا');
+    delete state.teachers[name];
+    persistTeachers();
+  }
+
+  function getCurrentUser() {
+    var name = getLoggedInTeacher();
+    if (!name || !state.teachers.hasOwnProperty(name)) return null;
+    var raw = state.teachers[name];
+    if (typeof raw === 'string') {
+      return {
+        name: name,
+        role: name === OWNER_NAME ? 'owner' : 'teacher',
+        stage: name === OWNER_NAME ? 'all' : 'middle',
+        active: true,
+        permissions: {
+          adminPanel: name === OWNER_NAME,
+          manageStudents: name === OWNER_NAME,
+          attendance: true,
+          closeAttendance: name === OWNER_NAME,
+          viewDisplays: true,
+          managePlatform: name === OWNER_NAME,
+          viewReports: name === OWNER_NAME
+        }
+      };
+    }
+    return {
+      name: name,
+      role: name === OWNER_NAME ? 'owner' : (raw.role || 'teacher'),
+      stage: name === OWNER_NAME ? 'all' : (raw.stage || 'middle'),
+      active: name === OWNER_NAME ? true : raw.active !== false,
+      permissions: raw.permissions || {}
+    };
+  }
+
   function setTeacherPassword(name, password) {
+    requireOwnerAccess();
     password = (password || '').trim();
     if (!password) throw new Error('كلمة المرور مطلوبة');
     if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
     if (typeof state.teachers[name] === 'string') {
-      state.teachers[name] = { password: password, permissions: { adminPanel: name === "أحمد الذبياني", manageStudents: name === "أحمد الذبياني", attendance: true, closeAttendance: name === "أحمد الذبياني" } };
+      state.teachers[name] = {
+        password: password,
+        role: name === OWNER_NAME ? 'owner' : 'teacher',
+        stage: name === OWNER_NAME ? 'all' : 'middle',
+        active: true,
+        permissions: { adminPanel: name === OWNER_NAME, manageStudents: name === OWNER_NAME, attendance: true, closeAttendance: name === OWNER_NAME, viewDisplays: true, managePlatform: name === OWNER_NAME, viewReports: name === OWNER_NAME }
+      };
     } else {
       state.teachers[name].password = password;
     }
@@ -945,6 +1474,7 @@
     password = (password || '').trim();
     if (!state.teachers.hasOwnProperty(name)) return false;
     var t = state.teachers[name];
+    if (name !== OWNER_NAME && t && typeof t === 'object' && t.active === false) return false;
     var actualPass = typeof t === 'string' ? t : (t.password || '1234');
     if (actualPass === password) {
       try {
@@ -964,32 +1494,44 @@
   }
 
   function isAdmin() {
-    return getLoggedInTeacher() === "أحمد الذبياني";
+    var user = getCurrentUser();
+    return !!user && (user.role === 'owner' || user.role === 'admin');
   }
 
   function hasPermission(permissionKey) {
-    var loggedIn = getLoggedInTeacher();
-    if (!loggedIn) return false;
-    if (loggedIn === "أحمد الذبياني") return true;
-    var t = state.teachers[loggedIn];
-    if (t && t.permissions) {
-      return !!t.permissions[permissionKey];
-    }
+    var user = getCurrentUser();
+    if (!user || !user.active) return false;
+    if (user.role === 'owner') return true;
+    if (user.permissions) return !!user.permissions[permissionKey];
     return permissionKey === 'attendance';
   }
 
+  function hasRole(role) {
+    var user = getCurrentUser();
+    return !!user && user.active && (user.role === 'owner' || user.role === role);
+  }
+
+  function belongsToStage(stage) {
+    var user = getCurrentUser();
+    return !!user && user.active && (user.stage === 'all' || user.stage === stage);
+  }
+
   function setTeacherPermission(name, permissionKey, value) {
+    requireOwnerAccess();
     if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
-    if (name === "أحمد الذبياني") return; // تأمين المالك
+    if (name === OWNER_NAME) return; // تأمين المالك
     var t = state.teachers[name];
     if (typeof t === 'string') {
       state.teachers[name] = {
         password: t,
-        permissions: { adminPanel: false, manageStudents: false, attendance: true }
+        role: 'teacher',
+        stage: 'middle',
+        active: true,
+        permissions: { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true }
       };
     }
     if (!state.teachers[name].permissions) {
-      state.teachers[name].permissions = { adminPanel: false, manageStudents: false, attendance: true };
+      state.teachers[name].permissions = { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true };
     }
     state.teachers[name].permissions[permissionKey] = !!value;
     if (db) {
@@ -1044,6 +1586,20 @@
     setAttendance: setAttendance,
     setBulkAttendance: setBulkAttendance,
     getAttendanceSummary: getAttendanceSummary,
+    getHighStudents: getHighStudents,
+    getHighStudent: getHighStudent,
+    addHighStudent: addHighStudent,
+    addHighStudents: addHighStudents,
+    updateHighStudent: updateHighStudent,
+    deleteHighStudent: deleteHighStudent,
+    getHighAttendance: getHighAttendance,
+    getHighStudentAttendance: getHighStudentAttendance,
+    getHighAttendanceSummary: getHighAttendanceSummary,
+    isHighAttendanceClosed: isHighAttendanceClosed,
+    setHighAttendance: setHighAttendance,
+    setBulkHighAttendance: setBulkHighAttendance,
+    closeHighAttendance: closeHighAttendance,
+    reopenHighAttendance: reopenHighAttendance,
     clearLog: clearLog,
     resetPoints: resetPoints,
     resetAll: resetAll,
@@ -1052,11 +1608,17 @@
     subscribe: subscribe,
     isLoggedIn: isLoggedIn,
     getLoggedInTeacher: getLoggedInTeacher,
+    getCurrentUser: getCurrentUser,
     getTeachers: getTeachers,
+    addTeacherAccount: addTeacherAccount,
+    updateTeacherAccount: updateTeacherAccount,
+    deleteTeacherAccount: deleteTeacherAccount,
     setTeacherPassword: setTeacherPassword,
     login: login,
     logout: logout,
     isAdmin: isAdmin,
+    hasRole: hasRole,
+    belongsToStage: belongsToStage,
     hasPermission: hasPermission,
     setTeacherPermission: setTeacherPermission
   };

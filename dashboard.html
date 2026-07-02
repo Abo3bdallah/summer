@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة التحكم | منصة رِحال</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="portal-page" data-portal-page="dashboard">
+  <header class="dashboard-bar">
+    <a class="dashboard-brand" href="dashboard.html"><span>☀️</span> منصة رِحال</a>
+    <div class="dashboard-account">
+      <div>
+        <strong id="dashboardUserName">—</strong>
+        <span id="dashboardUserRole">—</span>
+      </div>
+      <button id="dashboardLogout" type="button">تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <main class="dashboard-shell">
+    <section class="dashboard-intro">
+      <p class="portal-kicker">لوحة التحكم الموحدة</p>
+      <h1 id="dashboardWelcome">مرحبًا بك في منصة رِحال</h1>
+      <p>تظهر هنا الأدوات المرتبطة بحسابك وصلاحياتك.</p>
+    </section>
+
+    <section id="ownerStatus" class="owner-status" hidden>
+      <div class="owner-badge">👑</div>
+      <div>
+        <strong>حساب مالك المنصة مفعّل</strong>
+        <p>لديك وصول كامل إلى أقسام المتوسطة. ستُضاف إدارة الحسابات والمراحل في المرحلة التالية.</p>
+      </div>
+    </section>
+
+    <section class="dashboard-grid" aria-label="أقسام المنصة">
+      <a id="cardOwner" class="dashboard-card card-violet" href="owner.html" hidden>
+        <span class="dashboard-card-icon">👑</span>
+        <div><h2>إدارة المنصة</h2><p>الحسابات والأدوار والمراحل والصلاحيات.</p></div>
+        <span class="dashboard-arrow">←</span>
+      </a>
+
+      <a id="cardAttendance" class="dashboard-card card-green" href="attendance.html">
+        <span class="dashboard-card-icon">✅</span>
+        <div><h2>تحضير المتوسطة</h2><p>تسجيل الحضور اليومي ومتابعة الطلاب.</p></div>
+        <span class="dashboard-arrow">←</span>
+      </a>
+
+      <a id="cardHighPending" class="dashboard-card card-cyan" href="attendance-high.html" hidden>
+        <span class="dashboard-card-icon">🎓</span>
+        <div><h2>تحضير الثانوية</h2><p>تسجيل الحضور والغياب دون نقاط أو مجموعات.</p></div>
+        <span class="dashboard-arrow">←</span>
+      </a>
+
+      <a id="cardAdmin" class="dashboard-card card-blue" href="admin.html">
+        <span class="dashboard-card-icon">📋</span>
+        <div><h2>الإدارة والنقاط</h2><p>الطلاب والنقاط والتقارير والإعدادات.</p></div>
+        <span class="dashboard-arrow">←</span>
+      </a>
+
+      <a id="cardGroupDisplay" class="dashboard-card card-amber" href="display.html" target="_blank" rel="noopener">
+        <span class="dashboard-card-icon">🏆</span>
+        <div><h2>شاشة المجموعات</h2><p>عرض تقدم المجموعات على الشاشة الكبيرة.</p></div>
+        <span class="dashboard-arrow">↗</span>
+      </a>
+
+      <a id="cardIndividualDisplay" class="dashboard-card card-red" href="individual-display.html" target="_blank" rel="noopener">
+        <span class="dashboard-card-icon">🧑‍🤝‍🧑</span>
+        <div><h2>شاشة الأفراد</h2><p>عرض ترتيب الطلاب ونقاطهم.</p></div>
+        <span class="dashboard-arrow">↗</span>
+      </a>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/portal.js"></script>
+</body>
+</html>

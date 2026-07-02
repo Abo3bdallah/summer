@@ -3,46 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>منصة عداد الصيف</title>
+  <title>تسجيل الدخول | منصة رِحال</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;600;700;800&family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body class="home">
-  <div class="home-wrap">
-    <header class="home-head">
-      <h1>☀️ منصة عدّاد الصيف</h1>
-      <p>نظام إدارة نقاط الطلاب والمجموعات</p>
-    </header>
+<body class="portal-page" data-portal-page="login">
+  <main class="portal-shell login-shell">
+    <section class="portal-brand" aria-label="منصة رِحال التعليمية">
+      <div class="portal-logo">☀️</div>
+      <p class="portal-kicker">بوابة البرنامج التعليمية</p>
+      <h1>منصة رِحال</h1>
+      <p>دخول موحد وسريع للمعلمين والإدارة</p>
+    </section>
 
-    <main class="home-grid">
-      <a class="home-card c-prog" href="admin.html">
-        <div class="hc-icon">📋</div>
-        <div class="hc-title">البرنامج والنقاط</div>
-        <div class="hc-sub">إدارة الطلاب، إضافة/خصم النقاط، التقارير والسجل</div>
-      </a>
+    <section class="login-card">
+      <div class="login-card-head">
+        <span class="login-card-icon">👋</span>
+        <div>
+          <h2>مرحبًا بعودتك</h2>
+          <p>اختر اسمك، ثم أدخل كلمة المرور.</p>
+        </div>
+      </div>
 
-      <a class="home-card c-att" href="attendance.html">
-        <div class="hc-icon">✅</div>
-        <div class="hc-title">التحضير</div>
-        <div class="hc-sub">تسجيل الحضور اليومي ومنح نقاطه تلقائيًا</div>
-      </a>
+      <form id="loginForm" class="portal-form">
+        <label for="loginTeacher">اسم المستخدم</label>
+        <select id="loginTeacher" required>
+          <option value="">جارٍ تحميل الأسماء...</option>
+        </select>
 
-      <a class="home-card c-grp" href="display.html" target="_blank" rel="noopener">
-        <div class="hc-icon">🏆</div>
-        <div class="hc-title">شاشة المجموعات</div>
-        <div class="hc-sub">عدّادات المجموعات الأربع للعرض على الشاشة الكبيرة</div>
-      </a>
+        <label for="loginPassword">كلمة المرور</label>
+        <input id="loginPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="أدخل كلمة المرور" required />
 
-      <a class="home-card c-ind" href="individual-display.html" target="_blank" rel="noopener">
-        <div class="hc-icon">🧑‍🤝‍🧑</div>
-        <div class="hc-title">شاشة الأفراد</div>
-        <div class="hc-sub">عرض نقاط كل طالب بلون مجموعته</div>
-      </a>
-    </main>
+        <p id="loginError" class="login-error" role="alert" hidden></p>
+        <button id="loginSubmit" class="portal-primary" type="submit">دخول إلى المنصة</button>
+      </form>
 
-    <footer class="home-foot">جميع البيانات متزامنة لحظيًا عبر كل الأجهزة ✨</footer>
-  </div>
+      <p class="login-help">بعد الدخول ستظهر لك الأدوات المناسبة لصلاحيتك فقط.</p>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/portal.js"></script>
 </body>
 </html>

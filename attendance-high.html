@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تحضير المرحلة الثانوية | رِحال</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="portal-page high-attendance-page">
+  <header class="dashboard-bar">
+    <a class="dashboard-brand" href="dashboard.html"><span>🎓</span> تحضير الثانوية</a>
+    <div class="dashboard-account">
+      <div>
+        <strong id="highCurrentUser">—</strong>
+        <span>المرحلة الثانوية</span>
+      </div>
+      <a class="owner-back-link" href="dashboard.html">لوحة التحكم</a>
+    </div>
+  </header>
+
+  <main class="high-shell">
+    <section class="high-heading">
+      <div>
+        <p class="portal-kicker">الحضور اليومي</p>
+        <h1>تحضير طلاب الثانوية</h1>
+        <p>رصد مبسط للحضور دون نقاط أو مجموعات.</p>
+      </div>
+      <div class="high-heading-actions">
+        <label for="highAttendanceDate">تاريخ التحضير</label>
+        <input id="highAttendanceDate" type="date" />
+        <button id="manageHighStudentsButton" class="high-secondary-button" type="button" hidden>إدارة الطلاب</button>
+      </div>
+    </section>
+
+    <section id="highDayStatus" class="high-day-status"></section>
+
+    <section class="high-summary" aria-label="ملخص حضور الثانوية">
+      <article class="summary-total"><span>إجمالي الطلاب</span><strong id="highTotal">0</strong></article>
+      <article class="summary-early"><span>مبكر</span><strong id="highEarly">0</strong></article>
+      <article class="summary-present"><span>حاضر</span><strong id="highPresent">0</strong></article>
+      <article class="summary-absent"><span>غائب</span><strong id="highAbsent">0</strong></article>
+      <article class="summary-unmarked"><span>لم يُحضّر</span><strong id="highUnmarked">0</strong></article>
+    </section>
+
+    <section class="high-progress-card">
+      <div><strong>اكتمال التحضير</strong><span id="highProgressText">0%</span></div>
+      <div class="high-progress-track"><span id="highProgressBar"></span></div>
+    </section>
+
+    <section class="high-controls">
+      <input id="highStudentSearch" type="search" placeholder="ابحث باسم الطالب..." aria-label="البحث باسم الطالب" />
+      <div id="highStatusFilters" class="high-filter-chips" aria-label="تصفية حالة الحضور">
+        <button class="active" type="button" data-filter="all">الكل</button>
+        <button type="button" data-filter="unmarked">لم يُحضّر</button>
+        <button type="button" data-filter="early">مبكر</button>
+        <button type="button" data-filter="present">حاضر</button>
+        <button type="button" data-filter="absent">غائب</button>
+      </div>
+    </section>
+
+    <section id="highBulkBar" class="high-bulk-bar">
+      <div>
+        <strong id="highSelectedCount">0 محدد</strong>
+        <button id="selectVisibleHighStudents" type="button">تحديد الظاهر</button>
+        <button id="clearHighSelection" type="button">إلغاء التحديد</button>
+      </div>
+      <div class="high-bulk-actions">
+        <button type="button" data-bulk-status="early">⏰ مبكر</button>
+        <button type="button" data-bulk-status="present">✅ حاضر</button>
+        <button type="button" data-bulk-status="absent">❌ غائب</button>
+        <button type="button" data-bulk-status="none">↩ إلغاء الحالة</button>
+      </div>
+    </section>
+
+    <section class="high-list-card">
+      <div class="owner-section-head">
+        <div>
+          <h2>قائمة الطلاب</h2>
+          <p id="highListDescription">اختر حالة كل طالب.</p>
+        </div>
+        <div class="high-close-actions">
+          <button id="closeHighAttendanceButton" class="high-close-button" type="button" hidden>🔒 إغلاق واعتماد</button>
+          <button id="reopenHighAttendanceButton" class="high-reopen-button" type="button" hidden>🔓 إعادة فتح</button>
+        </div>
+      </div>
+      <div id="highStudentsList" class="high-students-list"></div>
+    </section>
+  </main>
+
+  <div id="highStudentsModal" class="high-modal" hidden>
+    <div class="high-modal-card">
+      <div class="owner-section-head">
+        <div><p class="portal-kicker">المرحلة الثانوية</p><h2>إدارة الطلاب</h2></div>
+        <button id="closeHighStudentsModal" class="owner-icon-button" type="button" aria-label="إغلاق">×</button>
+      </div>
+      <label for="newHighStudentsNames">إضافة طالب أو عدة طلاب</label>
+      <textarea id="newHighStudentsNames" placeholder="اكتب كل اسم في سطر مستقل"></textarea>
+      <button id="addHighStudentsButton" class="portal-primary" type="button">إضافة الأسماء</button>
+      <div class="high-modal-divider"></div>
+      <div id="highStudentsManagerList" class="high-manager-list"></div>
+    </div>
+  </div>
+
+  <div id="highToast" class="owner-toast" role="status"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/high-attendance.js"></script>
+</body>
+</html>

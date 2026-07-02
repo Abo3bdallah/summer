@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة المنصة | رِحال</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="portal-page owner-page">
+  <header class="dashboard-bar">
+    <a class="dashboard-brand" href="dashboard.html"><span>☀️</span> منصة رِحال</a>
+    <div class="dashboard-account">
+      <div>
+        <strong id="ownerCurrentName">—</strong>
+        <span>مالك المنصة</span>
+      </div>
+      <a class="owner-back-link" href="dashboard.html">العودة للوحة التحكم</a>
+    </div>
+  </header>
+
+  <main class="owner-shell">
+    <section class="owner-heading">
+      <div>
+        <p class="portal-kicker">مركز إدارة المنصة</p>
+        <h1>الحسابات والصلاحيات</h1>
+        <p>أضف حسابات المعلمين والإدارة، وحدد المرحلة والأدوات المتاحة لكل حساب.</p>
+      </div>
+      <button id="newAccountButton" class="portal-primary owner-new-button" type="button">＋ إضافة حساب</button>
+    </section>
+
+    <section class="owner-summary" aria-label="ملخص الحسابات">
+      <article><span>جميع الحسابات</span><strong id="accountsTotal">0</strong></article>
+      <article><span>الحسابات النشطة</span><strong id="accountsActive">0</strong></article>
+      <article><span>معلمو المتوسطة</span><strong id="accountsMiddle">0</strong></article>
+      <article><span>معلمو الثانوية</span><strong id="accountsHigh">0</strong></article>
+    </section>
+
+    <section class="owner-workspace">
+      <div class="accounts-panel">
+        <div class="owner-section-head">
+          <div>
+            <h2>الحسابات الحالية</h2>
+            <p>اضغط على أي حساب لتعديله.</p>
+          </div>
+          <input id="accountSearch" type="search" placeholder="بحث بالاسم..." aria-label="بحث في الحسابات" />
+        </div>
+        <div id="accountsList" class="accounts-list"></div>
+      </div>
+
+      <aside id="accountEditor" class="account-editor">
+        <div class="owner-section-head">
+          <div>
+            <p id="editorKicker" class="portal-kicker">حساب جديد</p>
+            <h2 id="editorTitle">إضافة مستخدم</h2>
+          </div>
+          <button id="closeEditorButton" class="owner-icon-button" type="button" aria-label="إغلاق النموذج">×</button>
+        </div>
+
+        <form id="accountForm" class="owner-form">
+          <input id="originalAccountName" type="hidden" />
+
+          <label for="accountName">اسم المستخدم</label>
+          <input id="accountName" type="text" autocomplete="off" placeholder="الاسم الكامل" required />
+
+          <label for="accountPassword">كلمة المرور</label>
+          <input id="accountPassword" type="password" autocomplete="new-password" placeholder="اتركها فارغة للإبقاء على الحالية" />
+          <p class="field-help">عند إنشاء حساب جديد تكون كلمة المرور مطلوبة.</p>
+
+          <div class="owner-form-grid">
+            <div>
+              <label for="accountRole">نوع الحساب</label>
+              <select id="accountRole">
+                <option value="teacher">معلم</option>
+                <option value="admin">إدارة عامة</option>
+              </select>
+            </div>
+            <div>
+              <label for="accountStage">المرحلة</label>
+              <select id="accountStage">
+                <option value="middle">المتوسطة</option>
+                <option value="high">الثانوية</option>
+                <option value="all">المرحلتان</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="owner-switch">
+            <input id="accountActive" type="checkbox" checked />
+            <span>الحساب نشط ويمكنه تسجيل الدخول</span>
+          </label>
+
+          <fieldset id="permissionsFieldset" class="permissions-fieldset">
+            <legend>الصلاحيات التفصيلية</legend>
+            <label><input type="checkbox" data-permission="attendance" /> تسجيل التحضير</label>
+            <label><input type="checkbox" data-permission="closeAttendance" /> إغلاق وإعادة فتح التحضير</label>
+            <label><input type="checkbox" data-permission="adminPanel" /> دخول لوحة الإدارة والنقاط</label>
+            <label><input type="checkbox" data-permission="manageStudents" /> إضافة وتعديل الطلاب</label>
+            <label><input type="checkbox" data-permission="viewDisplays" /> مشاهدة شاشات العرض</label>
+            <label><input type="checkbox" data-permission="viewReports" /> مشاهدة التقارير</label>
+          </fieldset>
+
+          <p id="accountFormError" class="login-error" role="alert" hidden></p>
+          <div class="owner-form-actions">
+            <button id="saveAccountButton" class="portal-primary" type="submit">حفظ الحساب</button>
+            <button id="deleteAccountButton" class="owner-danger-button" type="button" hidden>حذف الحساب</button>
+          </div>
+        </form>
+      </aside>
+    </section>
+
+    <section class="owner-shortcuts">
+      <div>
+        <h2>إدارة الطلاب وإعدادات المتوسطة</h2>
+        <p>تظل في لوحة الإدارة الحالية حتى لا تتكرر الأدوات أو تتعارض البيانات.</p>
+      </div>
+      <a href="admin.html">فتح لوحة الإدارة ←</a>
+    </section>
+  </main>
+
+  <div id="ownerToast" class="owner-toast" role="status"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/owner.js"></script>
+</body>
+</html>

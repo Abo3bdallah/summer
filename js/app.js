@@ -55,21 +55,8 @@
     var denied = $('#accessDeniedOverlay');
     
     if (!loggedIn) {
-      overlay.style.display = 'flex';
-      if (tabs) tabs.style.display = 'none';
-      if (container) container.style.display = 'none';
-      if (denied) denied.style.display = 'none';
-      
-      var select = $('#loginTeacherSelect');
-      if (select && select.children.length === 0) {
-        var teachers = Store.getTeachers();
-        select.innerHTML = Object.keys(teachers).map(function (t) {
-          return '<option value="' + esc(t) + '">' + esc(t) + '</option>';
-        }).join('');
-      }
-      $('#loginPasswordInput').value = '';
-      $('#loginErrorMsg').style.display = 'none';
-      $('#loginPasswordInput').focus();
+      window.location.replace('index.html?next=admin.html');
+      return;
     } else {
       overlay.style.display = 'none';
       var activeTeacher = $('#activeTeacherName');
