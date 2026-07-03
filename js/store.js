@@ -111,6 +111,7 @@
       fastReasons: ['المشاركة', 'التفاعل', 'لغز المبكرين', 'التميز', 'الأذان والإقامة'],
       attendance: {},
       highStudents: [],
+      highGroups: [],
       highAttendance: {},
       memos: [],
       auditLogs: [],
@@ -137,6 +138,7 @@
       }
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
       if (Array.isArray(parsed.highStudents)) s.highStudents = parsed.highStudents;
+      if (Array.isArray(parsed.highGroups)) s.highGroups = parsed.highGroups;
       if (parsed.highAttendance && typeof parsed.highAttendance === 'object') s.highAttendance = parsed.highAttendance;
       if (Array.isArray(parsed.memos)) s.memos = parsed.memos;
       if (Array.isArray(parsed.auditLogs)) s.auditLogs = parsed.auditLogs;
@@ -242,6 +244,7 @@
         if (data.groups) state.groups = data.groups;
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
         if (data.fastReasons) state.fastReasons = data.fastReasons;
+        if (Array.isArray(data.highGroups)) state.highGroups = data.highGroups;
         if (data.teachers && typeof data.teachers === 'object') state.teachers = ensureTeacherIds(data.teachers);
         persist();
         emit(false);
@@ -251,7 +254,8 @@
           groups: state.groups,
           attendancePoints: state.attendancePoints,
           fastReasons: state.fastReasons,
-          teachers: state.teachers
+          teachers: state.teachers,
+          highGroups: state.highGroups
         }).catch(function () {});
       }
     }, function (err) {
@@ -1027,10 +1031,71 @@
     return null;
   }
 
+  // إدارة طلاب/مجموعات الثانوية متاحة للمالك ولمن يملك إدارة الطلاب،
+  // وكذلك لمعلمي الثانوية أصحاب صلاحية التحضير (يديرون طلابهم داخل تحضيرهم)
   function requireHighStudentManager() {
-    if (!hasPermission('manageStudents')) {
-      throw new Error('لا تملك صلاحية إدارة طلاب الثانوية');
+    var user = getCurrentUser();
+    if (user && user.active && (user.role === 'owner' ||
+        hasPermission('manageStudents') ||
+        (belongsToStage('high') && hasPermission('attendance')))) return;
+    throw new Error('لا تملك صلاحية إدارة طلاب الثانوية');
+  }
+
+  /* ---------------- مجموعات الثانوية (تنظيمية بسيطة بلا نقاط) ---------------- */
+  function getHighGroups() { return (state.highGroups || []).slice(); }
+
+  function getHighGroup(id) {
+    var list = state.highGroups || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].id === id) return list[i]; }
+    return null;
+  }
+
+  function persistHighGroups() {
+    if (db) db.collection('settings').doc('config').set({ highGroups: state.highGroups }, { merge: true }).catch(function () {});
+    commit();
+  }
+
+  function addHighGroup(name) {
+    requireHighStudentManager();
+    name = String(name || '').trim();
+    if (!name) throw new Error('اسم المجموعة مطلوب');
+    if (!state.highGroups) state.highGroups = [];
+    if (state.highGroups.some(function (g) { return g.name.toLowerCase() === name.toLowerCase(); })) {
+      throw new Error('المجموعة موجودة مسبقًا');
     }
+    var group = { id: uid(), name: name };
+    state.highGroups.push(group);
+    recordAudit('add_high_group', 'الثانوية · ' + name, 'إضافة مجموعة');
+    persistHighGroups();
+    return group.id;
+  }
+
+  function updateHighGroup(id, name) {
+    requireHighStudentManager();
+    var group = getHighGroup(id);
+    if (!group) throw new Error('المجموعة غير موجودة');
+    name = String(name || '').trim();
+    if (!name) throw new Error('اسم المجموعة مطلوب');
+    group.name = name;
+    persistHighGroups();
+  }
+
+  function deleteHighGroup(id) {
+    requireHighStudentManager();
+    if (!state.highGroups) state.highGroups = [];
+    state.highGroups = state.highGroups.filter(function (g) { return g.id !== id; });
+    // فكّ ارتباط الطلاب بهذه المجموعة
+    var collection = highStudentsCollection();
+    var batch = collection ? db.batch() : null;
+    state.highStudents.forEach(function (s) {
+      if (s.groupId === id) {
+        s.groupId = null;
+        if (batch) batch.set(collection.doc(s.id), { groupId: null }, { merge: true });
+      }
+    });
+    if (batch) batch.commit().catch(function () {});
+    recordAudit('delete_high_group', 'الثانوية', 'حذف مجموعة');
+    persistHighGroups();
   }
 
   function requireHighAttendanceAccess() {
@@ -1039,7 +1104,7 @@
     }
   }
 
-  function addHighStudent(name) {
+  function addHighStudent(name, groupId) {
     requireHighStudentManager();
     name = String(name || '').trim();
     if (!name) throw new Error('اسم الطالب مطلوب');
@@ -1048,7 +1113,7 @@
     });
     if (duplicate) throw new Error('الطالب موجود مسبقًا');
 
-    var student = { id: uid(), name: name, active: true, createdAt: Date.now() };
+    var student = { id: uid(), name: name, active: true, groupId: (groupId && getHighGroup(groupId)) ? groupId : null, createdAt: Date.now() };
     state.highStudents.push(student);
     recordAudit('add_student', 'الثانوية · ' + name, 'إضافة طالب');
     var collection = highStudentsCollection();
@@ -1095,6 +1160,9 @@
     if (!name) throw new Error('اسم الطالب مطلوب');
     student.name = name;
     if (typeof data.active === 'boolean') student.active = data.active;
+    if (data.hasOwnProperty('groupId')) {
+      student.groupId = (data.groupId && getHighGroup(data.groupId)) ? data.groupId : null;
+    }
     student.updatedAt = Date.now();
     recordAudit('update_student', 'الثانوية · ' + student.name, student.active === false ? 'تعديل وإيقاف الطالب' : 'تعديل بيانات الطالب');
     var collection = highStudentsCollection();
@@ -1534,7 +1602,8 @@
         groups: state.groups,
         attendancePoints: state.attendancePoints,
         fastReasons: state.fastReasons,
-        teachers: state.teachers
+        teachers: state.teachers,
+        highGroups: state.highGroups
       }).catch(function() {});
       db.collection('students').get().then(function (snap) {
         var batch = db.batch();
@@ -1703,7 +1772,8 @@
         groups: state.groups,
         attendancePoints: state.attendancePoints,
         fastReasons: state.fastReasons,
-        teachers: state.teachers
+        teachers: state.teachers,
+        highGroups: state.highGroups
       }),
       replaceCollection(db.collection('students'), middleStudents),
       replaceCollection(db.collection('logs'), logs),
@@ -2100,6 +2170,11 @@
     getAttendanceSummary: getAttendanceSummary,
     getHighStudents: getHighStudents,
     getHighStudent: getHighStudent,
+    getHighGroups: getHighGroups,
+    getHighGroup: getHighGroup,
+    addHighGroup: addHighGroup,
+    updateHighGroup: updateHighGroup,
+    deleteHighGroup: deleteHighGroup,
     addHighStudent: addHighStudent,
     addHighStudents: addHighStudents,
     updateHighStudent: updateHighStudent,

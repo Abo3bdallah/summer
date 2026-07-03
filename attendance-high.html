@@ -3,108 +3,160 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تحضير المرحلة الثانوية | رِحال</title>
+  <title>تحضير الثانوية — عداد الصيف</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(135deg, #fef08a 0%, #bbf7d0 50%, #93c5fd 100%);
+      background-attachment: fixed;
+      color: #1e293b;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+
+    /* ألوان أزرار التحضير النشطة (نفس تدرّجات المتوسط) */
+    .btn-early-active { background: linear-gradient(to right, #3b82f6, #4f46e5) !important; border-color: #3b82f6 !important; color: white !important; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important; }
+    .btn-present-active { background: linear-gradient(to right, #10b981, #059669) !important; border-color: #10b981 !important; color: white !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important; }
+    .btn-absent-active { background: linear-gradient(to right, #f43f5e, #e11d48) !important; border-color: #f43f5e !important; color: white !important; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3) !important; }
+    .chip-active { background: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; }
+  </style>
 </head>
-<body class="portal-page high-attendance-page">
-  <header class="dashboard-bar">
-    <a class="dashboard-brand" href="dashboard.html"><span>🎓</span> تحضير الثانوية</a>
-    <div class="dashboard-account">
-      <div>
-        <strong id="highCurrentUser">—</strong>
-        <span>المرحلة الثانوية</span>
+<body class="min-h-screen flex flex-col high-attendance-page">
+
+  <div id="app" class="w-full min-h-screen bg-white/60 flex flex-col pb-8 border-x border-white/40 shadow-xl">
+    <!-- الترويسة -->
+    <header class="bg-white/60 backdrop-blur-lg border-b border-white/80 text-slate-800 p-4 shadow-sm sticky top-0 z-40 flex justify-between items-center">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]"></span>
+        <h1 class="text-sm md:text-lg font-black">🎓 تحضير الثانوية</h1>
       </div>
-      <a class="owner-back-link" href="dashboard.html">لوحة التحكم</a>
-    </div>
-  </header>
-
-  <main class="high-shell">
-    <section class="high-heading">
-      <div>
-        <p class="portal-kicker">الحضور اليومي</p>
-        <h1>تحضير طلاب الثانوية</h1>
-        <p>رصد مبسط للحضور دون نقاط أو مجموعات.</p>
+      <div class="flex gap-1.5 items-center">
+        <strong id="highCurrentUser" class="text-[10px] md:text-xs font-bold bg-white/70 text-slate-700 border border-white/90 shadow-sm px-2 py-1.5 rounded-lg">—</strong>
+        <button id="btnManageHigh" class="text-[10px] md:text-xs font-bold bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-sm active:scale-95 px-2 py-1.5 rounded-lg transition-all" hidden>
+          <span class="inline md:hidden">👥</span><span class="hidden md:inline">👥 الطلاب والمجموعات</span>
+        </button>
+        <a class="text-[10px] md:text-xs font-bold bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-sm px-2 py-1.5 rounded-lg transition-colors" href="dashboard.html">
+          <span class="inline md:hidden">🏠</span><span class="hidden md:inline">🏠 الرئيسية</span>
+        </a>
+        <button id="btnLogout" class="text-[10px] md:text-xs font-bold bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-sm active:scale-95 px-2 py-1.5 rounded-lg transition-all">خروج</button>
       </div>
-      <div class="high-heading-actions">
-        <label for="highAttendanceDate">تاريخ التحضير</label>
-        <input id="highAttendanceDate" type="date" />
-        <button id="manageHighStudentsButton" class="high-secondary-button" type="button" hidden>إدارة الطلاب</button>
-      </div>
-    </section>
+    </header>
 
-    <section id="highDayStatus" class="high-day-status"></section>
+    <main class="flex-1 p-4 space-y-4 max-w-4xl mx-auto w-full">
 
-    <section class="high-summary" aria-label="ملخص حضور الثانوية">
-      <article class="summary-total"><span>إجمالي الطلاب</span><strong id="highTotal">0</strong></article>
-      <article class="summary-early"><span>مبكر</span><strong id="highEarly">0</strong></article>
-      <article class="summary-present"><span>حاضر</span><strong id="highPresent">0</strong></article>
-      <article class="summary-absent"><span>غائب</span><strong id="highAbsent">0</strong></article>
-      <article class="summary-unmarked"><span>لم يُحضّر</span><strong id="highUnmarked">0</strong></article>
-    </section>
+      <!-- لافتة التوجيهات (تحقن عبر memos-banner.js) -->
+      <div id="memosBanner"></div>
 
-    <section class="high-progress-card">
-      <div><strong>اكتمال التحضير</strong><span id="highProgressText">0%</span></div>
-      <div class="high-progress-track"><span id="highProgressBar"></span></div>
-    </section>
-
-    <section class="high-controls">
-      <input id="highStudentSearch" type="search" placeholder="ابحث باسم الطالب..." aria-label="البحث باسم الطالب" />
-      <div id="highStatusFilters" class="high-filter-chips" aria-label="تصفية حالة الحضور">
-        <button class="active" type="button" data-filter="all">الكل</button>
-        <button type="button" data-filter="unmarked">لم يُحضّر</button>
-        <button type="button" data-filter="early">مبكر</button>
-        <button type="button" data-filter="present">حاضر</button>
-        <button type="button" data-filter="absent">غائب</button>
-      </div>
-    </section>
-
-    <section id="highBulkBar" class="high-bulk-bar">
-      <div>
-        <strong id="highSelectedCount">0 محدد</strong>
-        <button id="selectVisibleHighStudents" type="button">تحديد الظاهر</button>
-        <button id="clearHighSelection" type="button">إلغاء التحديد</button>
-      </div>
-      <div class="high-bulk-actions">
-        <button type="button" data-bulk-status="early">⏰ مبكر</button>
-        <button type="button" data-bulk-status="present">✅ حاضر</button>
-        <button type="button" data-bulk-status="absent">❌ غائب</button>
-        <button type="button" data-bulk-status="none">↩ إلغاء الحالة</button>
-      </div>
-    </section>
-
-    <section class="high-list-card">
-      <div class="owner-section-head">
-        <div>
-          <h2>قائمة الطلاب</h2>
-          <p id="highListDescription">اختر حالة كل طالب.</p>
+      <!-- شريط التاريخ وحالة اليوم -->
+      <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-2xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="flex-1">
+          <label class="block text-xs font-bold text-slate-500 mb-1">📅 تاريخ التحضير</label>
+          <input id="highAttendanceDate" type="date" class="w-full p-2.5 bg-white/85 border border-slate-200/60 rounded-lg text-xs text-slate-800 font-bold outline-none focus:border-indigo-500" />
         </div>
-        <div class="high-close-actions">
-          <button id="closeHighAttendanceButton" class="high-close-button" type="button" hidden>🔒 إغلاق واعتماد</button>
-          <button id="reopenHighAttendanceButton" class="high-reopen-button" type="button" hidden>🔓 إعادة فتح</button>
+        <div class="flex gap-2 sm:pt-5">
+          <button id="closeHighAttendanceButton" class="flex-1 sm:flex-none text-xs font-bold bg-white/80 hover:bg-white text-slate-700 border border-slate-200 shadow-sm active:scale-95 px-3 py-2.5 rounded-lg transition-all" type="button" hidden>🔒 إغلاق واعتماد</button>
+          <button id="reopenHighAttendanceButton" class="flex-1 sm:flex-none text-xs font-bold bg-white/80 hover:bg-white text-slate-700 border border-slate-200 shadow-sm active:scale-95 px-3 py-2.5 rounded-lg transition-all" type="button" hidden>🔓 إعادة فتح</button>
         </div>
       </div>
-      <div id="highStudentsList" class="high-students-list"></div>
-    </section>
-  </main>
 
-  <div id="highStudentsModal" class="high-modal" hidden>
-    <div class="high-modal-card">
-      <div class="owner-section-head">
-        <div><p class="portal-kicker">المرحلة الثانوية</p><h2>إدارة الطلاب</h2></div>
-        <button id="closeHighStudentsModal" class="owner-icon-button" type="button" aria-label="إغلاق">×</button>
+      <div id="highDayStatus"></div>
+
+      <!-- ملخص الحضور -->
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 text-center"><span class="block text-[10px] font-bold text-slate-500">الإجمالي</span><strong id="highTotal" class="text-lg font-black text-slate-800">0</strong></div>
+        <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 text-center"><span class="block text-[10px] font-bold text-slate-500">مبكر</span><strong id="highEarly" class="text-lg font-black text-indigo-600">0</strong></div>
+        <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 text-center"><span class="block text-[10px] font-bold text-slate-500">حاضر</span><strong id="highPresent" class="text-lg font-black text-emerald-600">0</strong></div>
+        <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 text-center"><span class="block text-[10px] font-bold text-slate-500">غائب</span><strong id="highAbsent" class="text-lg font-black text-rose-600">0</strong></div>
+        <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 text-center"><span class="block text-[10px] font-bold text-slate-500">لم يُحضّر</span><strong id="highUnmarked" class="text-lg font-black text-slate-400">0</strong></div>
       </div>
-      <label for="newHighStudentsNames">إضافة طالب أو عدة طلاب</label>
-      <textarea id="newHighStudentsNames" placeholder="اكتب كل اسم في سطر مستقل"></textarea>
-      <button id="addHighStudentsButton" class="portal-primary" type="button">إضافة الأسماء</button>
-      <div class="high-modal-divider"></div>
-      <div id="highStudentsManagerList" class="high-manager-list"></div>
+
+      <!-- شريط اكتمال التحضير -->
+      <div class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3">
+        <div class="flex justify-between text-xs font-bold text-slate-600 mb-1.5"><span>اكتمال التحضير</span><span id="highProgressText">0%</span></div>
+        <div class="w-full h-2.5 bg-slate-200/70 rounded-full overflow-hidden"><span id="highProgressBar" class="block h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all" style="width:0%"></span></div>
+      </div>
+
+      <!-- الفلاتر: المجموعة + البحث + الحالة -->
+      <div class="space-y-2">
+        <select id="highGroupFilter" class="w-full p-3 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 appearance-none shadow-sm"></select>
+        <input id="highStudentSearch" type="search" class="w-full p-3 bg-white/70 backdrop-blur-md border border-white/80 rounded-xl text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 shadow-sm" placeholder="🔎 ابحث باسم الطالب..." />
+        <div id="highStatusFilters" class="flex gap-1.5 flex-wrap">
+          <button class="chip-active text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg active:scale-95 transition-all" type="button" data-filter="all">الكل</button>
+          <button class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg active:scale-95 transition-all" type="button" data-filter="unmarked">لم يُحضّر</button>
+          <button class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg active:scale-95 transition-all" type="button" data-filter="early">مبكر</button>
+          <button class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg active:scale-95 transition-all" type="button" data-filter="present">حاضر</button>
+          <button class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg active:scale-95 transition-all" type="button" data-filter="absent">غائب</button>
+        </div>
+      </div>
+
+      <!-- شريط العمليات الجماعية -->
+      <div id="highBulkBar" class="bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <strong id="highSelectedCount" class="text-xs font-bold text-slate-600">0 محدد</strong>
+          <div class="flex gap-1.5">
+            <button id="selectVisibleHighStudents" class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95" type="button">تحديد الظاهر</button>
+            <button id="clearHighSelection" class="text-[11px] font-bold bg-white/80 text-slate-600 border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95" type="button">إلغاء التحديد</button>
+          </div>
+        </div>
+        <div class="flex gap-1.5">
+          <button class="flex-1 text-[11px] font-bold bg-white/80 text-slate-700 border border-slate-200 px-2 py-2 rounded-lg active:scale-95" type="button" data-bulk-status="early">⏰ مبكر</button>
+          <button class="flex-1 text-[11px] font-bold bg-white/80 text-slate-700 border border-slate-200 px-2 py-2 rounded-lg active:scale-95" type="button" data-bulk-status="present">✅ حاضر</button>
+          <button class="flex-1 text-[11px] font-bold bg-white/80 text-slate-700 border border-slate-200 px-2 py-2 rounded-lg active:scale-95" type="button" data-bulk-status="absent">❌ غائب</button>
+          <button class="flex-1 text-[11px] font-bold bg-white/80 text-slate-700 border border-slate-200 px-2 py-2 rounded-lg active:scale-95" type="button" data-bulk-status="none">↩ إلغاء</button>
+        </div>
+      </div>
+
+      <!-- قائمة الطلاب -->
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-sm font-black text-slate-700">قائمة الطلاب</h2>
+        <span id="highListDescription" class="text-[11px] font-bold text-slate-400">—</span>
+      </div>
+      <div id="highStudentsList" class="space-y-2"></div>
+    </main>
+  </div>
+
+  <!-- مودال إدارة الطلاب والمجموعات -->
+  <div id="highManageModal" class="fixed inset-0 z-[99998] hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.4); backdrop-filter:blur(8px);">
+    <div class="bg-white/90 backdrop-blur-xl border border-white/80 rounded-3xl shadow-2xl w-full max-w-lg max-h-[88vh] overflow-y-auto p-5 space-y-4" dir="rtl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-black text-slate-800">👥 الطلاب والمجموعات</h2>
+        <button id="closeHighManageModal" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-black" type="button" aria-label="إغلاق">×</button>
+      </div>
+
+      <!-- المجموعات -->
+      <div class="bg-white/70 border border-slate-200/60 rounded-2xl p-3 space-y-2">
+        <strong class="text-xs font-black text-slate-600">المجموعات</strong>
+        <div class="flex gap-2">
+          <input id="newHighGroupName" type="text" class="flex-1 p-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500" placeholder="اسم مجموعة جديدة" />
+          <button id="addHighGroupButton" class="text-xs font-bold bg-indigo-600 text-white px-3 rounded-lg active:scale-95" type="button">إضافة</button>
+        </div>
+        <div id="highGroupsList" class="space-y-1.5"></div>
+      </div>
+
+      <!-- إضافة طلاب -->
+      <div class="bg-white/70 border border-slate-200/60 rounded-2xl p-3 space-y-2">
+        <strong class="text-xs font-black text-slate-600">إضافة طالب أو عدة طلاب</strong>
+        <textarea id="newHighStudentsNames" rows="3" class="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500" placeholder="اكتب كل اسم في سطر مستقل"></textarea>
+        <div class="flex gap-2">
+          <select id="newHighStudentsGroup" class="flex-1 p-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500"></select>
+          <button id="addHighStudentsButton" class="text-xs font-bold bg-emerald-600 text-white px-3 rounded-lg active:scale-95" type="button">إضافة الأسماء</button>
+        </div>
+      </div>
+
+      <!-- قائمة الطلاب للتعديل -->
+      <div class="space-y-2">
+        <strong class="text-xs font-black text-slate-600">تعديل الطلاب</strong>
+        <div id="highStudentsManagerList" class="space-y-2"></div>
+      </div>
     </div>
   </div>
 
-  <div id="highToast" class="owner-toast" role="status"></div>
+  <div id="highToast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-center z-[99999] text-sm font-bold opacity-0 transition-opacity pointer-events-none"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
