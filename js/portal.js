@@ -25,7 +25,7 @@
   function safeNextPage() {
     var params = new URLSearchParams(window.location.search);
     var next = params.get('next') || 'dashboard.html';
-    var allowed = ['dashboard.html', 'attendance.html', 'attendance-high.html', 'admin.html', 'owner.html', 'display.html', 'individual-display.html'];
+    var allowed = ['dashboard.html', 'attendance.html', 'attendance-high.html', 'admin.html', 'admin-portal.html', 'owner.html', 'display.html', 'individual-display.html'];
     return allowed.indexOf(next) !== -1 ? next : 'dashboard.html';
   }
 
@@ -75,9 +75,36 @@
     return 'معلم المرحلة المتوسطة';
   }
 
-  function setCardVisibility(id, visible) {
+  function setCardAccess(id, allowed, reason) {
     var card = document.getElementById(id);
-    if (card) card.hidden = !visible;
+    if (!card) return;
+    card.hidden = false;
+    if (!card.dataset.destination) card.dataset.destination = card.getAttribute('href') || '';
+    card.classList.toggle('dashboard-card-locked', !allowed);
+    
+    // ترتيب ديناميكي: تظهر الصفحات المفتوحة أولاً (الترتيب 1) والمغلقة أخيراً (الترتيب 2)
+    card.style.order = allowed ? '1' : '2';
+
+    var note = card.querySelector('.dashboard-access-note');
+    if (!note) {
+      note = document.createElement('span');
+      note.className = 'dashboard-access-note';
+      card.querySelector('div').appendChild(note);
+    }
+    if (allowed) {
+      card.setAttribute('href', card.dataset.destination);
+      card.removeAttribute('aria-disabled');
+      note.remove();
+      return;
+    }
+    card.removeAttribute('href');
+    card.removeAttribute('target');
+    card.removeAttribute('rel');
+    card.setAttribute('aria-disabled', 'true');
+    note.textContent = '🔒 ' + reason;
+    var arrow = card.querySelector('.dashboard-arrow');
+    if (arrow) arrow.textContent = '🔒';
+    card.addEventListener('click', function (event) { event.preventDefault(); });
   }
 
   function initDashboard() {
@@ -99,13 +126,16 @@
 
     var middle = Store.belongsToStage('middle');
     var high = Store.belongsToStage('high');
-    setCardVisibility('cardAttendance', middle && Store.hasPermission('attendance'));
-    setCardVisibility('cardHighPending', high && Store.hasPermission('attendance'));
-    setCardVisibility('cardAdmin', middle && Store.hasPermission('adminPanel'));
-    setCardVisibility('cardGroupDisplay', middle && Store.hasPermission('viewDisplays'));
-    setCardVisibility('cardIndividualDisplay', middle && Store.hasPermission('viewDisplays'));
-    setCardVisibility('cardOwner', user.role === 'owner');
-    setCardVisibility('ownerStatus', user.role === 'owner');
+    var isAdmin = user.role === 'admin';
+    var isOwner = user.role === 'owner';
+    setCardAccess('cardAttendance', isAdmin || isOwner || (middle && Store.hasPermission('attendance')), 'مخصص لمعلمي المرحلة المتوسطة');
+    setCardAccess('cardHighPending', isAdmin || isOwner || (high && Store.hasPermission('attendance')), 'مخصص لمعلمي المرحلة الثانوية');
+    setCardAccess('cardAdmin', middle && Store.hasPermission('adminPanel'), 'مخصص لإدارة النقاط في المرحلة المتوسطة');
+    setCardAccess('cardAdminPortal', user.role === 'owner' || user.role === 'admin' || Store.hasPermission('viewReports'), 'مخصص للإدارة العامة');
+    setCardAccess('cardGroupDisplay', middle && Store.hasPermission('viewDisplays'), 'مخصص للمرحلة المتوسطة');
+    setCardAccess('cardIndividualDisplay', middle && Store.hasPermission('viewDisplays'), 'مخصص للمرحلة المتوسطة');
+    setCardAccess('cardOwner', user.role === 'owner', 'مخصص لمالك المنصة');
+    $('#ownerStatus').hidden = user.role !== 'owner';
 
     $('#dashboardLogout').addEventListener('click', function () {
       Store.logout();

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بوابة الإدارة العامة | رِحال</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="portal-page admin-portal-page">
+  <header class="dashboard-bar">
+    <a class="dashboard-brand" href="dashboard.html"><span>📊</span> بوابة الإدارة</a>
+    <div class="dashboard-account">
+      <div><strong id="portalCurrentUser">—</strong><span id="portalCurrentRole">الإدارة العامة</span></div>
+      <a class="owner-back-link" href="dashboard.html">لوحة التحكم</a>
+    </div>
+  </header>
+
+  <main class="admin-portal-shell">
+    <section class="admin-portal-heading">
+      <div>
+        <p class="portal-kicker">المتابعة والتقارير الموحدة</p>
+        <h1>نظرة مباشرة على المرحلتين</h1>
+        <p>تتحدث الأرقام تلقائيًا مع عمليات التحضير لدى المعلمين.</p>
+      </div>
+      <label class="portal-date-control">تاريخ المتابعة<input id="portalDate" type="date" /></label>
+    </section>
+
+
+    <nav id="portalTabs" class="portal-tabs" aria-label="أقسام بوابة الإدارة">
+      <button class="active" type="button" data-portal-tab="monitor">📺 المتابعة المباشرة</button>
+      <button type="button" data-portal-tab="analytics">📊 الإحصائيات</button>
+      <button type="button" data-portal-tab="reports">📋 التقارير</button>
+      <button type="button" data-portal-tab="days">📅 سجل الأيام</button>
+      <button type="button" data-portal-tab="memos">💬 التوجيهات</button>
+    </nav>
+
+    <section id="portalViewMonitor" class="portal-view active">
+      <div class="live-indicator"><span></span> تحديث لحظي مباشر</div>
+      
+      <!-- لوحة تنبيهات الغياب المتكرر وانخفاض الانضباط -->
+      <div id="absenceWarningPanel" class="card" style="margin-bottom: 20px; border-right: 4px solid #ef4444; background: #fff5f5; display: none;">
+        <h3 style="color: #9f1239; font-size: 13px; font-weight: 900; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+          ⚠️ تنبيهات الغياب المتكرر والانضباط المنخفض
+        </h3>
+        <p style="font-size: 11px; color: #4e0f1d; margin: 0 0 12px 0; font-weight: bold;">
+          الطلاب التالية أسماؤهم يحتاجون لمتابعة عاجلة. اضغط على الاسم لمشاهدة التحليل التفصيلي للحضور:
+        </p>
+        <div id="absenceWarningList" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- سيتم توليد التنبيهات برمجياً -->
+        </div>
+      </div>
+
+      <div class="stage-monitor-grid">
+        <article class="stage-monitor-card middle-stage">
+          <header><div><span>المرحلة المتوسطة</span><h2>تحضير المتوسطة</h2></div><strong id="middleDayState">—</strong></header>
+          <div class="stage-main-number"><strong id="middleMarked">0</strong><span>من <b id="middleTotal">0</b> طالب</span></div>
+          <div class="stage-progress"><span id="middleProgress"></span></div>
+          <div class="stage-stat-grid">
+            <div><span>⏰ مبكر</span><strong id="middleEarly">0</strong></div>
+            <div><span>✅ حاضر</span><strong id="middlePresent">0</strong></div>
+            <div><span>❌ غائب</span><strong id="middleAbsent">0</strong></div>
+            <div><span>○ غير محدد</span><strong id="middleUnmarked">0</strong></div>
+          </div>
+          <a class="monitor-attendance-link" href="attendance.html">فتح صفحة المتوسطة ←</a>
+        </article>
+
+        <article class="stage-monitor-card high-stage">
+          <header><div><span>المرحلة الثانوية</span><h2>تحضير الثانوية</h2></div><strong id="highDayState">—</strong></header>
+          <div class="stage-main-number"><strong id="highMarked">0</strong><span>من <b id="highTotal">0</b> طالب</span></div>
+          <div class="stage-progress"><span id="highProgress"></span></div>
+          <div class="stage-stat-grid">
+            <div><span>⏰ مبكر</span><strong id="highEarly">0</strong></div>
+            <div><span>✅ حاضر</span><strong id="highPresent">0</strong></div>
+            <div><span>❌ غائب</span><strong id="highAbsent">0</strong></div>
+            <div><span>○ غير محدد</span><strong id="highUnmarked">0</strong></div>
+          </div>
+          <a class="monitor-attendance-link" href="attendance-high.html">فتح صفحة الثانوية ←</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="portalViewReports" class="portal-view">
+      <div class="report-toolbar">
+        <select id="reportStage" aria-label="المرحلة">
+          <option value="all">المرحلتان</option>
+          <option value="middle">المتوسطة</option>
+          <option value="high">الثانوية</option>
+        </select>
+        <select id="reportStatus" aria-label="حالة الحضور">
+          <option value="all">كل الحالات</option>
+          <option value="early">مبكر</option>
+          <option value="present">حاضر</option>
+          <option value="absent">غائب</option>
+          <option value="unmarked">غير محدد</option>
+        </select>
+        <input id="reportSearch" type="search" placeholder="بحث باسم الطالب أو المعلم..." aria-label="بحث في التقرير" />
+        <button id="exportReportCsv" type="button">⬇ تصدير CSV</button>
+        <button id="copyReportWhatsapp" type="button">📋 نسخ للواتس</button>
+        <button id="printReport" type="button">🖨 طباعة</button>
+      </div>
+      <div class="report-result-summary"><strong id="reportRowsCount">0</strong> سجل مطابق</div>
+      <div class="unified-report-table">
+        <table>
+          <thead><tr><th>#</th><th>الطالب</th><th>المرحلة</th><th>الحالة</th><th>الوقت</th><th>سجّلها</th></tr></thead>
+          <tbody id="reportTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="portalViewAnalytics" class="portal-view">
+      <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 16px;">
+        <!-- كرت مقارنة الحضور -->
+        <div class="owner-backup-card" style="flex-direction: column; align-items: stretch; gap: 15px; background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6);">
+          <div>
+            <p class="portal-kicker">التحليل الأسبوعي</p>
+            <h2 style="font-size: 16px; font-weight: 800; color: #1e293b;">مقارنة نسب الحضور للمرحلتين (آخر 7 أيام)</h2>
+            <p style="font-size: 11px; font-weight: 800; color: #64748b;">توضيح نسبة انضباط الطلاب اليومية بالبرنامج.</p>
+          </div>
+          <div style="position: relative; height: 320px; width: 100%;">
+            <canvas id="weeklyAttendanceChart"></canvas>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+          <!-- كرت توزيع الحضور للمتوسطة -->
+          <div class="owner-backup-card" style="flex-direction: column; align-items: stretch; gap: 15px; background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6);">
+            <div>
+              <p class="portal-kicker" style="color: #4f46e5;">المرحلة المتوسطة</p>
+              <h2 style="font-size: 14px; font-weight: 800; color: #1e293b;">توزيع الحالات لليوم المحدد</h2>
+            </div>
+            <div style="position: relative; height: 220px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="middleDistributionChart"></canvas>
+            </div>
+          </div>
+
+          <!-- كرت توزيع الحضور للثانوية -->
+          <div class="owner-backup-card" style="flex-direction: column; align-items: stretch; gap: 15px; background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6);">
+            <div>
+              <p class="portal-kicker" style="color: #06b6d4;">المرحلة الثانوية</p>
+              <h2 style="font-size: 14px; font-weight: 800; color: #1e293b;">توزيع الحالات لليوم المحدد</h2>
+            </div>
+            <div style="position: relative; height: 220px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="highDistributionChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="portalViewDays" class="portal-view">
+      <div class="report-toolbar" style="background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6); padding: 12px 18px; border-radius: 14px; margin-top: 16px;">
+        <p style="font-size: 11px; font-weight: 800; color: #64748b; margin: 0;">📅 سجل الأيام: يعرض ملخصات التحضير المعتمدة والمفتوحة، مع إمكانية استعراض كشف الحضور الكامل (رصد المعلمين) مباشرة.</p>
+      </div>
+      <div id="portalDaysList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 16px; padding-bottom: 30px;"></div>
+    </section>
+
+    <section id="portalViewMemos" class="portal-view">
+      <div class="memos-layout">
+        <form id="memoForm" class="memo-composer">
+          <p class="portal-kicker">توجيه جديد</p>
+          <h2>إرسال تنبيه للمعلمين</h2>
+          <label for="memoMessage">نص التوجيه</label>
+          <textarea id="memoMessage" placeholder="مثال: يرجى اعتماد التحضير قبل الساعة التاسعة مساءً" required></textarea>
+          <div class="memo-form-grid">
+            <div><label for="memoTarget">يظهر لدى</label><select id="memoTarget"><option value="all">الجميع</option><option value="middle">معلمي المتوسطة</option><option value="high">معلمي الثانوية</option></select></div>
+            <div><label for="memoLevel">نوع التنبيه</label><select id="memoLevel"><option value="info">توجيه عادي</option><option value="urgent">تنبيه عاجل</option></select></div>
+          </div>
+          <label for="memoExpiry">ينتهي ظهوره في — اختياري</label>
+          <input id="memoExpiry" type="datetime-local" />
+          <p id="memoFormError" class="login-error" hidden></p>
+          <button class="portal-primary" type="submit">إرسال التوجيه</button>
+        </form>
+        <div class="memos-history">
+          <div class="owner-section-head"><div><h2>التوجيهات السابقة</h2><p>يمكن إيقاف التوجيه أو حذفه.</p></div></div>
+          <div id="memosList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="rosterModal" class="high-modal" hidden>
+    <div class="high-modal-card" style="width: min(800px, 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+        <div>
+          <span id="rosterStageLabel" class="portal-kicker" style="color: #4f46e5;">المرحلة المتوسطة</span>
+          <h2 id="rosterDateLabel" class="page-title" style="font-size: 18px; margin: 4px 0 0;">كشف حضور يوم</h2>
+        </div>
+        <button id="closeRosterModal" class="owner-danger-button" type="button" style="padding: 6px 12px; border-radius: 8px; font-size: 12px;">إغلاق ×</button>
+      </div>
+      
+      <!-- إحصائيات سريعة للرصد المفتوح -->
+      <div id="rosterModalStats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+        <div style="background: #eff6ff; padding: 8px; border-radius: 10px;"><span style="font-size: 10px; font-weight: 800; color: #1e3a8a;">⏰ مبكر</span><div id="rosterStatEarly" style="font-size: 14px; font-weight: 900; color: #1d4ed8;">0</div></div>
+        <div style="background: #ecfdf5; padding: 8px; border-radius: 10px;"><span style="font-size: 10px; font-weight: 800; color: #064e3b;">✅ حاضر</span><div id="rosterStatPresent" style="font-size: 14px; font-weight: 900; color: #047857;">0</div></div>
+        <div style="background: #fff1f2; padding: 8px; border-radius: 10px;"><span style="font-size: 10px; font-weight: 800; color: #9f1239;">❌ غائب</span><div id="rosterStatAbsent" style="font-size: 14px; font-weight: 900; color: #be123c;">0</div></div>
+        <div style="background: #f8fafc; padding: 8px; border-radius: 10px;"><span style="font-size: 10px; font-weight: 800; color: #334155;">○ غير محدد</span><div id="rosterStatUnmarked" style="font-size: 14px; font-weight: 900; color: #475569;">0</div></div>
+      </div>
+      
+      <!-- كشف الأسماء -->
+      <div id="rosterModalList" class="high-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; padding-inline-end: 6px;"></div>
+    </div>
+  </div>
+
+  <div id="studentProfileModal" class="high-modal" hidden>
+    <div class="high-modal-card" style="width: min(700px, 95%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+        <div>
+          <span id="profileStageLabel" class="portal-kicker" style="color: #4f46e5;">المرحلة المتوسطة</span>
+          <h2 id="profileStudentName" class="page-title" style="font-size: 18px; margin: 4px 0 0;">اسم الطالب</h2>
+        </div>
+        <button id="closeProfileModal" class="owner-danger-button" type="button" style="padding: 6px 12px; border-radius: 8px; font-size: 12px;">إغلاق ×</button>
+      </div>
+
+      <!-- إحصائيات الانضباط العامة -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+        <div style="background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <span style="font-size: 10px; font-weight: 800; color: #475569;">📅 إجمالي الأيام المرصودة</span>
+          <div id="profileTotalDays" style="font-size: 16px; font-weight: 900; color: #1e293b; margin-top: 4px;">0</div>
+        </div>
+        <div style="background: #ecfdf5; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <span style="font-size: 10px; font-weight: 800; color: #064e3b;">✅ نسبة الحضور والانضباط</span>
+          <div id="profileAttendanceRate" style="font-size: 16px; font-weight: 900; color: #047857; margin-top: 4px;">0%</div>
+        </div>
+        <div style="background: #fff1f2; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <span style="font-size: 10px; font-weight: 800; color: #9f1239;">❌ أيام الغياب</span>
+          <div id="profileAbsentDays" style="font-size: 16px; font-weight: 900; color: #be123c; margin-top: 4px;">0</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px;">
+        <!-- الرسم البياني الدائري لتوزيع الحالات -->
+        <div style="background: white; border: 1px solid #e2e8f0; padding: 15px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; position: relative;">
+          <canvas id="studentDistributionChart" style="max-height: 180px;"></canvas>
+        </div>
+      </div>
+
+      <!-- سجل الأيام التفصيلي -->
+      <div>
+        <h3 style="font-size: 12px; font-weight: 900; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">📅 السجل التفصيلي للحضور اليومي</h3>
+        <div id="profileTimelineList" class="high-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 30vh; overflow-y: auto; padding-inline-end: 6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="portalToast" class="owner-toast" role="status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/admin-portal.js"></script>
+</body>
+</html>

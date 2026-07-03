@@ -9,6 +9,7 @@
 
   var STORAGE_KEY = 'points_system_v1';
   var CHANNEL_NAME = 'points_system_sync';
+  var SCHEMA_VERSION = '2.0';
 
   // المجموعات الأربع الثابتة
   var DEFAULT_GROUPS = [
@@ -39,6 +40,7 @@
       if (DEFAULT_TEACHERS.hasOwnProperty(k)) {
         var t = DEFAULT_TEACHERS[k];
         obj[k] = {
+          id: teacherIdFromName(k),
           password: t.password,
           role: t.role,
           stage: t.stage,
@@ -69,6 +71,29 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  // معرّف ثابت للحساب مشتقّ حتميًا من الاسم — تتفق عليه كل الأجهزة دون كتابة للسحابة.
+  // يُستخدم للحسابات الافتراضية والقديمة؛ الحسابات الجديدة تأخذ uid() عشوائيًا محفوظًا.
+  function teacherIdFromName(name) {
+    var text = String(name || '');
+    var h = 2166136261;
+    for (var i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return 'u' + (h >>> 0).toString(36);
+  }
+
+  // يضمن أن لكل حساب معرّفًا ثابتًا (لا يغيّر الموجود)
+  function ensureTeacherIds(teachers) {
+    if (!teachers) return teachers;
+    for (var k in teachers) {
+      if (teachers.hasOwnProperty(k) && teachers[k] && typeof teachers[k] === 'object' && !teachers[k].id) {
+        teachers[k].id = teacherIdFromName(k);
+      }
+    }
+    return teachers;
+  }
+
   function todayStr() {
     var d = new Date();
     var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
@@ -87,6 +112,8 @@
       attendance: {},
       highStudents: [],
       highAttendance: {},
+      memos: [],
+      auditLogs: [],
       teachers: copyTeachers()
     };
   }
@@ -111,12 +138,15 @@
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
       if (Array.isArray(parsed.highStudents)) s.highStudents = parsed.highStudents;
       if (parsed.highAttendance && typeof parsed.highAttendance === 'object') s.highAttendance = parsed.highAttendance;
+      if (Array.isArray(parsed.memos)) s.memos = parsed.memos;
+      if (Array.isArray(parsed.auditLogs)) s.auditLogs = parsed.auditLogs;
       if (parsed.teachers && typeof parsed.teachers === 'object') {
         for (var k in parsed.teachers) {
           if (parsed.teachers.hasOwnProperty(k)) {
             var rawT = parsed.teachers[k];
             if (typeof rawT === 'string') {
               s.teachers[k] = {
+                id: teacherIdFromName(k),
                 password: rawT,
                 role: k === OWNER_NAME ? 'owner' : 'teacher',
                 stage: k === OWNER_NAME ? 'all' : 'middle',
@@ -133,6 +163,7 @@
               };
             } else if (rawT && typeof rawT === 'object') {
               s.teachers[k] = {
+                id: rawT.id || teacherIdFromName(k),
                 password: typeof rawT.password === 'string' ? rawT.password : '1234',
                 role: k === OWNER_NAME ? 'owner' : (rawT.role || 'teacher'),
                 stage: k === OWNER_NAME ? 'all' : (rawT.stage || 'middle'),
@@ -154,6 +185,7 @@
     }
     // ترحيل: فرض الأسماء الجديدة حسب المعرّف مع الحفاظ على الأهداف
     s.groups.forEach(function (g) { if (CANON_NAMES[g.id]) g.name = CANON_NAMES[g.id]; });
+    ensureTeacherIds(s.teachers);
     return s;
   }
 
@@ -210,7 +242,7 @@
         if (data.groups) state.groups = data.groups;
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
         if (data.fastReasons) state.fastReasons = data.fastReasons;
-        if (data.teachers && typeof data.teachers === 'object') state.teachers = data.teachers;
+        if (data.teachers && typeof data.teachers === 'object') state.teachers = ensureTeacherIds(data.teachers);
         persist();
         emit(false);
         applyingRemote = false;
@@ -319,11 +351,68 @@
     }, function (err) {
       if (global.console) console.warn('تعذّر الاتصال بـ Firebase (تحضير الثانوية):', err && err.message);
     });
+
+    // 7. التوجيهات الإدارية
+    db.collection('memos').orderBy('createdAt', 'desc').limit(50).onSnapshot(function (snap) {
+      applyingRemote = true;
+      var memos = [];
+      snap.forEach(function (doc) {
+        var memo = doc.data();
+        memo.id = doc.id;
+        memos.push(memo);
+      });
+      state.memos = memos;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (التوجيهات):', err && err.message);
+    });
+
+    // 8. سجل العمليات الإدارية الحساسة
+    db.collection('auditLogs').orderBy('at', 'desc').limit(200).onSnapshot(function (snap) {
+      applyingRemote = true;
+      var auditLogs = [];
+      snap.forEach(function (doc) {
+        var entry = doc.data();
+        entry.id = doc.id;
+        auditLogs.push(entry);
+      });
+      state.auditLogs = auditLogs;
+      persist();
+      emit(false);
+      applyingRemote = false;
+    }, function (err) {
+      if (global.console) console.warn('تعذّر الاتصال بـ Firebase (سجل الإدارة):', err && err.message);
+    });
   }
+
+  // أدوات Firestore الذرّية (تُستدعى فقط داخل if (db)، وdb يعني أن firebase محمّل)
+  function fsIncrement(n) { return global.firebase.firestore.FieldValue.increment(n); }
+  function fsDelete() { return global.firebase.firestore.FieldValue.delete(); }
 
   function commit() {
     persist();      // فوري محليًا
     emit(true);     // تحديث لحظي للشاشات على نفس الجهاز
+  }
+
+  function recordAudit(action, subject, details) {
+    var entry = {
+      id: uid(),
+      action: action,
+      subject: subject || '',
+      details: details || '',
+      actor: getLoggedInTeacher() || state.supervisor || '',
+      at: Date.now()
+    };
+    state.auditLogs.unshift(entry);
+    if (state.auditLogs.length > 200) state.auditLogs = state.auditLogs.slice(0, 200);
+    if (db) db.collection('auditLogs').doc(entry.id).set(entry).catch(function () {});
+    return entry;
+  }
+
+  function getAuditLogs() {
+    return state.auditLogs.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
   }
 
   /* ---------------- واجهة القراءة ---------------- */
@@ -392,6 +481,7 @@
         global.localStorage.setItem('logged_in_teacher', cleanName);
       } else {
         global.localStorage.removeItem('logged_in_teacher');
+        global.localStorage.removeItem('logged_in_teacher_id');
       }
     } catch (e) {}
     commit();
@@ -520,7 +610,8 @@
 
     if (db) {
       var batch = db.batch();
-      batch.update(db.collection('students').doc(studentId), { points: after });
+      // increment ذرّي على الخادم: عمليتان متزامنتان على نفس الطالب تتجمّعان بدل أن تدهس إحداهما الأخرى
+      batch.update(db.collection('students').doc(studentId), { points: fsIncrement(applied) });
       batch.set(db.collection('logs').doc(entry.id), entry);
       batch.commit().catch(function() {});
     }
@@ -545,14 +636,11 @@
     if (!entry || entry.undone) return false;
 
     var st = getStudent(entry.studentId);
+    // عكس أثر العملية كـ delta ذرّي (لا كقيمة مطلقة) حتى لا تُفقد عمليات متزامنة
+    var revDelta = entry.type === 'add' ? -entry.amount : entry.amount;
     var newPoints = st ? st.points : 0;
     if (st) {
-      var before = st.points || 0;
-      if (entry.type === 'add') {
-        newPoints = Math.max(0, before - entry.amount);
-      } else { // كانت خصمًا، نُعيد النقاط
-        newPoints = before + entry.amount;
-      }
+      newPoints = Math.max(0, (st.points || 0) + revDelta);
       st.points = newPoints;
     }
     entry.undone = true;
@@ -562,7 +650,7 @@
     if (db) {
       var batch = db.batch();
       if (st) {
-        batch.update(db.collection('students').doc(entry.studentId), { points: newPoints });
+        batch.update(db.collection('students').doc(entry.studentId), { points: fsIncrement(revDelta) });
       }
       batch.update(db.collection('logs').doc(id), {
         undone: true,
@@ -589,6 +677,7 @@
 
   // بدء جولة/موسم جديد: تصفير نقاط جميع الطلاب (مع خيار مسح السجل)
   function resetPoints(clearLogToo) {
+    recordAudit('reset_points', 'المرحلة المتوسطة', clearLogToo ? 'تصفير النقاط ومسح السجل' : 'تصفير النقاط مع إبقاء السجل');
     state.students.forEach(function (s) { s.points = 0; });
     state.attendance = {}; // تصفير التحضير مع الجولة الجديدة
     if (clearLogToo) state.log = [];
@@ -605,17 +694,6 @@
         snap.forEach(function (doc) { batch.delete(doc.ref); });
         batch.commit().catch(function() {});
       }).catch(function() {});
-      highStudentsCollection().get().then(function (snap) {
-        var batch = db.batch();
-        snap.forEach(function (doc) { batch.delete(doc.ref); });
-        batch.commit().catch(function () {});
-      }).catch(function () {});
-      highAttendanceCollection().get().then(function (snap) {
-        var batch = db.batch();
-        snap.forEach(function (doc) { batch.delete(doc.ref); });
-        batch.commit().catch(function () {});
-      }).catch(function () {});
-
       if (clearLogToo) {
         db.collection('logs').get().then(function (snap) {
           var batch = db.batch();
@@ -691,12 +769,16 @@
   }
 
   function closeAttendance(date, supervisor) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
+      throw new Error('لا تملك صلاحية إغلاق تحضير المرحلة المتوسطة');
+    }
     if (!state.attendance[date]) {
       state.attendance[date] = { records: {}, status: 'active' };
     }
     state.attendance[date].status = 'closed';
     state.attendance[date].closedAt = Date.now();
     state.attendance[date].closedBy = (supervisor || state.supervisor || '').trim();
+    recordAudit('close_attendance', 'المتوسطة · ' + date, 'إغلاق واعتماد التحضير');
 
     if (db) {
       db.collection('attendance').doc(date).set({
@@ -710,10 +792,14 @@
 
   // إعادة فتح التحضير
   function reopenAttendance(date) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
+      throw new Error('لا تملك صلاحية إعادة فتح تحضير المرحلة المتوسطة');
+    }
     if (!state.attendance[date]) {
       state.attendance[date] = { records: {}, status: 'active' };
     }
     state.attendance[date].status = 'active';
+    recordAudit('reopen_attendance', 'المتوسطة · ' + date, 'إعادة فتح التحضير');
     if (db) {
       db.collection('attendance').doc(date).set({
         status: 'active'
@@ -722,89 +808,140 @@
     commit();
   }
 
-  // تحديد حالة تحضير لطالب في تاريخ معيّن (يعدّل النقاط دون تكرار)
+  // كتابة تحضير المتوسطة كمعاملة ذرّية: تقرأ حالة اليوم على الخادم فلا تُمنح نقاط
+  // الحالة مرتين حتى لو ضغط معلمان معًا في نفس اللحظة. changes = { studentId: status }
+  function writeMiddleAttendance(date, changes, supervisor) {
+    var attRef = db.collection('attendance').doc(date);
+    var sup = (supervisor || getSupervisor() || '').trim();
+    return db.runTransaction(function (tx) {
+      return tx.get(attRef).then(function (snap) {
+        var data = snap.exists ? snap.data() : {};
+        if (data.status === 'closed') throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
+        var serverRecords = data.records || {};
+        var applied = [];
+        Object.keys(changes).forEach(function (studentId) {
+          var raw = changes[studentId];
+          var target = (raw === 'none' || !raw) ? null : raw;
+          var prevRec = serverRecords[studentId] || null;
+          var prevStatus = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
+          prevStatus = prevStatus || null;
+          if (prevStatus === target) return; // مُطبَّق مسبقًا على الخادم — لا منح مكرر للنقاط
+          var oldPts = prevStatus
+            ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prevStatus))
+            : 0;
+          var newPts = target ? pointsForStatus(target) : 0;
+          applied.push({ studentId: studentId, target: target, prevStatus: prevStatus, newPts: newPts, delta: newPts - oldPts });
+        });
+        if (!applied.length) return [];
+
+        var useSet = !snap.exists;                       // وثيقة جديدة → set كامل بدل update بمسارات
+        var recordsObj = useSet ? {} : null;
+        var attUpdate = useSet ? null : { status: data.status || 'active' };
+
+        applied.forEach(function (a) {
+          if (a.delta !== 0) {
+            tx.update(db.collection('students').doc(a.studentId), { points: fsIncrement(a.delta) });
+          }
+          var recVal = a.target ? { status: a.target, points: a.newPts, by: sup, at: Date.now() } : null;
+          if (useSet) {
+            if (recVal) recordsObj[a.studentId] = recVal;
+          } else {
+            attUpdate['records.' + a.studentId] = recVal ? recVal : fsDelete();
+          }
+          if (a.delta !== 0) {
+            var st = getStudent(a.studentId);
+            var grp = st ? getGroup(st.groupId) : null;
+            var entry = {
+              id: uid(),
+              studentId: a.studentId,
+              studentName: st ? st.name : '',
+              groupId: st ? st.groupId : '',
+              groupName: grp ? grp.name : '',
+              amount: Math.abs(a.delta),
+              requested: Math.abs(a.delta),
+              type: a.delta >= 0 ? 'add' : 'subtract',
+              reason: 'تحضير (' + date + '): ' + (ATT_LABELS[a.target] || 'إلغاء') + (a.prevStatus && a.prevStatus !== a.target ? ' (تعديل من ' + (ATT_LABELS[a.prevStatus] || a.prevStatus) + ')' : ''),
+              supervisor: sup,
+              timestamp: Date.now(),
+              kind: 'attendance'
+            };
+            tx.set(db.collection('logs').doc(entry.id), entry);
+          }
+        });
+
+        if (useSet) tx.set(attRef, { records: recordsObj, status: 'active' });
+        else tx.update(attRef, attUpdate);
+        return applied;
+      });
+    }).catch(function (error) {
+      if (error && /مغلق/.test(error.message || '')) throw error;
+      var offline = !error || !error.code || error.code === 'unavailable' ||
+        error.code === 'deadline-exceeded' || error.code === 'failed-precondition';
+      if (!offline) throw error;
+      return fallbackMiddleAttendance(date, changes, sup); // وضع عدم الاتصال: كتابة احتياطية
+    });
+  }
+
+  // احتياط عدم الاتصال: يكتب النتيجة المحلية (المحدَّثة تفاؤليًا) دون ذرّية — لا تنسيق ممكن دون شبكة
+  function fallbackMiddleAttendance(date, changes, sup) {
+    var attRef = db.collection('attendance').doc(date);
+    var day = state.attendance[date] || { records: {}, status: 'active' };
+    var batch = db.batch();
+    var attUpdate = { status: day.status || 'active' };
+    Object.keys(changes).forEach(function (studentId) {
+      var rec = day.records[studentId] || null;
+      var st = getStudent(studentId);
+      if (st) batch.update(db.collection('students').doc(studentId), { points: st.points });
+      attUpdate['records.' + studentId] = rec ? rec : fsDelete();
+    });
+    batch.set(attRef, { status: day.status || 'active' }, { merge: true });
+    batch.update(attRef, attUpdate);
+    return batch.commit();
+  }
+
+  // تحديد حالة تحضير لطالب في تاريخ معيّن (يعدّل النقاط دون تكرار وبأمان عند التزامن)
   // status: 'early' | 'present' | 'absent' | 'none' (لإلغاء التحديد)
   function setAttendance(date, studentId, status, supervisor) {
+    if (!hasPermission('attendance') || !belongsToStage('middle')) {
+      throw new Error('لا تملك صلاحية تعديل تحضير المرحلة المتوسطة');
+    }
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
     var st = getStudent(studentId);
     if (!st) return;
-    
     if (!state.attendance[date]) {
       state.attendance[date] = { records: {}, status: 'active' };
     }
     var records = state.attendance[date].records;
     var prevRec = records[studentId] || null;
     var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
-    if (prev === status) return; // لا تغيير
+    var target = (status === 'none' || !status) ? null : status;
+    if ((prev || null) === target) return; // لا تغيير
 
-    var oldPts = 0;
-    if (prev) {
-      state.log.forEach(function (l) {
-        if (l.studentId === studentId && l.kind === 'attendance' && l.reason.indexOf(date) !== -1) {
-          var amt = parseInt(l.amount || 0, 10);
-          if (l.type === 'add') oldPts += amt;
-          if (l.type === 'subtract') oldPts -= amt;
-        }
-      });
-    }
-    var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
+    // تحديث محلي تفاؤلي للاستجابة الفورية؛ الخادم هو المرجع النهائي (المعاملة ثم اللقطة تصحّح أي فرق)
+    var oldPts = prev
+      ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prev))
+      : 0;
+    var newPts = target ? pointsForStatus(target) : 0;
     var delta = newPts - oldPts;
-
-    if (delta !== 0) {
-      st.points = Math.max(0, (st.points || 0) + delta);
-    }
-
-    if (status === 'none' || !status) {
-      delete records[studentId];
+    if (delta !== 0) st.points = Math.max(0, (st.points || 0) + delta);
+    if (target) {
+      records[studentId] = { status: target, points: newPts, by: (supervisor || state.supervisor || '').trim(), at: Date.now() };
     } else {
-      records[studentId] = {
-        status: status,
-        by: (supervisor || state.supervisor || '').trim(),
-        at: Date.now()
-      };
-    }
-
-    var logEntry = null;
-    // تسجيل تغيير التحضير في السجل (للمراجعة) إن تغيّرت النقاط
-    if (delta !== 0) {
-      var grp = getGroup(st.groupId);
-      logEntry = {
-        id: uid(),
-        studentId: st.id,
-        studentName: st.name,
-        groupId: st.groupId,
-        groupName: grp ? grp.name : '',
-        amount: Math.abs(delta),
-        requested: Math.abs(delta),
-        type: delta >= 0 ? 'add' : 'subtract',
-        reason: 'تحضير (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء') + (prev && prev !== 'none' && prev !== status ? ' (تعديل من ' + (ATT_LABELS[prev] || prev) + ')' : ''),
-        supervisor: (supervisor || state.supervisor || '').trim(),
-        timestamp: Date.now(),
-        kind: 'attendance'
-      };
-      state.log.unshift(logEntry);
-    }
-
-    if (db) {
-      var batch = db.batch();
-      if (delta !== 0) {
-        batch.update(db.collection('students').doc(studentId), { points: st.points });
-      }
-      batch.set(db.collection('attendance').doc(date), { 
-        records: records,
-        status: state.attendance[date].status || 'active'
-      }, { merge: true });
-      if (logEntry) {
-        batch.set(db.collection('logs').doc(logEntry.id), logEntry);
-      }
-      batch.commit().catch(function() {});
+      delete records[studentId];
     }
     commit();
+
+    if (!db) return;
+    var changes = {}; changes[studentId] = status;
+    return writeMiddleAttendance(date, changes, supervisor);
   }
 
   function setBulkAttendance(date, studentIds, status, supervisor) {
+    if (!hasPermission('attendance') || !belongsToStage('middle')) {
+      throw new Error('لا تملك صلاحية تعديل تحضير المرحلة المتوسطة');
+    }
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
@@ -812,88 +949,37 @@
       state.attendance[date] = { records: {}, status: 'active' };
     }
     var records = state.attendance[date].records;
-    var batch = db ? db.batch() : null;
+    var target = (status === 'none' || !status) ? null : status;
+    var changes = {};
     var hasChanges = false;
 
-    studentIds.forEach(function (studentId) {
+    (studentIds || []).forEach(function (studentId) {
       var st = getStudent(studentId);
       if (!st) return;
-
       var prevRec = records[studentId] || null;
       var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
-      if (prev === status) return; // لا تغيير
+      if ((prev || null) === target) return; // لا تغيير
 
-       var oldPts = 0;
-       if (prev) {
-         state.log.forEach(function (l) {
-           if (l.studentId === studentId && l.kind === 'attendance' && l.reason.indexOf(date) !== -1) {
-             var amt = parseInt(l.amount || 0, 10);
-             if (l.type === 'add') oldPts += amt;
-             if (l.type === 'subtract') oldPts -= amt;
-           }
-         });
-       }
-       var newPts = (status && status !== 'none') ? pointsForStatus(status) : 0;
-       var delta = newPts - oldPts;
-
-      if (delta !== 0) {
-        st.points = Math.max(0, (st.points || 0) + delta);
-      }
-
-      if (status === 'none' || !status) {
-        delete records[studentId];
+      // تحديث محلي تفاؤلي؛ المعاملة على الخادم تمنع ازدواج النقاط عند تزامن المعلمين
+      var oldPts = prev
+        ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prev))
+        : 0;
+      var newPts = target ? pointsForStatus(target) : 0;
+      var delta = newPts - oldPts;
+      if (delta !== 0) st.points = Math.max(0, (st.points || 0) + delta);
+      if (target) {
+        records[studentId] = { status: target, points: newPts, by: (supervisor || state.supervisor || '').trim(), at: Date.now() };
       } else {
-        records[studentId] = {
-          status: status,
-          by: (supervisor || state.supervisor || '').trim(),
-          at: Date.now()
-        };
+        delete records[studentId];
       }
-
-      var logEntry = null;
-      if (delta !== 0) {
-        var grp = getGroup(st.groupId);
-        logEntry = {
-          id: uid(),
-          studentId: st.id,
-          studentName: st.name,
-          groupId: st.groupId,
-          groupName: grp ? grp.name : '',
-          amount: Math.abs(delta),
-          requested: Math.abs(delta),
-          type: delta >= 0 ? 'add' : 'subtract',
-          reason: 'تحضير جماعي (' + date + '): ' + (ATT_LABELS[status] || 'إلغاء') + (prev && prev !== 'none' && prev !== status ? ' (تعديل من ' + (ATT_LABELS[prev] || prev) + ')' : ''),
-          supervisor: (supervisor || state.supervisor || '').trim(),
-          timestamp: Date.now(),
-          kind: 'attendance'
-        };
-        state.log.unshift(logEntry);
-      }
-
+      changes[studentId] = status;
       hasChanges = true;
-
-      if (batch) {
-        if (delta !== 0) {
-          batch.update(db.collection('students').doc(studentId), { points: st.points });
-        }
-        if (logEntry) {
-          batch.set(db.collection('logs').doc(logEntry.id), logEntry);
-        }
-      }
     });
 
-    if (hasChanges) {
-      if (batch) {
-        batch.set(db.collection('attendance').doc(date), { 
-          records: records,
-          status: state.attendance[date].status || 'active'
-        }, { merge: true });
-        batch.commit().catch(function(e) {
-          if (window.console) console.error("Bulk commit error: ", e);
-        });
-      }
-      commit();
-    }
+    if (!hasChanges) return;
+    commit();
+    if (!db) return;
+    return writeMiddleAttendance(date, changes, supervisor);
   }
 
   // ملخّص يوم: أعداد كل حالة + إجمالي نقاط ذلك اليوم
@@ -958,6 +1044,7 @@
 
     var student = { id: uid(), name: name, active: true, createdAt: Date.now() };
     state.highStudents.push(student);
+    recordAudit('add_student', 'الثانوية · ' + name, 'إضافة طالب');
     var collection = highStudentsCollection();
     if (collection) collection.doc(student.id).set(student).catch(function () {});
     commit();
@@ -982,6 +1069,7 @@
     if (!added.length) return 0;
 
     Array.prototype.push.apply(state.highStudents, added);
+    recordAudit('add_students', 'المرحلة الثانوية', 'إضافة ' + added.length + ' طالب');
     var collection = highStudentsCollection();
     if (collection) {
       var batch = db.batch();
@@ -1002,6 +1090,7 @@
     student.name = name;
     if (typeof data.active === 'boolean') student.active = data.active;
     student.updatedAt = Date.now();
+    recordAudit('update_student', 'الثانوية · ' + student.name, student.active === false ? 'تعديل وإيقاف الطالب' : 'تعديل بيانات الطالب');
     var collection = highStudentsCollection();
     if (collection) collection.doc(id).set(student, { merge: true }).catch(function () {});
     commit();
@@ -1014,7 +1103,9 @@
       if (state.highStudents[i].id === id) { index = i; break; }
     }
     if (index === -1) throw new Error('الطالب غير موجود');
+    var deletedStudent = state.highStudents[index];
     state.highStudents.splice(index, 1);
+    recordAudit('delete_student', 'الثانوية · ' + deletedStudent.name, 'حذف الطالب من القائمة');
     var collection = highStudentsCollection();
     if (collection) collection.doc(id).delete().catch(function () {});
     commit();
@@ -1166,6 +1257,7 @@
     day.closedAt = Date.now();
     day.closedBy = (supervisor || getSupervisor() || '').trim();
     day.summary = computeHighAttendanceSummary(day.records);
+    recordAudit('close_attendance', 'الثانوية · ' + date, 'إغلاق واعتماد التحضير');
     var collection = highAttendanceCollection();
     if (collection) {
       collection.doc(date).set({
@@ -1184,12 +1276,250 @@
     }
     if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
     state.highAttendance[date].status = 'active';
+    recordAudit('reopen_attendance', 'الثانوية · ' + date, 'إعادة فتح التحضير');
     var collection = highAttendanceCollection();
     if (collection) collection.doc(date).set({ status: 'active' }, { merge: true }).catch(function () {});
     commit();
   }
 
+  /* ---------------- التوجيهات الإدارية ---------------- */
+
+  function canManageMemos() {
+    var user = getCurrentUser();
+    return !!user && user.active && user.role === 'owner';
+  }
+
+  function getMemos() {
+    return state.memos.slice().sort(function (a, b) {
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  }
+
+  function getActiveMemos(stage) {
+    var now = Date.now();
+    return getMemos().filter(function (memo) {
+      var matchesStage = memo.target === 'all' || memo.target === stage;
+      var notExpired = !memo.expiresAt || memo.expiresAt > now;
+      return memo.active !== false && matchesStage && notExpired;
+    });
+  }
+
+  function addMemo(data) {
+    if (!canManageMemos()) throw new Error('لا تملك صلاحية إرسال التوجيهات');
+    data = data || {};
+    var message = String(data.message || '').trim();
+    if (!message) throw new Error('نص التوجيه مطلوب');
+    var target = data.target === 'middle' || data.target === 'high' ? data.target : 'all';
+    var memo = {
+      id: uid(),
+      message: message,
+      target: target,
+      level: data.level === 'urgent' ? 'urgent' : 'info',
+      active: true,
+      createdAt: Date.now(),
+      createdBy: getLoggedInTeacher(),
+      expiresAt: data.expiresAt ? Number(data.expiresAt) : null
+    };
+    state.memos.unshift(memo);
+    recordAudit('add_memo', 'توجيه إلى ' + target, message);
+    if (db) db.collection('memos').doc(memo.id).set(memo).catch(function () {});
+    commit();
+    return memo.id;
+  }
+
+  function setMemoActive(id, active) {
+    if (!canManageMemos()) throw new Error('لا تملك صلاحية تعديل التوجيهات');
+    var memo = null;
+    for (var i = 0; i < state.memos.length; i++) {
+      if (state.memos[i].id === id) { memo = state.memos[i]; break; }
+    }
+    if (!memo) throw new Error('التوجيه غير موجود');
+    memo.active = !!active;
+    recordAudit('toggle_memo', 'توجيه إداري', memo.active ? 'تفعيل التوجيه' : 'إيقاف التوجيه');
+    if (db) db.collection('memos').doc(id).set({ active: memo.active }, { merge: true }).catch(function () {});
+    commit();
+  }
+
+  function deleteMemo(id) {
+    if (!canManageMemos()) throw new Error('لا تملك صلاحية حذف التوجيهات');
+    var deletedMemo = state.memos.filter(function (memo) { return memo.id === id; })[0];
+    state.memos = state.memos.filter(function (memo) { return memo.id !== id; });
+    recordAudit('delete_memo', 'توجيه إداري', deletedMemo ? deletedMemo.message : 'حذف توجيه');
+    if (db) db.collection('memos').doc(id).delete().catch(function () {});
+    commit();
+  }
+
+  /* ---------------- ترحيل بيانات المتوسطة إلى الهيكل الهرمي ---------------- */
+
+  function migrationTargetCollection(name) {
+    return db ? db.collection('stages').doc('middle').collection(name) : null;
+  }
+
+  function writeMigrationDocuments(collection, documents) {
+    var index = 0;
+    function next() {
+      if (index >= documents.length) return Promise.resolve();
+      var batch = db.batch();
+      var end = Math.min(index + 400, documents.length);
+      for (; index < end; index++) {
+        batch.set(collection.doc(documents[index].id), documents[index].data);
+      }
+      return batch.commit().then(next);
+    }
+    return next();
+  }
+
+  function replaceMigrationDocuments(collection, documents) {
+    return collection.get().then(function (snapshot) {
+      var refs = [];
+      snapshot.forEach(function (doc) { refs.push(doc.ref); });
+      var index = 0;
+      function deleteNext() {
+        if (index >= refs.length) return Promise.resolve();
+        var batch = db.batch();
+        var end = Math.min(index + 400, refs.length);
+        for (; index < end; index++) batch.delete(refs[index]);
+        return batch.commit().then(deleteNext);
+      }
+      return deleteNext();
+    }).then(function () {
+      return writeMigrationDocuments(collection, documents);
+    });
+  }
+
+  function migrationStats(studentSnapshot, attendanceSnapshot, logSnapshot) {
+    var points = 0;
+    studentSnapshot.forEach(function (doc) { points += Number(doc.data().points || 0); });
+    return {
+      students: studentSnapshot.size,
+      attendanceDays: attendanceSnapshot.size,
+      logs: logSnapshot.size,
+      totalPoints: points,
+      signature: [
+        migrationSnapshotSignature(studentSnapshot),
+        migrationSnapshotSignature(attendanceSnapshot),
+        migrationSnapshotSignature(logSnapshot)
+      ].join('|')
+    };
+  }
+
+  function stableMigrationValue(value) {
+    if (value === null || typeof value !== 'object') return value;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (Array.isArray(value)) return value.map(stableMigrationValue);
+    var normalized = {};
+    Object.keys(value).sort().forEach(function (key) {
+      normalized[key] = stableMigrationValue(value[key]);
+    });
+    return normalized;
+  }
+
+  function migrationSnapshotSignature(snapshot) {
+    var documents = [];
+    snapshot.forEach(function (doc) {
+      documents.push(doc.id + ':' + JSON.stringify(stableMigrationValue(doc.data())));
+    });
+    var text = documents.sort().join('||');
+    var first = 2166136261;
+    var second = 5381;
+    for (var i = 0; i < text.length; i++) {
+      first ^= text.charCodeAt(i);
+      first = Math.imul(first, 16777619);
+      second = ((second << 5) + second) ^ text.charCodeAt(i);
+    }
+    return (first >>> 0).toString(16).padStart(8, '0') +
+      (second >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function getMiddleMigrationPreview() {
+    return {
+      students: state.students.length,
+      attendanceDays: Object.keys(state.attendance || {}).length,
+      logsLoaded: state.log.length,
+      totalPoints: state.students.reduce(function (sum, student) { return sum + Number(student.points || 0); }, 0),
+      note: 'يُقرأ سجل العمليات كاملًا من Firestore عند التنفيذ، وليس آخر 150 عملية المعروضة فقط.'
+    };
+  }
+
+  function verifyMiddleMigration() {
+    requireOwnerAccess();
+    if (!db) return Promise.reject(new Error('الاتصال بـ Firebase غير متاح'));
+    return Promise.all([
+      db.collection('students').get(),
+      db.collection('attendance').get(),
+      db.collection('logs').get(),
+      migrationTargetCollection('students').get(),
+      migrationTargetCollection('attendance').get(),
+      migrationTargetCollection('logs').get()
+    ]).then(function (snapshots) {
+      var source = migrationStats(snapshots[0], snapshots[1], snapshots[2]);
+      var target = migrationStats(snapshots[3], snapshots[4], snapshots[5]);
+      return {
+        ok: source.students === target.students &&
+          source.attendanceDays === target.attendanceDays &&
+          source.logs === target.logs &&
+          source.totalPoints === target.totalPoints &&
+          source.signature === target.signature,
+        source: source,
+        target: target
+      };
+    });
+  }
+
+  function migrateMiddleData() {
+    requireOwnerAccess();
+    if (!db) return Promise.reject(new Error('الاتصال بـ Firebase غير متاح'));
+    recordAudit('start_migration', 'المرحلة المتوسطة', 'بدء نسخ البيانات إلى الهيكل الجديد');
+    commit();
+
+    return Promise.all([
+      db.collection('students').get(),
+      db.collection('attendance').get(),
+      db.collection('logs').get()
+    ]).then(function (snapshots) {
+      var students = [];
+      var attendance = [];
+      var logs = [];
+      snapshots[0].forEach(function (doc) { students.push({ id: doc.id, data: doc.data() }); });
+      snapshots[1].forEach(function (doc) { attendance.push({ id: doc.id, data: doc.data() }); });
+      snapshots[2].forEach(function (doc) { logs.push({ id: doc.id, data: doc.data() }); });
+
+      return Promise.all([
+        replaceMigrationDocuments(migrationTargetCollection('students'), students),
+        replaceMigrationDocuments(migrationTargetCollection('attendance'), attendance),
+        replaceMigrationDocuments(migrationTargetCollection('logs'), logs)
+      ]).then(function () {
+        return db.collection('migrations').doc('middle_v2').set({
+          status: 'copied',
+          copiedAt: Date.now(),
+          copiedBy: getLoggedInTeacher(),
+          source: {
+            students: students.length,
+            attendanceDays: attendance.length,
+            logs: logs.length
+          }
+        }, { merge: true });
+      });
+    }).then(function () {
+      return verifyMiddleMigration();
+    }).then(function (result) {
+      recordAudit(result.ok ? 'complete_migration' : 'migration_mismatch', 'المرحلة المتوسطة',
+        result.ok ? 'اكتمل النسخ وتطابقت البيانات' : 'اكتمل النسخ مع وجود اختلاف يحتاج مراجعة');
+      commit();
+      return db.collection('migrations').doc('middle_v2').set({
+        status: result.ok ? 'verified' : 'mismatch',
+        verifiedAt: Date.now(),
+        verification: result
+      }, { merge: true }).then(function () { return result; });
+    }).catch(function (error) {
+      recordAudit('migration_failed', 'المرحلة المتوسطة', error.message || 'تعذر إكمال الترحيل');
+      commit();
+      throw error;
+    });
+  }
+
   function resetAll() {
+    requireOwnerAccess();
     state = defaultState();
     if (db) {
       db.collection('settings').doc('config').delete().catch(function() {});
@@ -1208,54 +1538,168 @@
         snap.forEach(function (doc) { batch.delete(doc.ref); });
         batch.commit().catch(function() {});
       }).catch(function() {});
+      highStudentsCollection().get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
+      highAttendanceCollection().get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
+      db.collection('memos').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
+      db.collection('auditLogs').get().then(function (snap) {
+        var batch = db.batch();
+        snap.forEach(function (doc) { batch.delete(doc.ref); });
+        batch.commit().catch(function () {});
+      }).catch(function () {});
     }
     commit();
   }
 
   // استيراد/تصدير نسخة احتياطية
-  function exportData() { return JSON.stringify(state, null, 2); }
+  function backupSummary(data) {
+    data = data || {};
+    return {
+      middleStudents: Array.isArray(data.students) ? data.students.length : 0,
+      highStudents: Array.isArray(data.highStudents) ? data.highStudents.length : 0,
+      middleAttendanceDays: data.attendance && typeof data.attendance === 'object' ? Object.keys(data.attendance).length : 0,
+      highAttendanceDays: data.highAttendance && typeof data.highAttendance === 'object' ? Object.keys(data.highAttendance).length : 0,
+      logs: Array.isArray(data.log) ? data.log.length : 0,
+      accounts: data.teachers && typeof data.teachers === 'object' ? Object.keys(data.teachers).length : 0,
+      memos: Array.isArray(data.memos) ? data.memos.length : 0,
+      auditLogs: Array.isArray(data.auditLogs) ? data.auditLogs.length : 0
+    };
+  }
+
+  function createBackupObject() {
+    return {
+      version: SCHEMA_VERSION,
+      app: 'rehal-education-platform',
+      createdAt: new Date().toISOString(),
+      summary: backupSummary(state),
+      data: state
+    };
+  }
+
+  function exportData() {
+    return JSON.stringify(createBackupObject(), null, 2);
+  }
+
+  function parseBackup(input) {
+    var parsed = typeof input === 'string' ? JSON.parse(input) : input;
+    if (!parsed || typeof parsed !== 'object') throw new Error('ملف النسخة الاحتياطية غير صالح');
+    var payload = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+    if (!Array.isArray(payload.students)) throw new Error('قائمة طلاب المتوسطة مفقودة أو غير صالحة');
+    if (!payload.attendance || typeof payload.attendance !== 'object') throw new Error('سجلات تحضير المتوسطة مفقودة');
+    if (!payload.teachers || typeof payload.teachers !== 'object') throw new Error('بيانات الحسابات مفقودة');
+    if (!payload.teachers.hasOwnProperty(OWNER_NAME)) throw new Error('النسخة لا تحتوي حساب مالك المنصة');
+    if (payload.highStudents != null && !Array.isArray(payload.highStudents)) throw new Error('قائمة طلاب الثانوية غير صالحة');
+    if (payload.highAttendance != null && typeof payload.highAttendance !== 'object') throw new Error('سجلات تحضير الثانوية غير صالحة');
+    return {
+      version: parsed.version || '1.0',
+      createdAt: parsed.createdAt || null,
+      legacy: !parsed.data,
+      data: payload,
+      summary: backupSummary(payload)
+    };
+  }
+
+  function inspectBackup(input) {
+    var result = parseBackup(input);
+    return {
+      version: result.version,
+      createdAt: result.createdAt,
+      legacy: result.legacy,
+      summary: result.summary
+    };
+  }
 
   function importData(json) {
-    state = normalize(JSON.parse(json));
-    if (db) {
-      db.collection('settings').doc('config').set({
-        groups: state.groups,
-        attendancePoints: state.attendancePoints
-      }).catch(function() {});
+    requireOwnerAccess();
+    var backup = parseBackup(json);
+    state = normalize(backup.data);
+    recordAudit('restore_backup', 'نسخة احتياطية ' + backup.version, 'استعادة كاملة لبيانات المنصة');
+    commit();
+    if (!db) return Promise.resolve();
 
-      state.students.forEach(function(s) {
-        db.collection('students').doc(s.id).set(s).catch(function() {});
+    function commitInChunks(items, applyOperation) {
+      var index = 0;
+      function next() {
+        if (index >= items.length) return Promise.resolve();
+        var batch = db.batch();
+        var end = Math.min(index + 400, items.length);
+        for (; index < end; index++) applyOperation(batch, items[index]);
+        return batch.commit().then(next);
+      }
+      return next();
+    }
+
+    function replaceCollection(collection, documents) {
+      return collection.get().then(function (snapshot) {
+        var existingRefs = [];
+        snapshot.forEach(function (doc) { existingRefs.push(doc.ref); });
+        return commitInChunks(existingRefs, function (batch, ref) {
+          batch.delete(ref);
+        }).then(function () {
+          return commitInChunks(documents, function (batch, entry) {
+            batch.set(collection.doc(entry.id), entry.data);
+          });
+        });
       });
+    }
 
-      state.log.forEach(function(l) {
-        db.collection('logs').doc(l.id).set(l).catch(function() {});
-      });
-
-      Object.keys(state.attendance).forEach(function(date) {
-        var day = state.attendance[date];
-        var records = (day && day.records) ? day.records : day;
-        db.collection('attendance').doc(date).set({
-          records: records,
-          status: (day && day.status) || 'active'
-        }).catch(function() {});
-      });
-
-      state.highStudents.forEach(function (student) {
-        highStudentsCollection().doc(student.id).set(student).catch(function () {});
-      });
-
-      Object.keys(state.highAttendance).forEach(function (date) {
-        var day = state.highAttendance[date];
-        highAttendanceCollection().doc(date).set({
+    var middleStudents = state.students.map(function (student) { return { id: student.id, data: student }; });
+    var logs = state.log.map(function (entry) { return { id: entry.id, data: entry }; });
+    var middleAttendance = Object.keys(state.attendance).map(function (date) {
+      var day = state.attendance[date];
+      return {
+        id: date,
+        data: {
+          records: (day && day.records) ? day.records : day,
+          status: (day && day.status) || 'active',
+          closedAt: day && day.closedAt || null,
+          closedBy: day && day.closedBy || null
+        }
+      };
+    });
+    var highStudents = state.highStudents.map(function (student) { return { id: student.id, data: student }; });
+    var highAttendance = Object.keys(state.highAttendance).map(function (date) {
+      var day = state.highAttendance[date];
+      return {
+        id: date,
+        data: {
           records: day.records || {},
           summary: day.summary || computeHighAttendanceSummary(day.records || {}),
           status: day.status || 'active',
           closedAt: day.closedAt || null,
           closedBy: day.closedBy || null
-        }).catch(function () {});
-      });
-    }
-    commit();
+        }
+      };
+    });
+    var memos = state.memos.map(function (memo) { return { id: memo.id, data: memo }; });
+    var auditLogs = state.auditLogs.map(function (entry) { return { id: entry.id, data: entry }; });
+
+    return Promise.all([
+      db.collection('settings').doc('config').set({
+        groups: state.groups,
+        attendancePoints: state.attendancePoints,
+        fastReasons: state.fastReasons,
+        teachers: state.teachers
+      }),
+      replaceCollection(db.collection('students'), middleStudents),
+      replaceCollection(db.collection('logs'), logs),
+      replaceCollection(db.collection('attendance'), middleAttendance),
+      replaceCollection(highStudentsCollection(), highStudents),
+      replaceCollection(highAttendanceCollection(), highAttendance),
+      replaceCollection(db.collection('memos'), memos),
+      replaceCollection(db.collection('auditLogs'), auditLogs)
+    ]);
   }
 
   function subscribe(fn) {
@@ -1265,9 +1709,49 @@
     };
   }
 
+  // ابحث عن اسم الحساب الحالي حسب معرّفه الثابت (يصمد وإن تغيّر الاسم)
+  function findTeacherNameById(id) {
+    if (!id) return null;
+    for (var k in state.teachers) {
+      if (state.teachers.hasOwnProperty(k) && state.teachers[k] &&
+          typeof state.teachers[k] === 'object' && state.teachers[k].id === id) {
+        return k;
+      }
+    }
+    return null;
+  }
+
+  // الاسم الحالي للحساب المسجّل دخوله: بالمعرّف أولًا ثم بالاسم (توافق مع الجلسات القديمة)
+  function resolveLoggedInName() {
+    var id = null, name = null;
+    try {
+      id = global.localStorage.getItem('logged_in_teacher_id');
+      name = global.localStorage.getItem('logged_in_teacher');
+    } catch (e) {}
+
+    if (id) {
+      var byId = findTeacherNameById(id);
+      if (byId) {
+        // حدّث الاسم المخزّن إن كان الحساب قد أُعيدت تسميته
+        if (byId !== name) { try { global.localStorage.setItem('logged_in_teacher', byId); } catch (e2) {} }
+        return byId;
+      }
+    }
+
+    // جلسة قديمة بالاسم فقط: تبنّى معرّفها الثابت للمرات القادمة
+    if (name && state.teachers.hasOwnProperty(name)) {
+      var acct = state.teachers[name];
+      if (acct && typeof acct === 'object' && acct.id) {
+        try { global.localStorage.setItem('logged_in_teacher_id', acct.id); } catch (e3) {}
+      }
+      return name;
+    }
+    return name || '';
+  }
+
   function isLoggedIn() {
     try {
-      var name = global.localStorage.getItem('logged_in_teacher');
+      var name = resolveLoggedInName();
       if (!name || !state.teachers.hasOwnProperty(name)) return false;
       var teacher = state.teachers[name];
       return name === OWNER_NAME || !teacher || typeof teacher === 'string' || teacher.active !== false;
@@ -1278,7 +1762,7 @@
 
   function getLoggedInTeacher() {
     try {
-      return global.localStorage.getItem('logged_in_teacher') || '';
+      return resolveLoggedInName();
     } catch (e) {
       return '';
     }
@@ -1308,11 +1792,11 @@
   function defaultPermissions(role, stage) {
     if (role === 'admin') {
       return {
-        adminPanel: true,
-        manageStudents: true,
-        attendance: true,
-        closeAttendance: true,
-        viewDisplays: true,
+        adminPanel: false,
+        manageStudents: false,
+        attendance: false,
+        closeAttendance: false,
+        viewDisplays: false,
         managePlatform: false,
         viewReports: true
       };
@@ -1340,12 +1824,14 @@
     if (state.teachers.hasOwnProperty(name)) throw new Error('يوجد حساب بهذا الاسم');
 
     state.teachers[name] = {
+      id: uid(),
       password: password,
       role: role,
-      stage: role === 'admin' && stage === 'middle' ? 'middle' : stage,
+      stage: role === 'admin' ? 'all' : stage,
       active: data.active !== false,
       permissions: Object.assign(defaultPermissions(role, stage), data.permissions || {})
     };
+    recordAudit('add_account', name, role + ' · ' + stage);
     persistTeachers();
     return name;
   }
@@ -1359,6 +1845,7 @@
     var current = state.teachers[originalName];
     if (typeof current === 'string') {
       current = {
+        id: teacherIdFromName(originalName),
         password: current,
         role: originalName === OWNER_NAME ? 'owner' : 'teacher',
         stage: originalName === OWNER_NAME ? 'all' : 'middle',
@@ -1382,6 +1869,7 @@
         viewReports: true
       };
       state.teachers[OWNER_NAME] = current;
+      recordAudit('update_owner_password', OWNER_NAME, 'تحديث بيانات دخول المالك');
       persistTeachers();
       return OWNER_NAME;
     }
@@ -1392,7 +1880,9 @@
 
     var role = data.role === 'admin' ? 'admin' : 'teacher';
     var stage = data.stage === 'high' || data.stage === 'all' ? data.stage : 'middle';
+    if (role === 'admin') stage = 'all';
     var updated = {
+      id: current.id || teacherIdFromName(originalName),
       password: String(data.password || '').trim() || current.password || '1234',
       role: role,
       stage: stage,
@@ -1403,6 +1893,7 @@
 
     if (newName !== originalName) delete state.teachers[originalName];
     state.teachers[newName] = updated;
+    recordAudit('update_account', newName, role + ' · ' + stage + ' · ' + (updated.active ? 'نشط' : 'موقوف'));
     persistTeachers();
     return newName;
   }
@@ -1414,6 +1905,7 @@
     if (!state.teachers.hasOwnProperty(name)) throw new Error('الحساب غير موجود');
     if (name === getLoggedInTeacher()) throw new Error('لا يمكن حذف الحساب المستخدم حاليًا');
     delete state.teachers[name];
+    recordAudit('delete_account', name, 'حذف حساب مستخدم');
     persistTeachers();
   }
 
@@ -1454,6 +1946,7 @@
     if (!state.teachers.hasOwnProperty(name)) throw new Error('المعلم غير موجود');
     if (typeof state.teachers[name] === 'string') {
       state.teachers[name] = {
+        id: teacherIdFromName(name),
         password: password,
         role: name === OWNER_NAME ? 'owner' : 'teacher',
         stage: name === OWNER_NAME ? 'all' : 'middle',
@@ -1463,6 +1956,7 @@
     } else {
       state.teachers[name].password = password;
     }
+    recordAudit('change_password', name, 'إعادة تعيين كلمة المرور');
     if (db) {
       db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function() {});
     }
@@ -1479,6 +1973,8 @@
     if (actualPass === password) {
       try {
         global.localStorage.setItem('logged_in_teacher', name);
+        var accountId = (t && typeof t === 'object' && t.id) ? t.id : teacherIdFromName(name);
+        global.localStorage.setItem('logged_in_teacher_id', accountId);
       } catch (e) {}
       setSupervisor(name);
       return true;
@@ -1502,6 +1998,7 @@
     var user = getCurrentUser();
     if (!user || !user.active) return false;
     if (user.role === 'owner') return true;
+    if (user.role === 'admin') return permissionKey === 'viewReports';
     if (user.permissions) return !!user.permissions[permissionKey];
     return permissionKey === 'attendance';
   }
@@ -1523,6 +2020,7 @@
     var t = state.teachers[name];
     if (typeof t === 'string') {
       state.teachers[name] = {
+        id: teacherIdFromName(name),
         password: t,
         role: 'teacher',
         stage: 'middle',
@@ -1534,6 +2032,7 @@
       state.teachers[name].permissions = { adminPanel: false, manageStudents: false, attendance: true, closeAttendance: false, viewDisplays: true };
     }
     state.teachers[name].permissions[permissionKey] = !!value;
+    recordAudit('change_permission', name, permissionKey + ': ' + (!!value ? 'مفعلة' : 'موقوفة'));
     if (db) {
       db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function() {});
     }
@@ -1600,10 +2099,20 @@
     setBulkHighAttendance: setBulkHighAttendance,
     closeHighAttendance: closeHighAttendance,
     reopenHighAttendance: reopenHighAttendance,
+    getMemos: getMemos,
+    getActiveMemos: getActiveMemos,
+    addMemo: addMemo,
+    setMemoActive: setMemoActive,
+    deleteMemo: deleteMemo,
+    getAuditLogs: getAuditLogs,
+    getMiddleMigrationPreview: getMiddleMigrationPreview,
+    verifyMiddleMigration: verifyMiddleMigration,
+    migrateMiddleData: migrateMiddleData,
     clearLog: clearLog,
     resetPoints: resetPoints,
     resetAll: resetAll,
     exportData: exportData,
+    inspectBackup: inspectBackup,
     importData: importData,
     subscribe: subscribe,
     isLoggedIn: isLoggedIn,
@@ -1734,13 +2243,15 @@
     overlay.innerHTML = `
       <div class="custom-modal-card">
         <div class="custom-modal-icon">⚠️</div>
-        <div class="custom-modal-msg">${message}</div>
+        <div class="custom-modal-msg"></div>
         <div class="custom-modal-actions">
           <button class="custom-modal-btn custom-modal-btn-confirm" id="custom-modal-ok">نعم، متأكد</button>
           <button class="custom-modal-btn custom-modal-btn-cancel" id="custom-modal-cancel">إلغاء</button>
         </div>
       </div>
     `;
+    // نص الرسالة عبر textContent حتى لا تُفسَّر أسماء الطلاب/التوجيهات كـHTML
+    overlay.querySelector('.custom-modal-msg').textContent = message;
     document.body.appendChild(overlay);
 
     // تفعيل التأثير البصري للدخول
@@ -1767,12 +2278,14 @@
     overlay.innerHTML = `
       <div class="custom-modal-card">
         <div class="custom-modal-icon">💡</div>
-        <div class="custom-modal-msg">${message}</div>
+        <div class="custom-modal-msg"></div>
         <div class="custom-modal-actions">
           <button class="custom-modal-btn custom-modal-btn-confirm" id="custom-modal-ok" style="max-width: 140px; margin: 0 auto;">موافق</button>
         </div>
       </div>
     `;
+    // نص الرسالة عبر textContent حتى لا تُفسَّر أسماء الطلاب/التوجيهات كـHTML
+    overlay.querySelector('.custom-modal-msg').textContent = message;
     document.body.appendChild(overlay);
 
     // تفعيل التأثير البصري للدخول

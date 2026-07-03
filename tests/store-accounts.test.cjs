@@ -76,6 +76,54 @@ assert.throws(
 );
 Store.reopenHighAttendance('2099-01-01');
 assert.equal(Store.isHighAttendanceClosed('2099-01-01'), false);
+Store.resetPoints(false);
+assert.equal(Store.getHighStudents().length, 2, 'middle round reset must preserve high-school students');
+assert.equal(Store.getHighAttendanceSummary('2099-01-01').total, 2, 'middle round reset must preserve high-school attendance');
+
+const memoId = Store.addMemo({
+  message: 'توجيه تجريبي',
+  target: 'high',
+  level: 'info',
+  expiresAt: Date.now() + 60_000
+});
+assert.equal(Store.getActiveMemos('high').length, 1);
+assert.equal(Store.getActiveMemos('middle').length, 0);
+Store.setMemoActive(memoId, false);
+assert.equal(Store.getActiveMemos('high').length, 0);
+Store.deleteMemo(memoId);
+assert.equal(Store.getMemos().length, 0);
+assert.equal(Store.getAuditLogs().some((entry) => entry.action === 'add_account'), true);
+assert.equal(Store.getAuditLogs().some((entry) => entry.action === 'close_attendance'), true);
+const backupText = Store.exportData();
+const backupInfo = Store.inspectBackup(backupText);
+assert.equal(backupInfo.version, '2.0');
+assert.equal(backupInfo.summary.highStudents, 2);
+assert.equal(backupInfo.summary.accounts >= 1, true);
+assert.equal(backupInfo.summary.auditLogs > 0, true);
+assert.throws(() => Store.inspectBackup('{"data":{"students":[]}}'), /مفقودة/);
+const migrationPreview = Store.getMiddleMigrationPreview();
+assert.equal(migrationPreview.students >= 0, true);
+assert.equal(migrationPreview.attendanceDays >= 0, true);
+Store.addTeacherAccount({
+  name: 'إدارة تجريبية',
+  password: '1357',
+  role: 'admin',
+  stage: 'middle',
+  permissions: {
+    attendance: true,
+    closeAttendance: true,
+    adminPanel: true,
+    manageStudents: true,
+    viewDisplays: true,
+    viewReports: true
+  }
+});
+const adminAccount = Store.getTeachers()['إدارة تجريبية'];
+assert.equal(adminAccount.stage, 'all');
+assert.equal(adminAccount.permissions.attendance, true);
+assert.equal(adminAccount.permissions.adminPanel, true);
+assert.equal(adminAccount.permissions.viewDisplays, true);
+assert.equal(adminAccount.permissions.viewReports, true);
 
 Store.logout();
 assert.equal(Store.login('حاتم الحارثي', '1234'), true);
@@ -85,6 +133,39 @@ assert.throws(
 );
 assert.throws(
   () => Store.setHighAttendance('2099-01-02', highStudents[0].id, 'present', 'حاتم الحارثي'),
+  /صلاحية/
+);
+assert.throws(
+  () => Store.addMemo({ message: 'غير مسموح', target: 'all' }),
+  /صلاحية/
+);
+assert.throws(
+  () => Store.importData(backupText),
+  /مالك المنصة/
+);
+assert.throws(
+  () => Store.migrateMiddleData(),
+  /مالك المنصة/
+);
+assert.throws(
+  () => Store.verifyMiddleMigration(),
+  /مالك المنصة/
+);
+
+Store.logout();
+assert.equal(Store.login('إدارة تجريبية', '1357'), true);
+assert.equal(Store.hasPermission('viewReports'), true);
+assert.equal(Store.hasPermission('attendance'), false);
+assert.equal(Store.hasPermission('closeAttendance'), false);
+assert.equal(Store.hasPermission('adminPanel'), false);
+assert.equal(Store.hasPermission('manageStudents'), false);
+assert.equal(Store.hasPermission('viewDisplays'), false);
+assert.throws(
+  () => Store.setAttendance('2099-01-03', 'student-test', 'present', 'إدارة تجريبية'),
+  /صلاحية/
+);
+assert.throws(
+  () => Store.addMemo({ message: 'توجيه غير مسموح', target: 'all' }),
   /صلاحية/
 );
 

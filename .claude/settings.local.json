@@ -4,7 +4,12 @@
       "Bash(npm --version)",
       "PowerShell($n = \\(Get-Command node -ErrorAction SilentlyContinue\\); if \\($n\\) { node --version; npm --version } else { \"node not found\" })",
       "mcp__visualize__read_me",
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "Bash(node tests/store-accounts.test.cjs)",
+      "Bash(node --check js/store.js)",
+      "Bash(ls -lh *.png)",
+      "Bash(ls -la .github/workflows firebase.json netlify.toml .nojekyll)",
+      "Bash(ls .claude/)"
     ]
   }
 }

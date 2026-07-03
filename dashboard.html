@@ -25,19 +25,19 @@
     <section class="dashboard-intro">
       <p class="portal-kicker">لوحة التحكم الموحدة</p>
       <h1 id="dashboardWelcome">مرحبًا بك في منصة رِحال</h1>
-      <p>تظهر هنا الأدوات المرتبطة بحسابك وصلاحياتك.</p>
+      <p>تظهر جميع أقسام المنصة هنا، ويوضح القفل الأقسام المخصصة لأدوار أخرى.</p>
     </section>
 
     <section id="ownerStatus" class="owner-status" hidden>
       <div class="owner-badge">👑</div>
       <div>
         <strong>حساب مالك المنصة مفعّل</strong>
-        <p>لديك وصول كامل إلى أقسام المتوسطة. ستُضاف إدارة الحسابات والمراحل في المرحلة التالية.</p>
+        <p>لديك وصول كامل إلى إدارة الحسابات والمرحلتين وبوابة الإدارة العامة.</p>
       </div>
     </section>
 
     <section class="dashboard-grid" aria-label="أقسام المنصة">
-      <a id="cardOwner" class="dashboard-card card-violet" href="owner.html" hidden>
+      <a id="cardOwner" class="dashboard-card card-violet" href="owner.html">
         <span class="dashboard-card-icon">👑</span>
         <div><h2>إدارة المنصة</h2><p>الحسابات والأدوار والمراحل والصلاحيات.</p></div>
         <span class="dashboard-arrow">←</span>
@@ -49,7 +49,7 @@
         <span class="dashboard-arrow">←</span>
       </a>
 
-      <a id="cardHighPending" class="dashboard-card card-cyan" href="attendance-high.html" hidden>
+      <a id="cardHighPending" class="dashboard-card card-cyan" href="attendance-high.html">
         <span class="dashboard-card-icon">🎓</span>
         <div><h2>تحضير الثانوية</h2><p>تسجيل الحضور والغياب دون نقاط أو مجموعات.</p></div>
         <span class="dashboard-arrow">←</span>
@@ -58,6 +58,12 @@
       <a id="cardAdmin" class="dashboard-card card-blue" href="admin.html">
         <span class="dashboard-card-icon">📋</span>
         <div><h2>الإدارة والنقاط</h2><p>الطلاب والنقاط والتقارير والإعدادات.</p></div>
+        <span class="dashboard-arrow">←</span>
+      </a>
+
+      <a id="cardAdminPortal" class="dashboard-card card-slate" href="admin-portal.html">
+        <span class="dashboard-card-icon">📊</span>
+        <div><h2>بوابة الإدارة العامة</h2><p>المتابعة اللحظية والتقارير والتوجيهات.</p></div>
         <span class="dashboard-arrow">←</span>
       </a>
 

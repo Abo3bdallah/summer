@@ -7,6 +7,15 @@
 (function () {
   'use strict';
 
+  if (!Store.isLoggedIn()) {
+    window.location.replace('index.html?next=display.html');
+    return;
+  }
+  if (!Store.belongsToStage('middle') || !Store.hasPermission('viewDisplays')) {
+    window.location.replace('dashboard.html');
+    return;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];

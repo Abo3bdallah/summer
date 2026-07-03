@@ -8,6 +8,7 @@
   var $$ = function (selector, root) { return Array.prototype.slice.call((root || document).querySelectorAll(selector)); };
   var OWNER_NAME = 'أحمد الذبياني';
   var selectedAccount = '';
+  var pendingBackupText = '';
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -117,11 +118,11 @@
     var role = $('#accountRole').value;
     var stage = $('#accountStage').value;
     var suggested = role === 'admin' ? {
-      attendance: true,
-      closeAttendance: true,
-      adminPanel: true,
-      manageStudents: true,
-      viewDisplays: true,
+      attendance: false,
+      closeAttendance: false,
+      adminPanel: false,
+      manageStudents: false,
+      viewDisplays: false,
       viewReports: true
     } : {
       attendance: true,
@@ -134,6 +135,11 @@
     $$('[data-permission]').forEach(function (input) {
       input.checked = !!suggested[input.dataset.permission];
     });
+    if (role === 'admin') $('#accountStage').value = 'all';
+    $('#accountStage').disabled = role === 'admin';
+    // السماح بتعديل الصلاحيات للمشرفين من حساب المالك
+    $('#permissionsFieldset').disabled = false;
+    $('#adminRoleHelp').hidden = role !== 'admin';
   }
 
   function openEditor() {
@@ -156,6 +162,8 @@
     $('#accountStage').disabled = false;
     $('#accountActive').disabled = false;
     $('#permissionsFieldset').disabled = false;
+    $('#accountPassword').placeholder = 'كلمة المرور الجديدة (مطلوبة)';
+    $('#adminRoleHelp').hidden = true;
     $('#deleteAccountButton').hidden = true;
     $('#accountFormError').hidden = true;
     applySuggestedPermissions();
@@ -174,6 +182,7 @@
     $('#originalAccountName').value = name;
     $('#accountName').value = name;
     $('#accountPassword').value = '';
+    $('#accountPassword').placeholder = 'اتركها فارغة للإبقاء على الحالية';
     $('#accountRole').value = isOwner ? 'admin' : account.role;
     $('#accountStage').value = account.stage;
     $('#accountActive').checked = account.active;
@@ -181,9 +190,10 @@
     $('#editorTitle').textContent = name;
     $('#accountName').disabled = isOwner;
     $('#accountRole').disabled = isOwner;
-    $('#accountStage').disabled = isOwner;
+    $('#accountStage').disabled = isOwner || account.role === 'admin';
     $('#accountActive').disabled = isOwner;
     $('#permissionsFieldset').disabled = isOwner;
+    $('#adminRoleHelp').hidden = account.role !== 'admin';
     $('#deleteAccountButton').hidden = isOwner;
     $('#accountFormError').hidden = true;
 
@@ -219,6 +229,68 @@
     error.hidden = false;
   }
 
+  function auditActionLabel(action) {
+    return ({
+      add_account: 'إضافة حساب',
+      update_account: 'تعديل حساب',
+      delete_account: 'حذف حساب',
+      update_owner_password: 'تحديث حساب المالك',
+      change_password: 'تغيير كلمة مرور',
+      change_permission: 'تعديل صلاحية',
+      add_student: 'إضافة طالب',
+      add_students: 'إضافة طلاب',
+      update_student: 'تعديل طالب',
+      delete_student: 'حذف طالب',
+      close_attendance: 'إغلاق التحضير',
+      reopen_attendance: 'إعادة فتح التحضير',
+      reset_points: 'تصفير النقاط',
+      add_memo: 'إرسال توجيه',
+      toggle_memo: 'تغيير حالة توجيه',
+      delete_memo: 'حذف توجيه',
+      restore_backup: 'استعادة نسخة',
+      start_migration: 'بدء ترحيل البيانات',
+      complete_migration: 'اكتمال ترحيل البيانات',
+      migration_mismatch: 'اختلاف بعد الترحيل',
+      migration_failed: 'فشل ترحيل البيانات'
+    })[action] || action;
+  }
+
+  function renderAuditLogs() {
+    var list = $('#auditLogList');
+    if (!list) return;
+    var query = ($('#auditSearch').value || '').trim().toLowerCase();
+    var entries = Store.getAuditLogs().filter(function (entry) {
+      return !query || (auditActionLabel(entry.action) + ' ' + entry.subject + ' ' + entry.details + ' ' + entry.actor).toLowerCase().indexOf(query) !== -1;
+    });
+    list.innerHTML = entries.length ? entries.map(function (entry) {
+      var when = entry.at ? new Date(entry.at).toLocaleString('ar-SA') : '—';
+      return '<article class="audit-log-row">' +
+        '<span class="audit-log-icon">🧾</span>' +
+        '<div><strong>' + esc(auditActionLabel(entry.action)) + '</strong><p>' + esc(entry.subject || '—') + (entry.details ? ' · ' + esc(entry.details) : '') + '</p></div>' +
+        '<div class="audit-log-meta"><span>' + esc(entry.actor || 'النظام') + '</span><small>' + esc(when) + '</small></div>' +
+      '</article>';
+    }).join('') : '<div class="owner-empty">لا توجد عمليات مطابقة.</div>';
+  }
+
+  function renderMigrationPreview() {
+    var preview = Store.getMiddleMigrationPreview();
+    $('#migrationPreview').innerHTML =
+      '<span><b>' + preview.students + '</b> طالب</span>' +
+      '<span><b>' + preview.attendanceDays + '</b> يوم تحضير</span>' +
+      '<span><b>' + preview.logsLoaded + '</b> عملية محملة</span>' +
+      '<span><b>' + preview.totalPoints + '</b> مجموع النقاط</span>';
+  }
+
+  function showMigrationResult(result) {
+    var box = $('#migrationResult');
+    box.className = 'migration-result ' + (result.ok ? 'ok' : 'error');
+    box.innerHTML =
+      '<strong>' + (result.ok ? '✅ البيانات متطابقة' : '⚠️ يوجد اختلاف يحتاج مراجعة') + '</strong>' +
+      '<span>المصدر: ' + result.source.students + ' طالب، ' + result.source.attendanceDays + ' يوم، ' + result.source.logs + ' عملية، ' + result.source.totalPoints + ' نقطة</span>' +
+      '<span>النسخة: ' + result.target.students + ' طالب، ' + result.target.attendanceDays + ' يوم، ' + result.target.logs + ' عملية، ' + result.target.totalPoints + ' نقطة</span>';
+    box.hidden = false;
+  }
+
   $('#accountForm').addEventListener('submit', function (event) {
     event.preventDefault();
     $('#accountFormError').hidden = true;
@@ -239,14 +311,16 @@
 
   $('#deleteAccountButton').addEventListener('click', function () {
     if (!selectedAccount || selectedAccount === OWNER_NAME) return;
-    if (!window.confirm('هل تريد حذف حساب "' + selectedAccount + '"؟')) return;
-    try {
-      Store.deleteTeacherAccount(selectedAccount);
-      showToast('تم حذف الحساب');
-      newAccount();
-    } catch (error) {
-      showFormError(error.message || 'تعذر حذف الحساب');
-    }
+    showConfirm('هل تريد حذف حساب "' + selectedAccount + '"؟', function (confirmed) {
+      if (!confirmed) return;
+      try {
+        Store.deleteTeacherAccount(selectedAccount);
+        showToast('تم حذف الحساب');
+        newAccount();
+      } catch (error) {
+        showFormError(error.message || 'تعذر حذف الحساب');
+      }
+    });
   });
 
   $('#newAccountButton').addEventListener('click', newAccount);
@@ -254,10 +328,110 @@
   $('#accountSearch').addEventListener('input', renderAccounts);
   $('#accountRole').addEventListener('change', applySuggestedPermissions);
   $('#accountStage').addEventListener('change', applySuggestedPermissions);
+  $('#auditSearch').addEventListener('input', renderAuditLogs);
+  $('#verifyMiddleMigration').addEventListener('click', function () {
+    var button = this;
+    button.disabled = true;
+    button.textContent = 'جارٍ الفحص...';
+    Store.verifyMiddleMigration().then(showMigrationResult).catch(function (error) {
+      showToast(error.message || 'تعذر فحص الترحيل');
+    }).finally(function () {
+      button.disabled = false;
+      button.textContent = 'فحص النسخة الحالية';
+    });
+  });
+  $('#runMiddleMigration').addEventListener('click', function () {
+    showConfirm('سيتم نسخ بيانات المتوسطة إلى الهيكل الجديد دون حذف الجداول القديمة. هل تريد المتابعة؟', function (confirmed) {
+      if (!confirmed) return;
+      var button = $('#runMiddleMigration');
+      button.disabled = true;
+      button.textContent = 'جارٍ النسخ والتحقق...';
+      downloadBackup('نسخة-قبل-الترحيل');
+      Store.migrateMiddleData().then(function (result) {
+        showMigrationResult(result);
+        showToast(result.ok ? 'اكتمل الترحيل وتطابقت البيانات' : 'اكتمل النسخ مع وجود اختلاف');
+      }).catch(function (error) {
+        showToast(error.message || 'تعذر تنفيذ الترحيل');
+      }).finally(function () {
+        button.disabled = false;
+        button.textContent = 'بدء النسخ والتحقق';
+      });
+    });
+  });
+
+  function downloadBackup(prefix) {
+    var blob = new Blob([Store.exportData()], { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    var date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = (prefix || 'نسخة-رحال') + '-' + date + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  $('#downloadFullBackup').addEventListener('click', function () {
+    downloadBackup('نسخة-رحال');
+    showToast('تم تجهيز النسخة الاحتياطية');
+  });
+
+  $('#restoreBackupFile').addEventListener('change', function (event) {
+    var file = event.target.files && event.target.files[0];
+    pendingBackupText = '';
+    $('#backupPreview').hidden = true;
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        pendingBackupText = String(reader.result || '');
+        var info = Store.inspectBackup(pendingBackupText);
+        var summary = info.summary;
+        $('#backupPreviewText').innerHTML =
+          '<strong>نسخة إصدار ' + esc(info.version) + '</strong>' +
+          '<span>المتوسطة: ' + summary.middleStudents + ' طالب · الثانوية: ' + summary.highStudents + ' طالب</span>' +
+          '<span>الحسابات: ' + summary.accounts + ' · سجلات العمليات: ' + summary.logs + '</span>';
+        $('#backupPreview').hidden = false;
+      } catch (error) {
+        pendingBackupText = '';
+        showToast(error.message || 'ملف النسخة غير صالح');
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  $('#confirmBackupRestore').addEventListener('click', function () {
+    if (!pendingBackupText) return;
+    showConfirm('ستستبدل الاستعادة بيانات المنصة الحالية بمحتوى النسخة. هل تريد المتابعة؟', function (confirmed) {
+      if (!confirmed) return;
+      try {
+        downloadBackup('نسخة-قبل-الاستعادة');
+        Promise.resolve(Store.importData(pendingBackupText)).then(function () {
+          pendingBackupText = '';
+          $('#backupPreview').hidden = true;
+          $('#restoreBackupFile').value = '';
+          showToast('تمت استعادة النسخة بنجاح، جارٍ تحديث الصفحة...');
+          setTimeout(function () {
+            window.location.reload();
+          }, 1500);
+        }).catch(function (error) {
+          showToast(error.message || 'تعذرت استعادة النسخة');
+        });
+      } catch (error) {
+        showToast(error.message || 'تعذرت استعادة النسخة');
+      }
+    });
+  });
 
   if (requireOwner()) {
     renderAccounts();
     newAccount();
-    Store.subscribe(renderAccounts);
+    renderAuditLogs();
+    renderMigrationPreview();
+    Store.subscribe(function () {
+      renderAccounts();
+      renderAuditLogs();
+    });
   }
 })();

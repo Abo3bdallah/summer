@@ -977,8 +977,15 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function () {
-      try { Store.importData(reader.result); toast('تم استيراد النسخة', 'ok'); }
-      catch (err) { toast('ملف غير صالح', 'err'); }
+      try {
+        Promise.resolve(Store.importData(reader.result)).then(function () {
+          toast('تم استيراد النسخة', 'ok');
+        }).catch(function (err) {
+          toast(err.message || 'ملف غير صالح', 'err');
+        });
+      } catch (err) {
+        toast(err.message || 'ملف غير صالح', 'err');
+      }
     };
     reader.readAsText(file);
     e.target.value = '';

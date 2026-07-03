@@ -101,6 +101,9 @@
             <label><input type="checkbox" data-permission="viewDisplays" /> مشاهدة شاشات العرض</label>
             <label><input type="checkbox" data-permission="viewReports" /> مشاهدة التقارير</label>
           </fieldset>
+          <p id="adminRoleHelp" class="field-help admin-role-help" hidden>
+            حساب الإدارة العامة ثابت بوضع المشاهدة: المتابعة المباشرة والتقارير فقط، دون التحضير أو النقاط أو شاشات العرض.
+          </p>
 
           <p id="accountFormError" class="login-error" role="alert" hidden></p>
           <div class="owner-form-actions">
@@ -117,6 +120,48 @@
         <p>تظل في لوحة الإدارة الحالية حتى لا تتكرر الأدوات أو تتعارض البيانات.</p>
       </div>
       <a href="admin.html">فتح لوحة الإدارة ←</a>
+    </section>
+
+    <section class="owner-backup-card">
+      <div>
+        <p class="portal-kicker">حماية البيانات</p>
+        <h2>النسخ الاحتياطي والاستعادة</h2>
+        <p>تنزيل نسخة موحدة تشمل الحسابات وطلاب المرحلتين والتحضير والنقاط والتوجيهات.</p>
+      </div>
+      <div class="owner-backup-actions">
+        <button id="downloadFullBackup" class="portal-primary" type="button">⬇ تنزيل نسخة كاملة</button>
+        <label class="backup-file-button">اختيار نسخة للاستعادة<input id="restoreBackupFile" type="file" accept=".json,application/json" /></label>
+      </div>
+      <div id="backupPreview" class="backup-preview" hidden>
+        <div id="backupPreviewText"></div>
+        <button id="confirmBackupRestore" class="owner-danger-button" type="button">استعادة هذه النسخة</button>
+      </div>
+    </section>
+
+    <section class="owner-audit-card">
+      <div class="owner-section-head">
+        <div>
+          <p class="portal-kicker">سجل التدقيق</p>
+          <h2>العمليات الإدارية الحساسة</h2>
+          <p>مرجع لمعرفة من غيّر الحسابات أو التحضير أو النسخ الاحتياطية.</p>
+        </div>
+        <input id="auditSearch" type="search" placeholder="بحث في السجل..." aria-label="بحث في سجل التدقيق" />
+      </div>
+      <div id="auditLogList" class="audit-log-list"></div>
+    </section>
+
+    <section class="owner-migration-card">
+      <div>
+        <p class="portal-kicker">ترحيل المرحلة المتوسطة</p>
+        <h2>نسخ البيانات إلى الهيكل الجديد</h2>
+        <p>تنسخ الأداة الطلاب والتحضير والسجل كاملًا، وتبقي الجداول القديمة كما هي للرجوع.</p>
+      </div>
+      <div id="migrationPreview" class="migration-preview"></div>
+      <div class="migration-actions">
+        <button id="verifyMiddleMigration" class="high-secondary-button" type="button">فحص النسخة الحالية</button>
+        <button id="runMiddleMigration" class="portal-primary" type="button">بدء النسخ والتحقق</button>
+      </div>
+      <div id="migrationResult" class="migration-result" hidden></div>
     </section>
   </main>
 

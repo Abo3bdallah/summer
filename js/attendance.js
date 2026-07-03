@@ -200,6 +200,9 @@
      ==================================================== */
   function renderAttendanceHTML() {
     var isClosed = Store.isAttendanceClosed(selectedDate);
+    var user = Store.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
+    var isReadOnly = isClosed || isAdmin;
     var ap = Store.getAttendancePoints();
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
@@ -241,7 +244,7 @@
     // 3. أزرار العمليات الجماعية الثلاثة داخل الإعدادات
     var bulkContainer = $('#attBulkActionsContainer');
     if (bulkContainer) {
-      bulkContainer.innerHTML = (!isClosed ? 
+      bulkContainer.innerHTML = (!isReadOnly ? 
       '<div class="flex flex-col gap-1.5">' +
         '<label class="block text-[10px] font-bold text-slate-400">⚡ عمليات جماعية سريعة:</label>' +
         '<div id="attActionsRow" class="flex gap-2 flex-wrap justify-between">' +
@@ -272,7 +275,7 @@
 
         var btns = STATUSES.map(function (st) {
           var activeClass = cur === st.key ? ' ' + st.cls : ' bg-white/50 text-slate-400 border-slate-200/60 hover:bg-white/80';
-          var disabledAttr = isClosed ? ' disabled style="opacity: 0.5; cursor: not-allowed;" ' : '';
+          var disabledAttr = isReadOnly ? ' disabled style="opacity: 0.5; cursor: not-allowed;" ' : '';
           return '<button onclick="toggleAttendanceStatus(\'' + s.id + '\', \'' + st.key + '\')" ' + disabledAttr + 
                  ' class="text-[10px] font-black px-2.5 py-1 rounded-md border transition-all active:scale-95' + activeClass + '">' + st.label.split(' ')[1] + '</button>';
         }).join('');
@@ -295,7 +298,7 @@
 
   // دوال الربط مع الأحداث لصفحة التحضير
   window.toggleAttendanceStatus = function (studentId, statusKey) {
-    if (Store.isAttendanceClosed(selectedDate)) return;
+    if (Store.isAttendanceClosed(selectedDate) || Store.getCurrentUser().role === 'admin') return;
     var cur = Store.getStudentAttendance(selectedDate, studentId);
     try {
       Store.setAttendance(selectedDate, studentId, cur === statusKey ? 'none' : statusKey, Store.getSupervisor());
@@ -305,7 +308,7 @@
   };
 
   window.applyAllStatus = function (statusKey) {
-    if (Store.isAttendanceClosed(selectedDate)) return;
+    if (Store.isAttendanceClosed(selectedDate) || Store.getCurrentUser().role === 'admin') return;
     var ids = visibleStudents().map(function(s) { return s.id; });
     try {
       Store.setBulkAttendance(selectedDate, ids, statusKey, Store.getSupervisor());
@@ -316,7 +319,7 @@
   };
 
   window.clearAllAttendance = function () {
-    if (Store.isAttendanceClosed(selectedDate)) return;
+    if (Store.isAttendanceClosed(selectedDate) || Store.getCurrentUser().role === 'admin') return;
     showConfirm('تصفير تحضير اليوم للطلاب الظاهرين؟ ستُسحب أي نقاط تم منحها لهم في تحضير اليوم.', function (confirmed) {
       if (!confirmed) return;
       var ids = visibleStudents().map(function(s) { return s.id; });
@@ -661,11 +664,12 @@
   };
 
   window.confirmDeleteStudent = function (studentId, studentName) {
-    if (confirm('هل أنت متأكد من حذف الطالب "' + studentName + '"؟ سيتم مسح كامل بياناته ونقاطه وسجله.')) {
+    showConfirm('هل أنت متأكد من حذف الطالب "' + studentName + '"؟ سيتم مسح كامل بياناته ونقاطه وسجله.', function (confirmed) {
+      if (!confirmed) return;
       Store.deleteStudent(studentId);
       toast('تم حذف الطالب بنجاح', 'ok');
       render();
-    }
+    });
   };
 
   /* ---------------- المشرف والمصادقة ---------------- */
@@ -693,7 +697,11 @@
         else navAdmin.classList.add('hidden');
       }
       
-      if (!Store.hasPermission('attendance')) {
+      var user = Store.getCurrentUser();
+      var isAdmin = user && user.role === 'admin';
+      var isOwner = user && user.role === 'owner';
+      var allowed = isAdmin || isOwner || Store.hasPermission('attendance');
+      if (!allowed) {
         if (mainContent) mainContent.style.display = 'none';
         if (bottomNav) bottomNav.style.display = 'none';
         if (denied) denied.style.display = 'flex';
@@ -735,11 +743,12 @@
   });
 
   $('#btnLogout').addEventListener('click', function () {
-    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+    showConfirm('هل أنت متأكد من تسجيل الخروج؟', function (confirmed) {
+      if (!confirmed) return;
       Store.logout();
       toast('تم تسجيل الخروج بنجاح.', 'ok');
       checkAuth();
-    }
+    });
   });
 
   /* ====================================================

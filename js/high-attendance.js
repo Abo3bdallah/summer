@@ -26,11 +26,14 @@
       window.location.replace('index.html?next=attendance-high.html');
       return false;
     }
-    if (!Store.belongsToStage('high') || !Store.hasPermission('attendance')) {
+    var user = Store.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
+    var isOwner = user && user.role === 'owner';
+    var allowed = isAdmin || isOwner || (Store.belongsToStage('high') && Store.hasPermission('attendance'));
+    if (!allowed) {
       window.location.replace('dashboard.html');
       return false;
     }
-    var user = Store.getCurrentUser();
     $('#highCurrentUser').textContent = user.name;
     $('#manageHighStudentsButton').hidden = !Store.hasPermission('manageStudents');
     return true;
@@ -88,6 +91,9 @@
     var day = Store.getHighAttendance(date);
     var closed = Store.isHighAttendanceClosed(date);
     var canClose = Store.hasPermission('closeAttendance');
+    var user = Store.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
+    var closedOrAdmin = closed || isAdmin;
     var status = $('#highDayStatus');
     status.className = 'high-day-status ' + (closed ? 'closed' : 'open');
     status.innerHTML = closed ?
@@ -95,7 +101,7 @@
       '<span>🟢</span><div><strong>التحضير مفتوح</strong><p>يمكن للمعلمين تسجيل الحالات وتعديلها.</p></div>';
     $('#closeHighAttendanceButton').hidden = closed || !canClose;
     $('#reopenHighAttendanceButton').hidden = !closed || !canClose;
-    $('#highBulkBar').classList.toggle('disabled', closed);
+    $('#highBulkBar').classList.toggle('disabled', closedOrAdmin);
   }
 
   function renderSelection() {
@@ -107,6 +113,9 @@
     var students = visibleStudents();
     var date = dateValue();
     var closed = Store.isHighAttendanceClosed(date);
+    var user = Store.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
+    var closedOrAdmin = closed || isAdmin;
     $('#highListDescription').textContent = students.length + ' طالب ظاهر في القائمة';
     $('#highStudentsList').innerHTML = students.length ? students.map(function (student) {
       var record = Store.getHighStudentAttendance(date, student.id);
@@ -114,14 +123,14 @@
       var details = record && typeof record === 'object' ?
         [record.by, formatTime(record.at)].filter(Boolean).join(' · ') : '';
       return '<article class="high-student-row status-' + (status || 'unmarked') + '">' +
-        '<label class="high-select-box"><input type="checkbox" data-select-student="' + student.id + '" ' + (selectedIds[student.id] ? 'checked' : '') + (closed ? ' disabled' : '') + ' /><span></span></label>' +
+        '<label class="high-select-box"><input type="checkbox" data-select-student="' + student.id + '" ' + (selectedIds[student.id] ? 'checked' : '') + (closedOrAdmin ? ' disabled' : '') + ' /><span></span></label>' +
         '<div class="high-student-avatar">' + esc(String(student.name || '').trim().charAt(0) || 'ط') + '</div>' +
         '<div class="high-student-name"><strong>' + esc(student.name) + '</strong><small>' + (details ? esc(details) : 'لم تُسجل حالته بعد') + '</small></div>' +
         '<span class="high-status-badge">' + statusIcon(status) + ' ' + statusLabel(status) + '</span>' +
         '<div class="high-status-actions">' +
-          '<button type="button" data-student="' + student.id + '" data-status="early" class="' + (status === 'early' ? 'active' : '') + '" ' + (closed ? 'disabled' : '') + '>⏰ مبكر</button>' +
-          '<button type="button" data-student="' + student.id + '" data-status="present" class="' + (status === 'present' ? 'active' : '') + '" ' + (closed ? 'disabled' : '') + '>✅ حاضر</button>' +
-          '<button type="button" data-student="' + student.id + '" data-status="absent" class="' + (status === 'absent' ? 'active' : '') + '" ' + (closed ? 'disabled' : '') + '>❌ غائب</button>' +
+          '<button type="button" data-student="' + student.id + '" data-status="early" class="' + (status === 'early' ? 'active' : '') + '" ' + (closedOrAdmin ? 'disabled' : '') + '>⏰ مبكر</button>' +
+          '<button type="button" data-student="' + student.id + '" data-status="present" class="' + (status === 'present' ? 'active' : '') + '" ' + (closedOrAdmin ? 'disabled' : '') + '>✅ حاضر</button>' +
+          '<button type="button" data-student="' + student.id + '" data-status="absent" class="' + (status === 'absent' ? 'active' : '') + '" ' + (closedOrAdmin ? 'disabled' : '') + '>❌ غائب</button>' +
         '</div>' +
       '</article>';
     }).join('') : '<div class="high-empty"><span>🎓</span><strong>لا يوجد طلاب في هذه القائمة</strong><p>' +
@@ -160,6 +169,11 @@
   }
 
   function markStudents(ids, status) {
+    var user = Store.getCurrentUser();
+    if (user && user.role === 'admin') {
+      showToast('لا تملك صلاحية تحضير أو تعديل حالات الحضور', true);
+      return;
+    }
     try {
       var operation = ids.length === 1 ?
         Store.setHighAttendance(dateValue(), ids[0], status, Store.getLoggedInTeacher()) :
@@ -209,11 +223,13 @@
       button.addEventListener('click', function () {
         var id = button.dataset.managerDelete;
         var student = Store.getHighStudent(id);
-        if (!window.confirm('حذف الطالب "' + (student ? student.name : '') + '" من القائمة؟')) return;
-        try {
-          Store.deleteHighStudent(id);
-          showToast('تم حذف الطالب');
-        } catch (error) { showToast(error.message, true); }
+        showConfirm('حذف الطالب "' + (student ? student.name : '') + '" من القائمة؟', function (confirmed) {
+          if (!confirmed) return;
+          try {
+            Store.deleteHighStudent(id);
+            showToast('تم حذف الطالب');
+          } catch (error) { showToast(error.message, true); }
+        });
       });
     });
   }
@@ -243,20 +259,24 @@
     });
   });
   $('#closeHighAttendanceButton').addEventListener('click', function () {
-    if (!window.confirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟')) return;
-    try {
-      Store.closeHighAttendance(dateValue(), Store.getLoggedInTeacher());
-      showToast('تم إغلاق واعتماد التحضير');
-      renderAll();
-    } catch (error) { showToast(error.message, true); }
+    showConfirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟', function (confirmed) {
+      if (!confirmed) return;
+      try {
+        Store.closeHighAttendance(dateValue(), Store.getLoggedInTeacher());
+        showToast('تم إغلاق واعتماد التحضير');
+        renderAll();
+      } catch (error) { showToast(error.message, true); }
+    });
   });
   $('#reopenHighAttendanceButton').addEventListener('click', function () {
-    if (!window.confirm('هل تريد إعادة فتح التحضير للتعديل؟')) return;
-    try {
-      Store.reopenHighAttendance(dateValue());
-      showToast('تمت إعادة فتح التحضير');
-      renderAll();
-    } catch (error) { showToast(error.message, true); }
+    showConfirm('هل تريد إعادة فتح التحضير للتعديل؟', function (confirmed) {
+      if (!confirmed) return;
+      try {
+        Store.reopenHighAttendance(dateValue());
+        showToast('تمت إعادة فتح التحضير');
+        renderAll();
+      } catch (error) { showToast(error.message, true); }
+    });
   });
   $('#manageHighStudentsButton').addEventListener('click', function () {
     $('#highStudentsModal').hidden = false;
