@@ -9,7 +9,13 @@
       "Bash(node --check js/store.js)",
       "Bash(ls -lh *.png)",
       "Bash(ls -la .github/workflows firebase.json netlify.toml .nojekyll)",
-      "Bash(ls .claude/)"
+      "Bash(ls .claude/)",
+      "Bash(git rm *)",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

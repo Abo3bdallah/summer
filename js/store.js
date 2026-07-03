@@ -874,11 +874,17 @@
         return applied;
       });
     }).catch(function (error) {
-      if (error && /مغلق/.test(error.message || '')) throw error;
-      var offline = !error || !error.code || error.code === 'unavailable' ||
-        error.code === 'deadline-exceeded' || error.code === 'failed-precondition';
-      if (!offline) throw error;
-      return fallbackMiddleAttendance(date, changes, sup); // وضع عدم الاتصال: كتابة احتياطية
+      // يوم مغلق: الفحص المحلي يمنع الحالة الشائعة، واللقطة تصحّح المحلي في السباق النادر
+      if (error && /مغلق/.test(error.message || '')) {
+        if (global.console) console.warn('تعذّر التحضير: اليوم مغلق على الخادم');
+        return null;
+      }
+      // أي فشل آخر (انقطاع الشبكة أو تزاحم شديد): كتابة احتياطية أفضل-جهد حتى لا تُفقد النقاط،
+      // ولا نرمي الخطأ إطلاقًا كي لا يحدث «وعد مرفوض» يعطّل الصفحة.
+      return fallbackMiddleAttendance(date, changes, sup).catch(function (e2) {
+        if (global.console) console.warn('تعذّرت الكتابة الاحتياطية للتحضير:', e2 && e2.message);
+        return null;
+      });
     });
   }
 
@@ -1522,7 +1528,14 @@
     requireOwnerAccess();
     state = defaultState();
     if (db) {
-      db.collection('settings').doc('config').delete().catch(function() {});
+      // نعيد ضبط الإعدادات للقيم الافتراضية بدل حذف الوثيقة (متوافق مع قاعدة منع الحذف،
+      // ويضمن ألا يبقى النظام دون حسابات أو مجموعات)
+      db.collection('settings').doc('config').set({
+        groups: state.groups,
+        attendancePoints: state.attendancePoints,
+        fastReasons: state.fastReasons,
+        teachers: state.teachers
+      }).catch(function() {});
       db.collection('students').get().then(function (snap) {
         var batch = db.batch();
         snap.forEach(function (doc) { batch.delete(doc.ref); });
