@@ -1861,7 +1861,18 @@
 
   function persistTeachers() {
     if (db) {
-      db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function () {});
+      // update يستبدل خريطة الحسابات كاملةً فتُحذف المفاتيح المُزالة (حذف/إعادة تسمية)،
+      // بخلاف set+merge الذي يدمج ولا يحذف أبدًا. مع set احتياطي إن لم تكن الوثيقة موجودة.
+      var ref = db.collection('settings').doc('config');
+      ref.update({ teachers: state.teachers }).catch(function () {
+        ref.set({
+          groups: state.groups,
+          attendancePoints: state.attendancePoints,
+          fastReasons: state.fastReasons,
+          highGroups: state.highGroups,
+          teachers: state.teachers
+        }, { merge: true }).catch(function () {});
+      });
     }
     commit();
   }
