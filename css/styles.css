@@ -2414,3 +2414,24 @@ body.att-page {
   .portal-tabs button { padding: 0 11px; font-size: 10.5px; }
   .high-modal-card { padding: 13px; }
 }
+
+/* ============================================================
+   شعار المنصة (رِحال)
+   ============================================================ */
+.portal-logo-img {
+  height: 140px;
+  width: auto;
+  display: inline-block;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 8px 18px rgba(15, 23, 42, .12));
+}
+.brand-logo-img {
+  height: 34px;
+  width: auto;
+  vertical-align: middle;
+  margin-inline-end: 2px;
+}
+@media (max-width: 760px) {
+  .portal-logo-img { height: 108px; }
+  .brand-logo-img { height: 30px; }
+}
