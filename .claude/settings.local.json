@@ -16,7 +16,9 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(node --check js/high-attendance.js)"
+      "Bash(node --check js/high-attendance.js)",
+      "Bash(git ls-remote *)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
