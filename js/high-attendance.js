@@ -9,9 +9,23 @@
   var $ = function (selector, root) { return (root || document).querySelector(selector); };
   var $$ = function (selector, root) { return Array.prototype.slice.call((root || document).querySelectorAll(selector)); };
   var selectedIds = {};
+  var manageSelectedIds = {};  // تحديد الطلاب في صفحة الإدارة (نقل/حذف جماعي)
   var currentFilter = 'all';   // فلتر حالة التحضير
   var trackFilter = 'all';     // فلتر صفحة المتابعة
   var currentTab = 'attendance';
+
+  function copyToClipboard(text, okMsg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showToast(okMsg); }).catch(function () { fallbackCopy(text, okMsg); });
+    } else { fallbackCopy(text, okMsg); }
+  }
+  function fallbackCopy(text, okMsg) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showToast(okMsg); } catch (e) { showToast('تعذّر النسخ تلقائيًا', true); }
+    document.body.removeChild(ta);
+  }
 
   var STATUS_COLOR = { early: '#4f46e5', present: '#10b981', absent: '#f43f5e', unmarked: '#cbd5e1' };
   var ACTIVE_CLASS = { early: 'btn-early-active', present: 'btn-present-active', absent: 'btn-absent-active' };
@@ -276,10 +290,17 @@
   function renderTracking() {
     var query = ($('#highTrackSearch').value || '').trim().toLowerCase();
     var date = dateValue();
-    var list = activeStudents().map(function (student) {
+    var closed = Store.isHighAttendanceClosed(date);
+    var canMark = !closed && !isAdmin();
+
+    var students = activeStudents();
+    var absentToday = students.filter(function (s) {
+      return statusOf(Store.getHighStudentAttendance(date, s.id)) === 'absent';
+    }).sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ar'); });
+
+    var list = students.map(function (student) {
       var todayStatus = statusOf(Store.getHighStudentAttendance(date, student.id)) || '';
-      var stats = studentStats(student.id);
-      return { student: student, todayStatus: todayStatus, stats: stats };
+      return { student: student, todayStatus: todayStatus, stats: studentStats(student.id) };
     }).filter(function (row) {
       if (query && String(row.student.name || '').toLowerCase().indexOf(query) === -1) return false;
       if (trackFilter === 'absent') return row.todayStatus === 'absent';
@@ -291,17 +312,29 @@
     if (trackFilter === 'risk') {
       list.sort(function (a, b) { return b.stats.absent - a.stats.absent; });
     } else {
-      list = sortByGroupThenName(list.map(function (r) { return r.student; })).map(function (s) {
-        return list.filter(function (r) { return r.student.id === s.id; })[0];
+      list.sort(function (a, b) {
+        var ga = groupName(a.student.groupId), gb = groupName(b.student.groupId);
+        if (!ga && gb) return 1;
+        if (ga && !gb) return -1;
+        if (ga !== gb) return ga.localeCompare(gb, 'ar');
+        return String(a.student.name || '').localeCompare(String(b.student.name || ''), 'ar');
       });
     }
 
-    $('#highTrackingList').innerHTML = list.length ? list.map(function (row) {
+    // بطاقة كشف الغائبين اليوم + زر النسخ
+    var topCard = '<div class="bg-rose-50/70 backdrop-blur-md border border-rose-100 border-r-4 border-r-rose-500 p-3 rounded-2xl text-center shadow-sm space-y-2 mb-1">' +
+      '<h2 class="text-sm font-black text-rose-700">⚠️ كشف الغائبين اليوم</h2>' +
+      '<p class="text-xs text-rose-600 font-bold">' + (absentToday.length ? 'يوجد (' + absentToday.length + ') طالب غائب.' : 'لا يوجد غائبون اليوم 🎉') + '</p>' +
+      (absentToday.length ? '<button id="btnCopyAbsentees" type="button" class="w-full bg-white hover:bg-slate-50 border border-rose-200/60 text-rose-700 text-xs font-bold py-2 rounded-lg active:scale-95 shadow-sm">📋 نسخ أسماء الغائبين</button>' : '') +
+      '</div>';
+
+    var listHtml = list.length ? list.map(function (row) {
       var s = row.stats;
       var gName = groupName(row.student.groupId);
       var risk = s.absent >= 3 || (s.marked >= 3 && s.rate < 60);
       var badgeColor = STATUS_COLOR[row.todayStatus] || STATUS_COLOR.unmarked;
       var rateColor = s.rate >= 80 ? 'text-emerald-600' : (s.rate >= 60 ? 'text-amber-600' : 'text-rose-600');
+      var showMark = canMark && row.todayStatus !== 'present' && row.todayStatus !== 'early';
       return '<div class="bg-white/70 backdrop-blur-md p-3 rounded-xl shadow-sm flex items-center gap-2.5" style="border-right:4px solid ' + badgeColor + '">' +
         '<div class="w-9 h-9 rounded-full ' + (risk ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700') + ' font-black flex items-center justify-center shrink-0 text-sm">' + esc(String(row.student.name || '').trim().charAt(0) || 'ط') + '</div>' +
         '<div class="flex flex-col min-w-0 flex-1 text-right">' +
@@ -312,8 +345,21 @@
           '<div class="text-[10px] font-bold ' + rateColor + '">حضور ' + s.rate + '%</div>' +
           '<div class="text-[9px] font-bold text-slate-400">غياب ' + s.absent + ' · أيام ' + s.marked + '</div>' +
         '</div>' +
+        (showMark ? '<button type="button" data-track-present="' + row.student.id + '" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[11px] font-bold px-2.5 py-2 rounded-lg active:scale-95 shrink-0">✅ حضر</button>' : '') +
       '</div>';
     }).join('') : '<div class="bg-white/60 rounded-2xl p-8 text-center text-slate-500"><div class="text-3xl mb-2">🔍</div><strong class="block text-sm">لا نتائج</strong><p class="text-xs mt-1">غيّر البحث أو المرشّح.</p></div>';
+
+    $('#highTrackingList').innerHTML = topCard + listHtml;
+
+    var copyBtn = $('#btnCopyAbsentees');
+    if (copyBtn) copyBtn.addEventListener('click', function () {
+      if (!absentToday.length) { showToast('لا يوجد غائبون', true); return; }
+      var text = '📋 غائبو الثانوية — ' + fmtDateAr(date) + '\n' + absentToday.map(function (s, i) { return (i + 1) + '. ' + s.name; }).join('\n');
+      copyToClipboard(text, 'تم نسخ ' + absentToday.length + ' اسمًا إلى الحافظة 📋');
+    });
+    $$('#highTrackingList [data-track-present]').forEach(function (btn) {
+      btn.addEventListener('click', function () { markStudents([btn.dataset.trackPresent], 'present'); });
+    });
   }
 
   /* ---------------- صفحة السجل والإحصائيات ---------------- */
@@ -338,9 +384,12 @@
       var marked = c.marked;
       var rate = marked ? Math.round(((marked - c.absent) / marked) * 100) : 0;
       return '<div class="bg-white/70 backdrop-blur-md p-3 rounded-xl shadow-sm">' +
-        '<div class="flex items-center justify-between mb-2">' +
+        '<div class="flex items-center justify-between mb-2 gap-2">' +
           '<strong class="text-sm font-black text-slate-800">📅 ' + fmtDateAr(d.date) + '</strong>' +
-          '<span class="text-[10px] font-black px-2 py-0.5 rounded-full ' + (closed ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700') + '">' + (closed ? '🔒 معتمد' : '🟢 مفتوح') + '</span>' +
+          '<div class="flex items-center gap-1.5 shrink-0">' +
+            '<button type="button" data-export-day="' + d.date + '" class="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-lg active:scale-95">📤 تصدير</button>' +
+            '<span class="text-[10px] font-black px-2 py-0.5 rounded-full ' + (closed ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700') + '">' + (closed ? '🔒 معتمد' : '🟢 مفتوح') + '</span>' +
+          '</div>' +
         '</div>' +
         '<div class="grid grid-cols-4 gap-1.5 text-center">' +
           '<div class="bg-indigo-50 rounded-lg py-1.5"><span class="block text-[9px] font-bold text-indigo-400">مبكر</span><strong class="text-sm font-black text-indigo-600">' + c.early + '</strong></div>' +
@@ -350,6 +399,90 @@
         '</div>' +
       '</div>';
     }).join('') : '<div class="bg-white/60 rounded-2xl p-8 text-center text-slate-500"><div class="text-3xl mb-2">📅</div><strong class="block text-sm">لا توجد أيام مرصودة بعد</strong><p class="text-xs mt-1">ستظهر الأيام هنا بعد بدء التحضير.</p></div>';
+
+    $$('#highDaysList [data-export-day]').forEach(function (btn) {
+      btn.addEventListener('click', function () { openExportMenu(btn.dataset.exportDay); });
+    });
+  }
+
+  /* ---------------- تصدير تقرير اليوم (نسخ نصّي + ملف CSV) ---------------- */
+  function statusText(status, withIcon) {
+    var map = { early: 'مبكر', present: 'حاضر', absent: 'غائب' };
+    var icon = { early: '⏰', present: '✅', absent: '❌' };
+    var label = map[status] || 'لم يُحضّر';
+    return withIcon ? label + ' ' + (icon[status] || '⚪') : label;
+  }
+
+  function openExportMenu(date) {
+    var old = $('#highExportModal');
+    if (old) old.remove();
+    var modal = document.createElement('div');
+    modal.id = 'highExportModal';
+    modal.className = 'fixed inset-0 z-[99997] flex items-center justify-center p-4';
+    modal.style.background = 'rgba(15,23,42,0.5)';
+    modal.style.backdropFilter = 'blur(6px)';
+    modal.innerHTML =
+      '<div class="bg-white/95 backdrop-blur-xl border border-white rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-3 text-right" dir="rtl">' +
+        '<div class="flex justify-between items-center pb-2 border-b border-slate-100">' +
+          '<h3 class="font-black text-slate-800 text-sm">📤 تصدير تحضير ' + fmtDateAr(date) + '</h3>' +
+          '<button id="highExportClose" class="text-slate-400 hover:text-slate-600 font-bold text-lg px-1">×</button>' +
+        '</div>' +
+        '<button id="highExportCopy" type="button" class="w-full p-3.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3 active:scale-[0.98] text-right shadow-sm">' +
+          '<span class="text-2xl bg-indigo-50 p-2 rounded-xl">📋</span>' +
+          '<div><div class="font-extrabold text-slate-800 text-xs">نسخ التقرير للنصوص</div><div class="text-[10px] text-slate-400 font-bold mt-0.5">جاهز للمشاركة على الواتساب</div></div>' +
+        '</button>' +
+        '<button id="highExportCsv" type="button" class="w-full p-3.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3 active:scale-[0.98] text-right shadow-sm">' +
+          '<span class="text-2xl bg-emerald-50 p-2 rounded-xl">🟢</span>' +
+          '<div><div class="font-extrabold text-slate-800 text-xs">تصدير ملف إكسل (CSV)</div><div class="text-[10px] text-slate-400 font-bold mt-0.5">تحميل القائمة كجدول بيانات</div></div>' +
+        '</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
+    $('#highExportClose').addEventListener('click', function () { modal.remove(); });
+    $('#highExportCopy').addEventListener('click', function () { exportDayClipboard(date); modal.remove(); });
+    $('#highExportCsv').addEventListener('click', function () { exportDayCsv(date); modal.remove(); });
+  }
+
+  function exportDayClipboard(date) {
+    var day = Store.getHighAttendance(date);
+    var records = (day && day.records) || {};
+    var students = activeStudents().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ar'); });
+    var sep = '----------------------------------';
+    var lines = ['📋 تقرير تحضير الثانوية: ' + fmtDateAr(date), sep];
+    students.forEach(function (s, i) {
+      lines.push((i + 1) + '. ' + s.name + ' - ' + statusText(statusOf(records[s.id]), true));
+    });
+    lines.push(sep);
+    var c = dayCounts(day);
+    lines.push('⏰ مبكر: ' + c.early);
+    lines.push('✅ حاضر: ' + c.present);
+    lines.push('❌ غائب: ' + c.absent);
+    copyToClipboard(lines.join('\n'), '📋 تم نسخ التقرير إلى الحافظة');
+  }
+
+  function exportDayCsv(date) {
+    var day = Store.getHighAttendance(date);
+    var records = (day && day.records) || {};
+    var students = activeStudents().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ar'); });
+    var rows = [['الرقم', 'اسم الطالب', 'المجموعة', 'الحالة', 'سجّلها', 'الوقت']];
+    students.forEach(function (s, i) {
+      var rec = records[s.id];
+      var by = (rec && typeof rec === 'object' && rec.by) ? rec.by : '';
+      var at = (rec && typeof rec === 'object' && rec.at) ? formatTime(rec.at) : '';
+      rows.push([i + 1, s.name, groupName(s.groupId), statusText(statusOf(rec), false), by, at]);
+    });
+    var csv = rows.map(function (r) {
+      return r.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+    }).join('\n');
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'تحضير_الثانوية_' + date + '.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('🟢 تم تصدير ملف CSV بنجاح');
   }
 
   /* ---------------- صفحة الطلاب والمجموعات ---------------- */
@@ -390,6 +523,7 @@
     });
     $('#highStudentsManagerList').innerHTML = students.length ? students.map(function (s) {
       return '<div class="bg-white/70 border border-slate-200/60 rounded-xl p-2.5 flex flex-wrap items-center gap-2">' +
+        (manage ? '<input type="checkbox" data-manage-select="' + s.id + '" class="w-4 h-4 accent-indigo-600 shrink-0" ' + (manageSelectedIds[s.id] ? 'checked' : '') + ' />' : '') +
         '<input type="text" value="' + esc(s.name) + '" data-student-name="' + s.id + '" class="flex-1 min-w-[120px] p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500" ' + (manage ? '' : 'disabled') + ' />' +
         '<select data-student-group="' + s.id + '" class="p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500" ' + (manage ? '' : 'disabled') + '>' + groupOptionsHtml(s.groupId) + '</select>' +
         '<label class="flex items-center gap-1 text-[11px] font-bold text-slate-600"><input type="checkbox" data-student-active="' + s.id + '" class="accent-indigo-600" ' + (s.active !== false ? 'checked' : '') + (manage ? '' : ' disabled') + ' /> نشط</label>' +
@@ -435,6 +569,51 @@
           if (!ok) return;
           try { Store.deleteHighStudent(id); showToast('تم حذف الطالب'); } catch (e) { showToast(e.message, true); }
         });
+      });
+    });
+    $$('[data-manage-select]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) manageSelectedIds[cb.dataset.manageSelect] = true;
+        else delete manageSelectedIds[cb.dataset.manageSelect];
+        renderManageBulk();
+      });
+    });
+    renderManageBulk();
+  }
+
+  // شريط العمليات الجماعية (نقل لمجموعة / حذف) لصفحة الطلاب
+  function renderManageBulk() {
+    var bar = $('#highManageBulk');
+    if (!bar) return;
+    var sel = Object.keys(manageSelectedIds).filter(function (id) { return manageSelectedIds[id]; });
+    if (!canManage() || !sel.length) { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+    bar.classList.remove('hidden');
+    bar.innerHTML =
+      '<div class="flex items-center justify-between gap-2 mb-2">' +
+        '<strong class="text-xs font-black text-slate-700">' + sel.length + ' طالب محدد</strong>' +
+        '<button type="button" id="highBulkClear" class="text-[11px] font-bold bg-white/80 border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95">إلغاء التحديد</button>' +
+      '</div>' +
+      '<div class="flex gap-1.5">' +
+        '<select id="highBulkGroup" class="flex-1 min-w-0 p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-500">' + groupOptionsHtml('') + '</select>' +
+        '<button type="button" id="highBulkMove" class="text-[11px] font-bold bg-indigo-600 text-white px-3 rounded-lg active:scale-95 shrink-0">نقل للمجموعة</button>' +
+        '<button type="button" id="highBulkDelete" class="text-[11px] font-bold bg-rose-100 text-rose-700 px-3 rounded-lg active:scale-95 shrink-0">حذف</button>' +
+      '</div>';
+    $('#highBulkClear').addEventListener('click', function () { manageSelectedIds = {}; renderManageView(); });
+    $('#highBulkMove').addEventListener('click', function () {
+      var gid = $('#highBulkGroup').value || null;
+      var ids = Object.keys(manageSelectedIds).filter(function (id) { return manageSelectedIds[id]; });
+      try {
+        ids.forEach(function (id) { Store.updateHighStudent(id, { groupId: gid }); });
+        manageSelectedIds = {};
+        showToast('تم نقل ' + ids.length + ' طالب' + (gid ? ' إلى المجموعة' : ' إلى بدون مجموعة'));
+      } catch (e) { showToast(e.message, true); }
+    });
+    $('#highBulkDelete').addEventListener('click', function () {
+      var ids = Object.keys(manageSelectedIds).filter(function (id) { return manageSelectedIds[id]; });
+      showConfirm('حذف ' + ids.length + ' طالبًا من القائمة؟', function (ok) {
+        if (!ok) return;
+        try { ids.forEach(function (id) { Store.deleteHighStudent(id); }); manageSelectedIds = {}; showToast('تم حذف ' + ids.length + ' طالب'); }
+        catch (e) { showToast(e.message, true); }
       });
     });
   }
@@ -538,6 +717,14 @@
 
   // صفحة الطلاب
   $('#highManageSearch').addEventListener('input', renderManageView);
+  $('#highManageSelectAll').addEventListener('click', function () {
+    if (!canManage()) return;
+    var q = ($('#highManageSearch').value || '').trim().toLowerCase();
+    var visible = Store.getHighStudents().filter(function (s) { return !q || String(s.name || '').toLowerCase().indexOf(q) !== -1; });
+    var allSelected = visible.length && visible.every(function (s) { return manageSelectedIds[s.id]; });
+    visible.forEach(function (s) { if (allSelected) delete manageSelectedIds[s.id]; else manageSelectedIds[s.id] = true; });
+    renderManageView();
+  });
   $('#addHighGroupButton').addEventListener('click', function () {
     var name = ($('#newHighGroupName').value || '').trim();
     try { Store.addHighGroup(name); $('#newHighGroupName').value = ''; showToast('تمت إضافة المجموعة'); }
