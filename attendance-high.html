@@ -199,10 +199,14 @@
 
         <!-- قائمة الطلاب للتعديل -->
         <div class="space-y-2">
-          <div class="flex items-center justify-between px-1">
-            <strong class="text-sm font-black text-slate-700">✏️ تعديل الطلاب</strong>
-            <input id="highManageSearch" type="search" class="p-2 bg-white/80 border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-indigo-500 w-36" placeholder="بحث..." />
+          <div class="flex items-center justify-between px-1 gap-2">
+            <strong class="text-sm font-black text-slate-700 shrink-0">✏️ تعديل الطلاب</strong>
+            <div class="flex gap-1.5 items-center">
+              <button id="highManageSelectAll" class="text-[11px] font-bold bg-white/80 border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95" type="button">تحديد الكل</button>
+              <input id="highManageSearch" type="search" class="p-2 bg-white/80 border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-indigo-500 w-28" placeholder="بحث..." />
+            </div>
           </div>
+          <div id="highManageBulk" class="hidden bg-white/70 backdrop-blur-md border border-white/80 rounded-xl shadow-sm p-3"></div>
           <div id="highStudentsManagerList" class="space-y-2"></div>
         </div>
       </section>
