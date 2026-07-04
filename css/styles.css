@@ -2365,3 +2365,52 @@ body.att-page {
     display: inline-block !important;
   }
 }
+
+/* ============================================================
+   تحسينات إضافية للجوال — إدارة المنصة (owner) والإدارة العامة (admin-portal)
+   ============================================================ */
+@media (max-width: 600px) {
+  /* منع أي تجاوز أفقي على الشاشات الصغيرة */
+  .owner-page, .admin-portal-page { overflow-x: hidden; }
+
+  /* --- إدارة المنصة --- */
+  .owner-heading h1 { font-size: 26px; }
+  .owner-summary strong { font-size: 22px; }
+  /* محرّر الحساب يملأ الشاشة مع تعتيم واضح للخلفية خلفه */
+  .account-editor.open {
+    inset: 0;
+    border-radius: 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, .45);
+  }
+  #closeEditorButton { width: 40px; height: 40px; }
+  /* حقول وأزرار أكبر لللمس */
+  .owner-form input:not([type="checkbox"]),
+  .owner-form select { min-height: 46px; }
+  .owner-form-actions { flex-direction: column; }
+  .owner-form-actions .portal-primary,
+  .owner-form-actions .owner-danger-button { width: 100%; min-height: 46px; }
+  .account-row { min-height: 60px; }
+
+  /* --- الإدارة العامة --- */
+  .admin-portal-heading h1 { font-size: 26px; }
+  /* شبكات إحصائيات المودالات تنهار لعمودين بدل 3–4 */
+  #rosterModalStats,
+  .pm-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  /* بطاقات المودال أقل حشوًا وبحواف أنعم */
+  .high-modal-card { padding: 16px; border-radius: 18px; }
+  /* أزرار شريط أدوات التقرير أسهل لمسًا */
+  .report-toolbar button { min-height: 44px; }
+  /* عناصر التوجيهات السابقة تترتب رأسيًا فلا تنضغط الأزرار */
+  .memo-history-item { flex-direction: column; align-items: stretch; gap: 8px; }
+  .memo-history-item > div:last-child { justify-content: flex-end; }
+  /* بطاقات مراقبة المرحلتين: حشو أقل */
+  .stage-monitor-card { padding: 18px; }
+  .stage-main-number > strong { font-size: 46px; }
+}
+
+/* شاشات صغيرة جدًا: تبويبات الإدارة تبقى قابلة للتمرير بلمسة مريحة */
+@media (max-width: 380px) {
+  .portal-tabs button { padding: 0 11px; font-size: 10.5px; }
+  .high-modal-card { padding: 13px; }
+}

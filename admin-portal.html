@@ -124,7 +124,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 20px;">
           <!-- كرت توزيع الحضور للمتوسطة -->
           <div class="owner-backup-card" style="flex-direction: column; align-items: stretch; gap: 15px; background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6);">
             <div>
@@ -154,7 +154,7 @@
       <div class="report-toolbar" style="background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.6); padding: 12px 18px; border-radius: 14px; margin-top: 16px;">
         <p style="font-size: 11px; font-weight: 800; color: #64748b; margin: 0;">📅 سجل الأيام: يعرض ملخصات التحضير المعتمدة والمفتوحة، مع إمكانية استعراض كشف الحضور الكامل (رصد المعلمين) مباشرة.</p>
       </div>
-      <div id="portalDaysList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 16px; padding-bottom: 30px;"></div>
+      <div id="portalDaysList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 16px; margin-top: 16px; padding-bottom: 30px;"></div>
     </section>
 
     <section id="portalViewMemos" class="portal-view">
@@ -215,7 +215,7 @@
       </div>
 
       <!-- إحصائيات الانضباط العامة -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+      <div class="pm-stat-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
         <div style="background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
           <span style="font-size: 10px; font-weight: 800; color: #475569;">📅 إجمالي الأيام المرصودة</span>
           <div id="profileTotalDays" style="font-size: 16px; font-weight: 900; color: #1e293b; margin-top: 4px;">0</div>
