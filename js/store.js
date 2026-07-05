@@ -136,6 +136,8 @@
       supervisor: '',
       // نقاط التحضير لكل حالة (قابلة للضبط من الإعدادات)
       attendancePoints: { early: 10, present: 5, absent: 0 },
+      // أيام النادي (getDay: الأحد=0 .. السبت=6) — الافتراضي الأحد إلى الأربعاء
+      clubDays: [0, 1, 2, 3],
       fastReasons: ['المشاركة', 'التفاعل', 'لغز المبكرين', 'التميز', 'الأذان والإقامة'],
       attendance: {},
       highStudents: [],
@@ -163,6 +165,10 @@
       }
       if (parsed.fastReasons && Array.isArray(parsed.fastReasons)) {
         s.fastReasons = parsed.fastReasons;
+      }
+      if (Array.isArray(parsed.clubDays) && parsed.clubDays.length) {
+        s.clubDays = parsed.clubDays.map(Number).filter(function (d) { return d >= 0 && d <= 6; });
+        if (!s.clubDays.length) s.clubDays = [0, 1, 2, 3];
       }
       if (parsed.attendance && typeof parsed.attendance === 'object') s.attendance = parsed.attendance;
       if (Array.isArray(parsed.highStudents)) s.highStudents = parsed.highStudents;
@@ -273,6 +279,7 @@
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
         if (data.fastReasons) state.fastReasons = data.fastReasons;
         if (Array.isArray(data.highGroups)) state.highGroups = data.highGroups;
+        if (Array.isArray(data.clubDays) && data.clubDays.length) state.clubDays = data.clubDays;
         if (data.teachers && typeof data.teachers === 'object') {
           state.teachers = ensureTeacherIds(data.teachers);
           // إن أصلحنا معرّفات مكرّرة/ناقصة، احفظ الإصلاح على الخادم (مرة واحدة، بلا حلقة)
@@ -289,7 +296,8 @@
           attendancePoints: state.attendancePoints,
           fastReasons: state.fastReasons,
           teachers: state.teachers,
-          highGroups: state.highGroups
+          highGroups: state.highGroups,
+          clubDays: state.clubDays
         }).catch(function () {});
       }
     }, function (err) {
@@ -771,6 +779,60 @@
     if (status === 'present') return state.attendancePoints.present;
     if (status === 'absent') return state.attendancePoints.absent;
     return 0; // غير محدد
+  }
+
+  /* ---------------- أيام النادي (قابلة للتعديل) ---------------- */
+  function getClubDays() {
+    var d = state.clubDays && state.clubDays.length ? state.clubDays : [0, 1, 2, 3];
+    return d.slice();
+  }
+
+  function setClubDays(days) {
+    requireOwnerAccess();
+    if (!Array.isArray(days)) throw new Error('قيمة أيام النادي غير صحيحة');
+    var clean = [];
+    days.map(Number).forEach(function (d) { if (d >= 0 && d <= 6 && clean.indexOf(d) === -1) clean.push(d); });
+    state.clubDays = clean.length ? clean.sort(function (a, b) { return a - b; }) : [0, 1, 2, 3];
+    recordAudit('set_club_days', 'أيام النادي', state.clubDays.join(','));
+    if (db) db.collection('settings').doc('config').set({ clubDays: state.clubDays }, { merge: true }).catch(function () {});
+    commit();
+    return state.clubDays.slice();
+  }
+
+  function isClubDay(dateStr) {
+    var d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+    if (isNaN(d.getTime())) return true;
+    return getClubDays().indexOf(d.getDay()) !== -1;
+  }
+
+  /* ---------------- حذف سجل تحضير يوم كامل (لمالك المنصة فقط) ---------------- */
+  function deleteAttendanceDay(stage, date) {
+    requireOwnerAccess();
+    if (stage !== 'middle' && stage !== 'high') throw new Error('المرحلة غير صحيحة');
+    date = String(date || '').trim();
+    if (!date) throw new Error('حدد التاريخ');
+
+    var attendanceMap = stage === 'high' ? state.highAttendance : state.attendance;
+    var day = attendanceMap[date];
+    if (!day) return Promise.resolve({ deleted: false, stage: stage, date: date, records: 0 });
+
+    var recordsCount = Object.keys((day && day.records) || {}).length;
+    var label = stage === 'high' ? 'الثانوية' : 'المتوسطة';
+
+    function finishDelete() {
+      delete attendanceMap[date];
+      recordAudit(
+        'delete_attendance',
+        label + ' · ' + date,
+        'حذف سجل التحضير فقط · ' + recordsCount + ' طالب · دون تغيير النقاط'
+      );
+      commit();
+      return { deleted: true, stage: stage, date: date, records: recordsCount };
+    }
+
+    if (!db) return Promise.resolve(finishDelete());
+    var collection = stage === 'high' ? highAttendanceCollection() : db.collection('attendance');
+    return collection.doc(date).delete().then(finishDelete);
   }
 
   function getAttendance(date) {
@@ -1637,7 +1699,8 @@
         attendancePoints: state.attendancePoints,
         fastReasons: state.fastReasons,
         teachers: state.teachers,
-        highGroups: state.highGroups
+        highGroups: state.highGroups,
+        clubDays: state.clubDays
       }).catch(function() {});
       db.collection('students').get().then(function (snap) {
         var batch = db.batch();
@@ -1807,7 +1870,8 @@
         attendancePoints: state.attendancePoints,
         fastReasons: state.fastReasons,
         teachers: state.teachers,
-        highGroups: state.highGroups
+        highGroups: state.highGroups,
+        clubDays: state.clubDays
       }),
       replaceCollection(db.collection('students'), middleStudents),
       replaceCollection(db.collection('logs'), logs),
@@ -2238,6 +2302,10 @@
     undoEntry: undoEntry,
     getAttendancePoints: getAttendancePoints,
     setAttendancePoints: setAttendancePoints,
+    getClubDays: getClubDays,
+    setClubDays: setClubDays,
+    isClubDay: isClubDay,
+    deleteAttendanceDay: deleteAttendanceDay,
     getAttendance: getAttendance,
     getStudentAttendance: getStudentAttendance,
     getStudentAttendanceDetails: getStudentAttendanceDetails,

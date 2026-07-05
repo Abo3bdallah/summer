@@ -47,9 +47,14 @@
     var p = dateStr.split('-');
     return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : dateStr;
   }
+  var CLUB_DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  function clubDaysLabel() {
+    return Store.getClubDays().map(function (day) { return CLUB_DAY_NAMES[day]; }).join('، ');
+  }
 
   function currentUser() { return Store.getCurrentUser(); }
   function isAdmin() { var u = currentUser(); return !!u && u.role === 'admin'; }
+  function isOwner() { var u = currentUser(); return !!u && u.role === 'owner'; }
 
   function canManage() {
     var u = currentUser();
@@ -193,12 +198,16 @@
     var closed = Store.isHighAttendanceClosed(date);
     var canClose = Store.hasPermission('closeAttendance');
     var box = $('#highDayStatus');
+    var clubNotice = Store.isClubDay(date) ? '' :
+      '<div class="bg-amber-50/80 border border-amber-200 text-amber-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold mb-2">' +
+        '<span class="text-lg">📅</span><div><strong class="block">هذا اليوم خارج أيام النادي</strong>' +
+        '<span class="font-medium">أيام النادي المحددة: ' + esc(clubDaysLabel()) + ' — يمكنك التحضير لكنه غير معتاد.</span></div></div>';
     if (closed) {
-      box.innerHTML = '<div class="bg-rose-50/80 border border-rose-200 text-rose-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold">' +
+      box.innerHTML = clubNotice + '<div class="bg-rose-50/80 border border-rose-200 text-rose-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold">' +
         '<span class="text-lg">🔒</span><div><strong class="block">التحضير مغلق ومعتمد</strong>' +
         '<span class="font-medium">' + (day.closedBy ? 'اعتمده ' + esc(day.closedBy) : 'لا يمكن تعديل الحالات في هذا التاريخ.') + '</span></div></div>';
     } else {
-      box.innerHTML = '<div class="bg-emerald-50/80 border border-emerald-200 text-emerald-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold">' +
+      box.innerHTML = clubNotice + '<div class="bg-emerald-50/80 border border-emerald-200 text-emerald-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold">' +
         '<span class="text-lg">🟢</span><div><strong class="block">التحضير مفتوح</strong>' +
         '<span class="font-medium">يمكنك تسجيل الحالات وتعديلها.</span></div></div>';
     }
@@ -388,6 +397,7 @@
           '<strong class="text-sm font-black text-slate-800">📅 ' + fmtDateAr(d.date) + '</strong>' +
           '<div class="flex items-center gap-1.5 shrink-0">' +
             '<button type="button" data-export-day="' + d.date + '" class="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-lg active:scale-95">📤 تصدير</button>' +
+            (isOwner() ? '<button type="button" data-delete-day="' + d.date + '" class="text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-100 px-2 py-1 rounded-lg active:scale-95" title="حذف سجل اليوم">🗑️</button>' : '') +
             '<span class="text-[10px] font-black px-2 py-0.5 rounded-full ' + (closed ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700') + '">' + (closed ? '🔒 معتمد' : '🟢 مفتوح') + '</span>' +
           '</div>' +
         '</div>' +
@@ -402,6 +412,34 @@
 
     $$('#highDaysList [data-export-day]').forEach(function (btn) {
       btn.addEventListener('click', function () { openExportMenu(btn.dataset.exportDay); });
+    });
+    $$('#highDaysList [data-delete-day]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = btn.dataset.deleteDay;
+        showConfirm(
+          'حذف سجل تحضير يوم ' + fmtDateAr(d) +
+          '؟ سيُحذف الحضور والغياب من التقارير والإحصائيات، ولن تتغير نقاط الطلاب. لا يمكن التراجع.',
+          function (ok) {
+          if (!ok) return;
+          var originalText = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = '…';
+          Promise.resolve().then(function () {
+            return Store.deleteAttendanceDay('high', d);
+          }).then(function (result) {
+            showToast(result && result.deleted ?
+              'تم حذف سجل التحضير دون تغيير نقاط الطلاب' :
+              'لا يوجد سجل تحضير لهذا اليوم');
+          }).catch(function (error) {
+            showToast(error.message || 'تعذر حذف سجل التحضير. لم يتم تغيير البيانات', true);
+          }).finally(function () {
+            if (btn.isConnected) {
+              btn.disabled = false;
+              btn.textContent = originalText;
+            }
+          });
+        });
+      });
     });
   }
 

@@ -168,5 +168,48 @@ assert.throws(
   () => Store.addMemo({ message: 'توجيه غير مسموح', target: 'all' }),
   /صلاحية/
 );
+assert.throws(
+  () => Store.setClubDays([0, 1, 2, 3]),
+  /مالك المنصة/
+);
+assert.throws(
+  () => Store.deleteAttendanceDay('middle', '2099-01-03'),
+  /مالك المنصة/
+);
 
-console.log('store account tests passed');
+(async function testClubDaysAndAttendanceDeletion() {
+  Store.logout();
+  assert.equal(Store.login('أحمد الذبياني', '1234'), true);
+
+  assert.deepEqual(Array.from(Store.getClubDays()), [0, 1, 2, 3]);
+  Store.setClubDays([0, 2, 4]);
+  assert.deepEqual(Array.from(Store.getClubDays()), [0, 2, 4]);
+  assert.equal(Store.isClubDay('2026-07-05'), true, 'Sunday should be a configured club day');
+  assert.equal(Store.isClubDay('2026-07-10'), false, 'Friday should not be a configured club day');
+
+  Store.addStudents(['طالب اختبار حذف التحضير'], 'qimma');
+  const middleStudent = Store.getStudents().find((student) => student.name === 'طالب اختبار حذف التحضير');
+  const middleDate = '2099-02-01';
+  Store.setAttendance(middleDate, middleStudent.id, 'present', 'أحمد الذبياني');
+  const pointsBeforeDelete = Store.getStudent(middleStudent.id).points;
+  const logsBeforeDelete = Store.getLog().length;
+  const middleDeleteResult = await Store.deleteAttendanceDay('middle', middleDate);
+  assert.equal(middleDeleteResult.deleted, true);
+  assert.equal(Store.getState().attendance[middleDate], undefined);
+  assert.equal(Store.getStudent(middleStudent.id).points, pointsBeforeDelete, 'deleting attendance must not change points');
+  assert.equal(Store.getLog().length, logsBeforeDelete, 'point audit logs must remain unchanged');
+
+  const highDeleteResult = await Store.deleteAttendanceDay('high', '2099-01-01');
+  assert.equal(highDeleteResult.deleted, true);
+  assert.equal(Store.getState().highAttendance['2099-01-01'], undefined);
+
+  const missingDeleteResult = await Store.deleteAttendanceDay('middle', '2099-12-31');
+  assert.equal(missingDeleteResult.deleted, false);
+  assert.throws(() => Store.deleteAttendanceDay('unknown', middleDate), /المرحلة/);
+
+  Store.setClubDays([0, 1, 2, 3]);
+  console.log('store account tests passed');
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

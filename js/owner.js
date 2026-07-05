@@ -244,6 +244,8 @@
       delete_student: 'حذف طالب',
       close_attendance: 'إغلاق التحضير',
       reopen_attendance: 'إعادة فتح التحضير',
+      delete_attendance: 'حذف سجل تحضير يوم',
+      set_club_days: 'تعديل أيام النادي',
       reset_points: 'تصفير النقاط',
       add_memo: 'إرسال توجيه',
       toggle_memo: 'تغيير حالة توجيه',
@@ -271,6 +273,29 @@
         '<div class="audit-log-meta"><span>' + esc(entry.actor || 'النظام') + '</span><small>' + esc(when) + '</small></div>' +
       '</article>';
     }).join('') : '<div class="owner-empty">لا توجد عمليات مطابقة.</div>';
+  }
+
+  var CLUB_DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  var clubDaysSel = null;
+
+  function renderClubDays() {
+    var editor = $('#clubDaysEditor');
+    if (!editor) return;
+    if (clubDaysSel === null) clubDaysSel = Store.getClubDays();
+    editor.innerHTML = CLUB_DAY_NAMES.map(function (name, i) {
+      var on = clubDaysSel.indexOf(i) !== -1;
+      return '<button type="button" data-club-day="' + i + '" style="padding:9px 15px;border-radius:12px;border:1px solid ' +
+        (on ? '#4f46e5' : 'rgba(148,163,184,.4)') + ';background:' + (on ? '#4f46e5' : 'rgba(255,255,255,.9)') +
+        ';color:' + (on ? '#fff' : '#475569') + ';font-weight:800;font-size:13px;cursor:pointer;transition:all .15s;">' + name + '</button>';
+    }).join('');
+    $$('[data-club-day]', editor).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = Number(btn.dataset.clubDay);
+        var idx = clubDaysSel.indexOf(d);
+        if (idx === -1) clubDaysSel.push(d); else clubDaysSel.splice(idx, 1);
+        renderClubDays();
+      });
+    });
   }
 
   function renderMigrationPreview() {
@@ -373,6 +398,15 @@
     URL.revokeObjectURL(url);
   }
 
+  $('#saveClubDaysButton').addEventListener('click', function () {
+    if (!clubDaysSel || !clubDaysSel.length) { showToast('اختر يومًا واحدًا على الأقل'); return; }
+    try {
+      Store.setClubDays(clubDaysSel);
+      clubDaysSel = Store.getClubDays();
+      showToast('تم حفظ أيام النادي');
+    } catch (error) { showToast(error.message || 'تعذر حفظ الأيام'); }
+  });
+
   $('#downloadFullBackup').addEventListener('click', function () {
     downloadBackup('نسخة-رحال');
     showToast('تم تجهيز النسخة الاحتياطية');
@@ -430,9 +464,11 @@
     newAccount();
     renderAuditLogs();
     renderMigrationPreview();
+    renderClubDays();
     Store.subscribe(function () {
       renderAccounts();
       renderAuditLogs();
+      renderClubDays();
     });
   }
 })();

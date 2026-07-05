@@ -332,6 +332,7 @@
   function renderDays() {
     var dates = getUniqueDates();
     var stateData = Store.getState();
+    var isOwner = (Store.getCurrentUser() || {}).role === 'owner';
     var list = $('#portalDaysList');
     if (!list) return;
 
@@ -360,9 +361,10 @@
               '</div>' +
             '</div>' +
             '<div style="display: flex; gap: 8px;">' +
-              (middleDay && Object.keys(middleDay.records || {}).length ? 
+              (middleDay && Object.keys(middleDay.records || {}).length ?
                 '<button onclick="showDayRoster(\'' + d + '\', \'middle\')" class="btn sm ghost">🔍 كشف المتوسطة</button>' +
-                '<button onclick="openAdminExportMenu(\'' + d + '\', \'middle\')" class="btn sm green">📤 تصدير</button>' : 
+                '<button onclick="openAdminExportMenu(\'' + d + '\', \'middle\')" class="btn sm green">📤 تصدير</button>' +
+                (isOwner ? '<button onclick="deleteDayRecord(\'' + d + '\', \'middle\', this)" class="btn sm red" title="حذف سجل اليوم">🗑️</button>' : '') :
                 '<span class="text-slate-400 font-bold" style="font-size: 10px;">لا توجد سجلات</span>') +
             '</div>' +
           '</div>' +
@@ -375,9 +377,10 @@
               '</div>' +
             '</div>' +
             '<div style="display: flex; gap: 8px;">' +
-              (highDay && Object.keys(highDay.records || {}).length ? 
+              (highDay && Object.keys(highDay.records || {}).length ?
                 '<button onclick="showDayRoster(\'' + d + '\', \'high\')" class="btn sm ghost">🔍 كشف الثانوية</button>' +
-                '<button onclick="openAdminExportMenu(\'' + d + '\', \'high\')" class="btn sm green">📤 تصدير</button>' : 
+                '<button onclick="openAdminExportMenu(\'' + d + '\', \'high\')" class="btn sm green">📤 تصدير</button>' +
+                (isOwner ? '<button onclick="deleteDayRecord(\'' + d + '\', \'high\', this)" class="btn sm red" title="حذف سجل اليوم">🗑️</button>' : '') :
                 '<span class="text-slate-400 font-bold" style="font-size: 10px;">لا توجد سجلات</span>') +
             '</div>' +
           '</div>' +
@@ -461,6 +464,32 @@
     listContainer.innerHTML = html || '<div class="text-center text-slate-500 py-6 font-bold">لا يوجد طلاب في هذا اليوم</div>';
     
     $('#rosterModal').hidden = false;
+  };
+
+  window.deleteDayRecord = function (date, stage, button) {
+    var label = stage === 'high' ? 'الثانوية' : 'المتوسطة';
+    showConfirm(
+      'حذف سجل تحضير ' + label + ' ليوم ' + fmtDateAr(date) +
+      '؟ سيُحذف الحضور والغياب من التقارير والإحصائيات، ولن تتغير نقاط الطلاب. لا يمكن التراجع.',
+      function (confirmed) {
+      if (!confirmed) return;
+      var originalText = button ? button.textContent : '';
+      if (button) { button.disabled = true; button.textContent = '…'; }
+      Promise.resolve().then(function () {
+        return Store.deleteAttendanceDay(stage, date);
+      }).then(function (result) {
+        showToast(result && result.deleted ?
+          'تم حذف سجل التحضير دون تغيير نقاط الطلاب' :
+          'لا يوجد سجل تحضير لهذا اليوم');
+      }).catch(function (error) {
+        showToast(error.message || 'تعذر حذف سجل التحضير. لم يتم تغيير البيانات.', true);
+      }).finally(function () {
+        if (button && button.isConnected) {
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      });
+    });
   };
 
   $('#closeRosterModal').addEventListener('click', function() {

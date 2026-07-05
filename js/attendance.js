@@ -38,6 +38,10 @@
     if (parts.length !== 3) return dateStr;
     return parts[2] + '/' + parts[1] + '/' + parts[0];
   }
+  var CLUB_DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  function clubDaysLabel() {
+    return Store.getClubDays().map(function (day) { return CLUB_DAY_NAMES[day]; }).join('، ');
+  }
 
   var toastT;
   function toast(msg, kind) {
@@ -210,7 +214,11 @@
     // 1. لافتة حالة قفل واعتماد اليوم (تصميم زجاجي خفيف ومبسط)
     var bannerContainer = $('#attStatusBanner');
     if (bannerContainer) {
-      bannerContainer.innerHTML = isClosed ? 
+      var clubNotice = Store.isClubDay(selectedDate) ? '' :
+        '<div class="flex items-center gap-2 p-2.5 px-4 bg-amber-50/80 border border-amber-200 rounded-xl text-xs font-bold text-amber-800 shadow-sm mb-2">' +
+          '<span class="text-base">📅</span><span>هذا اليوم خارج أيام النادي المحددة (' + esc(clubDaysLabel()) + ') — التحضير متاح لكنه غير معتاد.</span>' +
+        '</div>';
+      bannerContainer.innerHTML = clubNotice + (isClosed ?
         '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm att-status-banner banner-closed">' +
           '<div class="flex items-center gap-1.5"><span class="text-rose-600">🔒 التحضير مغلق وموثق</span></div>' +
           (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyReopenAttendance()" class="bg-rose-500 hover:bg-rose-600 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔓 إعادة فتح</button>' : '') +
@@ -219,7 +227,7 @@
         '<div class="flex items-center justify-between gap-3 p-2.5 px-4 bg-white/45 backdrop-blur-md border border-white/60 rounded-xl text-xs font-bold text-slate-700 shadow-sm att-status-banner banner-open">' +
           '<div class="flex items-center gap-1.5"><span class="text-emerald-600">🟢 التحضير مفتوح حالياً</span></div>' +
           (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔒 إغلاق واعتماد</button>' : '') +
-        '</div>';
+        '</div>');
     }
 
     // 2. إحصاءات اليوم ونقاطه (تصميم زجاجي أبيض خفيف وناعم)
@@ -484,16 +492,16 @@
         stats[s.id] = { name: s.name, group: s.groupId, absent: 0 };
       });
 
-      var logs = Store.getLog();
-      logs.forEach(function (l) {
-        if (l.undone || l.kind !== 'attendance') return;
-        var stStat = stats[l.studentId];
-        if (stStat) {
-          if (l.reason.indexOf('غائب') !== -1) {
-            if (l.type === 'add') stStat.absent++;
-            else if (l.type === 'subtract') stStat.absent = Math.max(0, stStat.absent - 1);
-          }
-        }
+      // تُحسب الغيابات من أيام التحضير الفعلية، لا من سجل النقاط.
+      // لذلك يختفي اليوم المحذوف من الإحصاءات مع بقاء نقاط الطلاب وسجلها كما هما.
+      var attendanceDays = (Store.getState().attendance || {});
+      Object.keys(attendanceDays).forEach(function (date) {
+        var records = (attendanceDays[date] && attendanceDays[date].records) || {};
+        Object.keys(records).forEach(function (studentId) {
+          var rec = records[studentId];
+          var status = (rec && typeof rec === 'object') ? rec.status : rec;
+          if (status === 'absent' && stats[studentId]) stats[studentId].absent++;
+        });
       });
 
       var statsArr = Object.keys(stats).map(function (id) {
