@@ -18,7 +18,9 @@
       "Bash(git push *)",
       "Bash(node --check js/high-attendance.js)",
       "Bash(git ls-remote *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(node --check js/account-widget.js)",
+      "Bash(node --check js/owner.js)"
     ]
   }
 }

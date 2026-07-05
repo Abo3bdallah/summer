@@ -1859,22 +1859,21 @@
     return obj;
   }
 
+  // دمج آمن: يضيف/يعدّل الحسابات دون أن يمسح حسابًا أضافه جهاز آخر (لا يحذف مفاتيح)
   function persistTeachers() {
     if (db) {
-      // update يستبدل خريطة الحسابات كاملةً فتُحذف المفاتيح المُزالة (حذف/إعادة تسمية)،
-      // بخلاف set+merge الذي يدمج ولا يحذف أبدًا. مع set احتياطي إن لم تكن الوثيقة موجودة.
-      var ref = db.collection('settings').doc('config');
-      ref.update({ teachers: state.teachers }).catch(function () {
-        ref.set({
-          groups: state.groups,
-          attendancePoints: state.attendancePoints,
-          fastReasons: state.fastReasons,
-          highGroups: state.highGroups,
-          teachers: state.teachers
-        }, { merge: true }).catch(function () {});
-      });
+      db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function () {});
     }
     commit();
+  }
+
+  // حذف موجّه لمفتاح حساب واحد من خريطة teachers على الخادم (بدون لمس بقية الحسابات)
+  // ضروري لأن set+merge لا يحذف المفاتيح، فالحذف/إعادة التسمية تحتاج FieldValue.delete
+  function deleteTeacherKeyRemote(name) {
+    if (!db || !name) return;
+    var upd = {};
+    upd['teachers.' + name] = fsDelete();
+    db.collection('settings').doc('config').update(upd).catch(function () {});
   }
 
   function requireOwnerAccess() {
@@ -1985,10 +1984,12 @@
     };
     updated.permissions.managePlatform = false;
 
-    if (newName !== originalName) delete state.teachers[originalName];
+    var renamed = newName !== originalName;
+    if (renamed) delete state.teachers[originalName];
     state.teachers[newName] = updated;
     recordAudit('update_account', newName, role + ' · ' + stage + ' · ' + (updated.active ? 'نشط' : 'موقوف'));
     persistTeachers();
+    if (renamed) deleteTeacherKeyRemote(originalName); // إزالة الاسم القديم من الخادم
     return newName;
   }
 
@@ -2000,7 +2001,40 @@
     if (name === getLoggedInTeacher()) throw new Error('لا يمكن حذف الحساب المستخدم حاليًا');
     delete state.teachers[name];
     recordAudit('delete_account', name, 'حذف حساب مستخدم');
+    deleteTeacherKeyRemote(name); // حذف موجّه من الخادم (merge لا يحذف)
     persistTeachers();
+  }
+
+  // تغيير المستخدم كلمة مروره بنفسه (يتحقق من القديمة) — متاح لأي حساب مسجّل الدخول
+  function changeOwnPassword(currentPassword, newPassword) {
+    var name = getLoggedInTeacher();
+    if (!name || !state.teachers.hasOwnProperty(name)) throw new Error('لست مسجّلًا للدخول');
+    var t = state.teachers[name];
+    var actual = typeof t === 'string' ? t : ((t && t.password) || '1234');
+    currentPassword = String(currentPassword || '').trim();
+    newPassword = String(newPassword || '').trim();
+    if (actual !== currentPassword) throw new Error('كلمة المرور الحالية غير صحيحة');
+    if (!newPassword) throw new Error('أدخل كلمة المرور الجديدة');
+    if (newPassword === currentPassword) throw new Error('كلمة المرور الجديدة مطابقة للحالية');
+
+    if (typeof t === 'string') {
+      state.teachers[name] = {
+        id: teacherIdFromName(name),
+        password: newPassword,
+        role: name === OWNER_NAME ? 'owner' : 'teacher',
+        stage: name === OWNER_NAME ? 'all' : 'middle',
+        active: true,
+        permissions: {
+          adminPanel: name === OWNER_NAME, manageStudents: name === OWNER_NAME, attendance: true,
+          closeAttendance: name === OWNER_NAME, viewDisplays: true, managePlatform: name === OWNER_NAME, viewReports: name === OWNER_NAME
+        }
+      };
+    } else {
+      t.password = newPassword;
+    }
+    recordAudit('change_own_password', name, 'غيّر كلمة مروره بنفسه');
+    persistTeachers();
+    return true;
   }
 
   function getCurrentUser() {
@@ -2228,7 +2262,8 @@
     hasRole: hasRole,
     belongsToStage: belongsToStage,
     hasPermission: hasPermission,
-    setTeacherPermission: setTeacherPermission
+    setTeacherPermission: setTeacherPermission,
+    changeOwnPassword: changeOwnPassword
   };
 })(window);
 

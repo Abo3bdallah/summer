@@ -236,6 +236,7 @@
       delete_account: 'حذف حساب',
       update_owner_password: 'تحديث حساب المالك',
       change_password: 'تغيير كلمة مرور',
+      change_own_password: 'غيّر كلمة مروره بنفسه',
       change_permission: 'تعديل صلاحية',
       add_student: 'إضافة طالب',
       add_students: 'إضافة طلاب',
