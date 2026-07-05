@@ -177,6 +177,9 @@
       if (Array.isArray(parsed.memos)) s.memos = parsed.memos;
       if (Array.isArray(parsed.auditLogs)) s.auditLogs = parsed.auditLogs;
       if (parsed.teachers && typeof parsed.teachers === 'object') {
+        // عند وجود قائمة حسابات محفوظة فهي المصدر الكامل للحسابات.
+        // لا ندمجها مع DEFAULT_TEACHERS حتى لا تعود الحسابات الافتراضية بعد حذفها.
+        s.teachers = {};
         for (var k in parsed.teachers) {
           if (parsed.teachers.hasOwnProperty(k)) {
             var rawT = parsed.teachers[k];
@@ -216,6 +219,10 @@
               };
             }
           }
+        }
+        // يبقى حساب المالك متاحًا حتى لو كانت نسخة محلية قديمة أو ناقصة.
+        if (!s.teachers.hasOwnProperty(OWNER_NAME)) {
+          s.teachers[OWNER_NAME] = copyTeachers()[OWNER_NAME];
         }
       }
     }
@@ -2100,7 +2107,9 @@
     delete state.teachers[name];
     recordAudit('delete_account', name, 'حذف حساب مستخدم');
     deleteTeacherKeyRemote(name); // حذف موجّه من الخادم (merge لا يحذف)
-    persistTeachers();
+    // لا نستخدم persistTeachers هنا لأن الحذف الموجّه أعلاه هو الذي يزيل المفتاح
+    // من Firestore، بينما set+merge لا يحذف المفاتيح الغائبة.
+    commit();
   }
 
   // تغيير المستخدم كلمة مروره بنفسه (يتحقق من القديمة) — متاح لأي حساب مسجّل الدخول

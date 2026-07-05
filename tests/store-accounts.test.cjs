@@ -59,6 +59,22 @@ assert.equal(Store.login('معلم الثانوية', '2468'), false);
 assert.throws(() => Store.deleteTeacherAccount('أحمد الذبياني'), /مالك المنصة/);
 Store.deleteTeacherAccount('معلم الثانوية');
 assert.equal(Store.getTeachers()['معلم الثانوية'], undefined);
+Store.deleteTeacherAccount('محمد باغزوزة');
+assert.equal(Store.getTeachers()['محمد باغزوزة'], undefined);
+
+const reloadedWindowMock = {
+  localStorage,
+  console,
+  addEventListener() {},
+  db: null
+};
+reloadedWindowMock.window = reloadedWindowMock;
+vm.runInNewContext(storeSource, reloadedWindowMock, { filename: 'store-reload.js' });
+assert.equal(
+  reloadedWindowMock.Store.getTeachers()['محمد باغزوزة'],
+  undefined,
+  'a deleted default account must not return after reload'
+);
 
 assert.equal(Store.addHighStudents(['طالب أول', 'طالب ثانٍ']), 2);
 const highStudents = Store.getHighStudents();
