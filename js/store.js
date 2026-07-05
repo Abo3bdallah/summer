@@ -83,15 +83,43 @@
     return 'u' + (h >>> 0).toString(36);
   }
 
-  // يضمن أن لكل حساب معرّفًا ثابتًا (لا يغيّر الموجود)
+  // يضمن أن لكل حساب معرّفًا فريدًا. أي حساب بلا معرّف أو بمعرّف مكرّر يأخذ معرّفًا
+  // جديدًا فريدًا (uid) — يصلح البيانات التالفة التي فيها حسابات تتشارك نفس المعرّف
+  // (وكانت تسبب الدخول بحساب شخص آخر). يضبط ensureTeacherIds.changed عند أي تغيير.
   function ensureTeacherIds(teachers) {
+    ensureTeacherIds.changed = false;
     if (!teachers) return teachers;
-    for (var k in teachers) {
-      if (teachers.hasOwnProperty(k) && teachers[k] && typeof teachers[k] === 'object' && !teachers[k].id) {
-        teachers[k].id = teacherIdFromName(k);
+    var counts = {};
+    for (var c in teachers) {
+      if (teachers.hasOwnProperty(c) && teachers[c] && typeof teachers[c] === 'object' && teachers[c].id) {
+        counts[teachers[c].id] = (counts[teachers[c].id] || 0) + 1;
       }
     }
+    var used = {};
+    for (var k in teachers) {
+      if (!teachers.hasOwnProperty(k)) continue;
+      var t = teachers[k];
+      if (!t || typeof t !== 'object') continue;
+      var id = t.id;
+      if (!id || counts[id] > 1 || used[id]) {   // ناقص أو مكرّر → معرّف فريد جديد
+        do { id = uid(); } while (used[id]);
+        t.id = id;
+        ensureTeacherIds.changed = true;
+      }
+      used[id] = true;
+    }
     return teachers;
+  }
+
+  // معرّف فريد لا يتعارض مع أي حساب موجود (للحسابات الجديدة)
+  function uniqueTeacherId() {
+    var used = {};
+    for (var k in state.teachers) {
+      if (state.teachers.hasOwnProperty(k) && state.teachers[k] && state.teachers[k].id) used[state.teachers[k].id] = true;
+    }
+    var id = uid();
+    while (used[id]) id = uid();
+    return id;
   }
 
   function todayStr() {
@@ -245,7 +273,13 @@
         if (data.attendancePoints) state.attendancePoints = data.attendancePoints;
         if (data.fastReasons) state.fastReasons = data.fastReasons;
         if (Array.isArray(data.highGroups)) state.highGroups = data.highGroups;
-        if (data.teachers && typeof data.teachers === 'object') state.teachers = ensureTeacherIds(data.teachers);
+        if (data.teachers && typeof data.teachers === 'object') {
+          state.teachers = ensureTeacherIds(data.teachers);
+          // إن أصلحنا معرّفات مكرّرة/ناقصة، احفظ الإصلاح على الخادم (مرة واحدة، بلا حلقة)
+          if (ensureTeacherIds.changed) {
+            db.collection('settings').doc('config').set({ teachers: state.teachers }, { merge: true }).catch(function () {});
+          }
+        }
         persist();
         emit(false);
         applyingRemote = false;
@@ -1917,7 +1951,7 @@
     if (state.teachers.hasOwnProperty(name)) throw new Error('يوجد حساب بهذا الاسم');
 
     state.teachers[name] = {
-      id: uid(),
+      id: uniqueTeacherId(),
       password: password,
       role: role,
       stage: role === 'admin' ? 'all' : stage,
