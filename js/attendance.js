@@ -967,6 +967,9 @@
 
   // الاشتراك في تحديثات المتجر
   Store.subscribe(render);
+
+  // إظهار أي فشل حفظ للمعلم بدل الفشل الصامت (انقطاع، يوم مغلق على الخادم...)
+  if (Store.onSaveError) Store.onSaveError(function (msg) { toast(msg, 'err'); });
   
   // التشغيل الأول للواجهة
   render();

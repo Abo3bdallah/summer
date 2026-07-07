@@ -317,10 +317,13 @@
       var students = [];
       snap.forEach(function (doc) {
         var s = doc.data();
+        // تجاهل وثائق ناقصة بلا اسم (قد تنشأ من set+merge لنقاط طالب حُذف بالتزامن)
+        if (!s || typeof s.name !== 'string' || !s.name) return;
         s.id = doc.id;
         students.push(s);
       });
-      state.students = students;
+      // نعيد تطبيق دلتا النقاط المعلّقة حتى لا «تختفي» النقاط أثناء معاملة جارية
+      state.students = applyPointsOverlay(students);
       persist();
       emit(false);
       applyingRemote = false;
@@ -358,7 +361,10 @@
           closedBy: data.closedBy || null
         };
       });
-      state.attendance = attendance;
+      // نعيد تطبيق النيّات المعلّقة حتى لا تختفي علامات لم يؤكدها الخادم بعد
+      state.attendance = applyAttendanceOverlay(pendingMiddle, attendance, function () {
+        return { records: {}, status: 'active', closedAt: null, closedBy: null };
+      });
       persist();
       emit(false);
       applyingRemote = false;
@@ -397,7 +403,10 @@
           closedBy: data.closedBy || null
         };
       });
-      state.highAttendance = highAttendance;
+      // نعيد تطبيق النيّات المعلّقة للثانوية فوق لقطة الخادم
+      state.highAttendance = applyAttendanceOverlay(pendingHigh, highAttendance, function () {
+        return { records: {}, summary: null, status: 'active', closedAt: null, closedBy: null };
+      });
       persist();
       emit(false);
       applyingRemote = false;
@@ -447,6 +456,80 @@
   function commit() {
     persist();      // فوري محليًا
     emit(true);     // تحديث لحظي للشاشات على نفس الجهاز
+  }
+
+  /* ============================================================
+     موثوقية الحفظ — طبقة «الكتابات المعلّقة» + إشعار فشل الحفظ
+     - المشكلة الجذرية: لقطات المزامنة تستبدل الحالة كاملةً، بينما كتابات
+       المعاملات (runTransaction) لا تظهر محليًا إلا بعد تأكيد الخادم.
+       فأي لقطة تصل أثناء معاملة معلّقة كانت «تدهس» العلامة تفاؤليًا،
+       فتختفي من الشاشة، وقد كان الاحتياطي القديم يحوّل الدهس إلى حذف حقيقي.
+     - الحل: نحفظ «نيّة» كل كتابة معلّقة في خريطة جانبية ونعيد تطبيقها فوق
+       كل لقطة حتى تستقر على الخادم، ونكتب الاحتياطي من النيّة نفسها
+       (increment للدلتا، لا قيم مطلقة؛ ولا حذف إلا بنيّة إلغاء).
+     ============================================================ */
+  var pendingMiddle = {};   // { date: { studentId: { rec, prevRec, delta, newPts, target, token } } }
+  var pendingHigh = {};     // { date: { studentId: { rec, prevRec, target, token } } }
+  var pendingSeq = 0;
+  var middleWriteChain = {}; // سَلسَلة كتابات كل تاريخ: تمنع تسابق الضغطات المتتالية من نفس الجهاز
+  var highWriteChain = {};
+  var saveErrorListeners = [];
+
+  function onSaveError(fn) {
+    saveErrorListeners.push(fn);
+    return function () { saveErrorListeners = saveErrorListeners.filter(function (f) { return f !== fn; }); };
+  }
+  function notifySaveError(message) {
+    for (var i = 0; i < saveErrorListeners.length; i++) {
+      try { saveErrorListeners[i](message); } catch (e) {}
+    }
+    if (global.console) console.warn('تنبيه حفظ:', message);
+  }
+
+  function setPendingIntent(map, date, intent) {
+    if (!map[date]) map[date] = {};
+    intent.token = ++pendingSeq;
+    map[date][intent.studentId] = intent;
+  }
+  function clearPendingIntent(map, date, intent) {
+    var d = map[date];
+    if (d && d[intent.studentId] && d[intent.studentId].token === intent.token) {
+      delete d[intent.studentId];
+      if (!Object.keys(d).length) delete map[date];
+    }
+  }
+  // إعادة تطبيق النيّات المعلّقة فوق خريطة تحضير قادمة من الخادم
+  function applyAttendanceOverlay(map, target, makeDay) {
+    Object.keys(map).forEach(function (date) {
+      if (!target[date]) target[date] = makeDay();
+      var recs = target[date].records;
+      Object.keys(map[date]).forEach(function (sid) {
+        var p = map[date][sid];
+        if (p.rec) recs[sid] = p.rec; else delete recs[sid];
+      });
+    });
+    return target;
+  }
+  // إعادة تطبيق دلتا النقاط المعلّقة فوق قائمة طلاب قادمة من الخادم
+  function applyPointsOverlay(students) {
+    var deltas = {};
+    Object.keys(pendingMiddle).forEach(function (date) {
+      Object.keys(pendingMiddle[date]).forEach(function (sid) {
+        var dl = pendingMiddle[date][sid].delta || 0;
+        if (dl) deltas[sid] = (deltas[sid] || 0) + dl;
+      });
+    });
+    students.forEach(function (s) {
+      if (deltas[s.id]) s.points = Math.max(0, (s.points || 0) + deltas[s.id]);
+    });
+    return students;
+  }
+  // تنفيذ كتابات نفس اليوم بالتسلسل (حتى عند فشل السابقة لا تنكسر السلسلة)
+  function chainWrite(chains, key, task) {
+    var prev = chains[key] || Promise.resolve();
+    var next = prev.then(task, task);
+    chains[key] = next.catch(function () {});
+    return next;
   }
 
   function recordAudit(action, subject, details) {
@@ -664,9 +747,10 @@
     if (db) {
       var batch = db.batch();
       // increment ذرّي على الخادم: عمليتان متزامنتان على نفس الطالب تتجمّعان بدل أن تدهس إحداهما الأخرى
-      batch.update(db.collection('students').doc(studentId), { points: fsIncrement(applied) });
+      // set+merge بدل update: طالب محذوف بالتزامن لا يُفشل الدفعة كلها بصمت
+      batch.set(db.collection('students').doc(studentId), { points: fsIncrement(applied) }, { merge: true });
       batch.set(db.collection('logs').doc(entry.id), entry);
-      batch.commit().catch(function() {});
+      batch.commit().catch(function () { notifySaveError('تعذّر حفظ النقاط — أعد المحاولة'); });
     }
     commit();
     return { student: st, entry: entry };
@@ -703,7 +787,7 @@
     if (db) {
       var batch = db.batch();
       if (st) {
-        batch.update(db.collection('students').doc(entry.studentId), { points: fsIncrement(revDelta) });
+        batch.set(db.collection('students').doc(entry.studentId), { points: fsIncrement(revDelta) }, { merge: true });
       }
       batch.update(db.collection('logs').doc(id), {
         undone: true,
@@ -839,7 +923,10 @@
 
     if (!db) return Promise.resolve(finishDelete());
     var collection = stage === 'high' ? highAttendanceCollection() : db.collection('attendance');
-    return collection.doc(date).delete().then(finishDelete);
+    return collection.doc(date).delete().then(finishDelete).catch(function (error) {
+      notifySaveError('تعذّر حذف سجل اليوم من الخادم' + (error && error.message ? ' (' + error.message + ')' : ''));
+      return { deleted: false, stage: stage, date: date, records: recordsCount };
+    });
   }
 
   function getAttendance(date) {
@@ -915,101 +1002,169 @@
     commit();
   }
 
-  // كتابة تحضير المتوسطة كمعاملة ذرّية: تقرأ حالة اليوم على الخادم فلا تُمنح نقاط
-  // الحالة مرتين حتى لو ضغط معلمان معًا في نفس اللحظة. changes = { studentId: status }
-  function writeMiddleAttendance(date, changes, supervisor) {
+  // بناء «نيّة» تحضير لطالب من الحالة الفعلية الظاهرة (خادم + معلّق)
+  function buildMiddleIntent(date, studentId, status, sup) {
+    var st = getStudent(studentId);
+    if (!st) return null;
+    var day = state.attendance[date];
+    var records = (day && day.records) || {};
+    var prevRec = records[studentId] || null;
+    var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
+    var target = (status === 'none' || !status) ? null : status;
+    if ((prev || null) === target) return null; // لا تغيير
+    var oldPts = prev
+      ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prev))
+      : 0;
+    var newPts = target ? pointsForStatus(target) : 0;
+    var rec = target ? { status: target, points: newPts, by: sup, at: Date.now() } : null;
+    return { studentId: studentId, target: target, rec: rec, prevRec: prevRec, delta: newPts - oldPts, newPts: newPts };
+  }
+
+  function applyMiddleIntentLocal(date, intent) {
+    if (!state.attendance[date]) state.attendance[date] = { records: {}, status: 'active' };
+    var records = state.attendance[date].records;
+    if (intent.rec) records[intent.studentId] = intent.rec;
+    else delete records[intent.studentId];
+    if (intent.delta) {
+      var st = getStudent(intent.studentId);
+      if (st) st.points = Math.max(0, (st.points || 0) + intent.delta);
+    }
+  }
+
+  function revertMiddleIntentLocal(date, intent) {
+    var day = state.attendance[date];
+    if (day) {
+      if (intent.prevRec) day.records[intent.studentId] = intent.prevRec;
+      else delete day.records[intent.studentId];
+    }
+    if (intent.delta) {
+      var st = getStudent(intent.studentId);
+      if (st) st.points = Math.max(0, (st.points || 0) - intent.delta);
+    }
+  }
+
+  function middleLogEntry(date, intent, delta, prevStatus, sup) {
+    var st = getStudent(intent.studentId);
+    var grp = st ? getGroup(st.groupId) : null;
+    return {
+      id: uid(),
+      studentId: intent.studentId,
+      studentName: st ? st.name : '',
+      groupId: st ? st.groupId : '',
+      groupName: grp ? grp.name : '',
+      amount: Math.abs(delta),
+      requested: Math.abs(delta),
+      type: delta >= 0 ? 'add' : 'subtract',
+      reason: 'تحضير (' + date + '): ' + (ATT_LABELS[intent.target] || 'إلغاء') + (prevStatus && prevStatus !== intent.target ? ' (تعديل من ' + (ATT_LABELS[prevStatus] || prevStatus) + ')' : ''),
+      supervisor: sup,
+      timestamp: Date.now(),
+      kind: 'attendance'
+    };
+  }
+
+  // معاملة ذرّية: تقرأ حالة اليوم على الخادم فلا تُمنح نقاط الحالة مرتين
+  // حتى لو ضغط معلمان معًا. تُعيد حساب الدلتا من سجل الخادم (المرجع النهائي).
+  function middleAttendanceTransaction(date, intents, sup) {
     var attRef = db.collection('attendance').doc(date);
-    var sup = (supervisor || getSupervisor() || '').trim();
     return db.runTransaction(function (tx) {
       return tx.get(attRef).then(function (snap) {
         var data = snap.exists ? snap.data() : {};
         if (data.status === 'closed') throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
         var serverRecords = data.records || {};
         var applied = [];
-        Object.keys(changes).forEach(function (studentId) {
-          var raw = changes[studentId];
-          var target = (raw === 'none' || !raw) ? null : raw;
-          var prevRec = serverRecords[studentId] || null;
+        intents.forEach(function (it) {
+          var prevRec = serverRecords[it.studentId] || null;
           var prevStatus = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
           prevStatus = prevStatus || null;
-          if (prevStatus === target) return; // مُطبَّق مسبقًا على الخادم — لا منح مكرر للنقاط
+          if (prevStatus === it.target) return; // مُطبَّق مسبقًا على الخادم — لا تكرار
           var oldPts = prevStatus
             ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prevStatus))
             : 0;
-          var newPts = target ? pointsForStatus(target) : 0;
-          applied.push({ studentId: studentId, target: target, prevStatus: prevStatus, newPts: newPts, delta: newPts - oldPts });
+          applied.push({ intent: it, prevStatus: prevStatus, delta: it.newPts - oldPts });
         });
         if (!applied.length) return [];
 
-        var useSet = !snap.exists;                       // وثيقة جديدة → set كامل بدل update بمسارات
+        var useSet = !snap.exists; // وثيقة جديدة → set كامل بدل update بمسارات
         var recordsObj = useSet ? {} : null;
-        var attUpdate = useSet ? null : { status: data.status || 'active' };
+        var attUpdate = useSet ? null : {};
 
         applied.forEach(function (a) {
+          var it = a.intent;
           if (a.delta !== 0) {
-            tx.update(db.collection('students').doc(a.studentId), { points: fsIncrement(a.delta) });
-          }
-          var recVal = a.target ? { status: a.target, points: a.newPts, by: sup, at: Date.now() } : null;
-          if (useSet) {
-            if (recVal) recordsObj[a.studentId] = recVal;
-          } else {
-            attUpdate['records.' + a.studentId] = recVal ? recVal : fsDelete();
-          }
-          if (a.delta !== 0) {
-            var st = getStudent(a.studentId);
-            var grp = st ? getGroup(st.groupId) : null;
-            var entry = {
-              id: uid(),
-              studentId: a.studentId,
-              studentName: st ? st.name : '',
-              groupId: st ? st.groupId : '',
-              groupName: grp ? grp.name : '',
-              amount: Math.abs(a.delta),
-              requested: Math.abs(a.delta),
-              type: a.delta >= 0 ? 'add' : 'subtract',
-              reason: 'تحضير (' + date + '): ' + (ATT_LABELS[a.target] || 'إلغاء') + (a.prevStatus && a.prevStatus !== a.target ? ' (تعديل من ' + (ATT_LABELS[a.prevStatus] || a.prevStatus) + ')' : ''),
-              supervisor: sup,
-              timestamp: Date.now(),
-              kind: 'attendance'
-            };
+            // set+merge بدل update: طالب محذوف على الخادم لا يُسقط عملية بقية الطلاب
+            tx.set(db.collection('students').doc(it.studentId), { points: fsIncrement(a.delta) }, { merge: true });
+            var entry = middleLogEntry(date, it, a.delta, a.prevStatus, sup);
             tx.set(db.collection('logs').doc(entry.id), entry);
           }
+          if (useSet) { if (it.rec) recordsObj[it.studentId] = it.rec; }
+          else attUpdate['records.' + it.studentId] = it.rec ? it.rec : fsDelete();
         });
 
         if (useSet) tx.set(attRef, { records: recordsObj, status: 'active' });
         else tx.update(attRef, attUpdate);
         return applied;
       });
-    }).catch(function (error) {
-      // يوم مغلق: الفحص المحلي يمنع الحالة الشائعة، واللقطة تصحّح المحلي في السباق النادر
-      if (error && /مغلق/.test(error.message || '')) {
-        if (global.console) console.warn('تعذّر التحضير: اليوم مغلق على الخادم');
-        return null;
-      }
-      // أي فشل آخر (انقطاع الشبكة أو تزاحم شديد): كتابة احتياطية أفضل-جهد حتى لا تُفقد النقاط،
-      // ولا نرمي الخطأ إطلاقًا كي لا يحدث «وعد مرفوض» يعطّل الصفحة.
-      return fallbackMiddleAttendance(date, changes, sup).catch(function (e2) {
-        if (global.console) console.warn('تعذّرت الكتابة الاحتياطية للتحضير:', e2 && e2.message);
-        return null;
-      });
     });
   }
 
-  // احتياط عدم الاتصال: يكتب النتيجة المحلية (المحدَّثة تفاؤليًا) دون ذرّية — لا تنسيق ممكن دون شبكة
-  function fallbackMiddleAttendance(date, changes, sup) {
+  // احتياطي عند فشل المعاملة (انقطاع/تزاحم): يكتب «النيّة» نفسها ككتابات عادية
+  // تُخزَّن محليًا وتُزامَن عند عودة الشبكة. لا قيم مطلقة تدهس نقاط الآخرين،
+  // ولا حذف إلا إذا كانت النيّة إلغاء التحديد.
+  function fallbackMiddleAttendance(date, intents, sup) {
     var attRef = db.collection('attendance').doc(date);
-    var day = state.attendance[date] || { records: {}, status: 'active' };
+    var day = state.attendance[date];
+    var attUpdate = {};
     var batch = db.batch();
-    var attUpdate = { status: day.status || 'active' };
-    Object.keys(changes).forEach(function (studentId) {
-      var rec = day.records[studentId] || null;
-      var st = getStudent(studentId);
-      if (st) batch.update(db.collection('students').doc(studentId), { points: st.points });
-      attUpdate['records.' + studentId] = rec ? rec : fsDelete();
+    intents.forEach(function (it) {
+      attUpdate['records.' + it.studentId] = it.rec ? it.rec : fsDelete();
+      if (it.delta) {
+        var entry = middleLogEntry(date, it, it.delta, (it.prevRec && it.prevRec.status) || null, sup);
+        batch.set(db.collection('logs').doc(entry.id), entry);
+      }
     });
-    batch.set(attRef, { status: day.status || 'active' }, { merge: true });
+    batch.set(attRef, { status: (day && day.status) || 'active' }, { merge: true });
     batch.update(attRef, attUpdate);
-    return batch.commit();
+    var writes = [batch.commit()];
+    intents.forEach(function (it) {
+      if (!it.delta) return;
+      // كتابة مستقلة لكل طالب: طالب مفقود على الخادم لا يُفشل نقاط البقية
+      writes.push(
+        db.collection('students').doc(it.studentId)
+          .update({ points: fsIncrement(it.delta) })
+          .catch(function () { notifySaveError('تعذّر تحديث نقاط أحد الطلاب (قد يكون محذوفًا)'); })
+      );
+    });
+    return Promise.all(writes);
+  }
+
+  // مسار الكتابة الموحّد: معاملة ← عند الفشل احتياطي من النيّة ← إشعار عند التعذّر.
+  // الكتابات لكل يوم تُنفَّذ بالتسلسل حتى لا تتسابق الضغطات المتتالية.
+  function writeMiddleAttendance(date, intents, sup) {
+    return chainWrite(middleWriteChain, date, function () {
+      return middleAttendanceTransaction(date, intents, sup).then(function (result) {
+        intents.forEach(function (it) { clearPendingIntent(pendingMiddle, date, it); });
+        return result;
+      }).catch(function (error) {
+        if (error && /مغلق/.test(error.message || '')) {
+          // الخادم يعتبر اليوم مغلقًا: نعيد الحالة المحلية كما كانت ونخبر المعلم
+          intents.forEach(function (it) {
+            revertMiddleIntentLocal(date, it);
+            clearPendingIntent(pendingMiddle, date, it);
+          });
+          commit();
+          notifySaveError('لم يُحفظ التحضير: اليوم مغلق ومعتمد');
+          return null;
+        }
+        // انقطاع أو تزاحم شديد: كتابة احتياطية من النيّة (كتابات عادية مغطّاة
+        // بتعويض الكمون وتُرسَل تلقائيًا عند عودة الشبكة) ثم إزالة الطبقة المعلّقة
+        var fb = fallbackMiddleAttendance(date, intents, sup);
+        intents.forEach(function (it) { clearPendingIntent(pendingMiddle, date, it); });
+        return fb.catch(function (e2) {
+          notifySaveError('تعذّر حفظ التحضير — أعد المحاولة' + (e2 && e2.message ? ' (' + e2.message + ')' : ''));
+          return null;
+        });
+      });
+    });
   }
 
   // تحديد حالة تحضير لطالب في تاريخ معيّن (يعدّل النقاط دون تكرار وبأمان عند التزامن)
@@ -1021,34 +1176,15 @@
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
-    var st = getStudent(studentId);
-    if (!st) return;
-    if (!state.attendance[date]) {
-      state.attendance[date] = { records: {}, status: 'active' };
-    }
-    var records = state.attendance[date].records;
-    var prevRec = records[studentId] || null;
-    var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
-    var target = (status === 'none' || !status) ? null : status;
-    if ((prev || null) === target) return; // لا تغيير
+    var sup = (supervisor || state.supervisor || '').trim();
+    var intent = buildMiddleIntent(date, studentId, status, sup);
+    if (!intent) return; // طالب غير موجود أو لا تغيير
 
-    // تحديث محلي تفاؤلي للاستجابة الفورية؛ الخادم هو المرجع النهائي (المعاملة ثم اللقطة تصحّح أي فرق)
-    var oldPts = prev
-      ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prev))
-      : 0;
-    var newPts = target ? pointsForStatus(target) : 0;
-    var delta = newPts - oldPts;
-    if (delta !== 0) st.points = Math.max(0, (st.points || 0) + delta);
-    if (target) {
-      records[studentId] = { status: target, points: newPts, by: (supervisor || state.supervisor || '').trim(), at: Date.now() };
-    } else {
-      delete records[studentId];
-    }
+    if (db) setPendingIntent(pendingMiddle, date, intent); // تحمي التفاؤلي من دهس اللقطات
+    applyMiddleIntentLocal(date, intent);                  // استجابة فورية على الشاشة
     commit();
-
     if (!db) return;
-    var changes = {}; changes[studentId] = status;
-    return writeMiddleAttendance(date, changes, supervisor);
+    return writeMiddleAttendance(date, [intent], sup);
   }
 
   function setBulkAttendance(date, studentIds, status, supervisor) {
@@ -1058,41 +1194,19 @@
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
-    if (!state.attendance[date]) {
-      state.attendance[date] = { records: {}, status: 'active' };
-    }
-    var records = state.attendance[date].records;
-    var target = (status === 'none' || !status) ? null : status;
-    var changes = {};
-    var hasChanges = false;
-
+    var sup = (supervisor || state.supervisor || '').trim();
+    var intents = [];
     (studentIds || []).forEach(function (studentId) {
-      var st = getStudent(studentId);
-      if (!st) return;
-      var prevRec = records[studentId] || null;
-      var prev = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
-      if ((prev || null) === target) return; // لا تغيير
-
-      // تحديث محلي تفاؤلي؛ المعاملة على الخادم تمنع ازدواج النقاط عند تزامن المعلمين
-      var oldPts = prev
-        ? ((prevRec && typeof prevRec === 'object' && typeof prevRec.points === 'number') ? prevRec.points : pointsForStatus(prev))
-        : 0;
-      var newPts = target ? pointsForStatus(target) : 0;
-      var delta = newPts - oldPts;
-      if (delta !== 0) st.points = Math.max(0, (st.points || 0) + delta);
-      if (target) {
-        records[studentId] = { status: target, points: newPts, by: (supervisor || state.supervisor || '').trim(), at: Date.now() };
-      } else {
-        delete records[studentId];
-      }
-      changes[studentId] = status;
-      hasChanges = true;
+      var intent = buildMiddleIntent(date, studentId, status, sup);
+      if (!intent) return;
+      if (db) setPendingIntent(pendingMiddle, date, intent);
+      applyMiddleIntentLocal(date, intent);
+      intents.push(intent);
     });
-
-    if (!hasChanges) return;
+    if (!intents.length) return;
     commit();
     if (!db) return;
-    return writeMiddleAttendance(date, changes, supervisor);
+    return writeMiddleAttendance(date, intents, sup);
   }
 
   // ملخّص يوم: أعداد كل حالة + إجمالي نقاط ذلك اليوم
@@ -1332,50 +1446,86 @@
     return date < todayStr();
   }
 
-  function writeHighAttendanceTransaction(date, changes, supervisor) {
+  // بناء «نيّة» تحضير ثانوية (بلا نقاط) من الحالة الظاهرة
+  function buildHighIntent(date, studentId, status, sup) {
+    var day = state.highAttendance[date];
+    var records = (day && day.records) || {};
+    var prevRec = records[studentId] || null;
+    var prevStatus = (prevRec && typeof prevRec === 'object') ? prevRec.status : prevRec;
+    var target = (!status || status === 'none') ? null : status;
+    if ((prevStatus || null) === target) return null; // لا تغيير
+    var rec = target ? { status: target, by: sup, at: Date.now() } : null;
+    return { studentId: studentId, target: target, rec: rec, prevRec: prevRec };
+  }
+
+  function applyHighIntentLocal(date, intent) {
+    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+    var records = state.highAttendance[date].records;
+    if (intent.rec) records[intent.studentId] = intent.rec;
+    else delete records[intent.studentId];
+  }
+
+  function revertHighIntentLocal(date, intent) {
+    var day = state.highAttendance[date];
+    if (!day) return;
+    if (intent.prevRec) day.records[intent.studentId] = intent.prevRec;
+    else delete day.records[intent.studentId];
+  }
+
+  // مسار كتابة الثانوية: معاملة ← عند الفشل احتياطي بمسارات حقول من النيّة
+  // (لا يستبدل خريطة السجلات كاملة فلا يدهس علامات معلم آخر) ← إشعار عند التعذّر.
+  function writeHighAttendance(date, intents, sup) {
     var collection = highAttendanceCollection();
     if (!collection) return Promise.resolve();
     var ref = collection.doc(date);
-    var localDay = state.highAttendance[date];
-
-    return db.runTransaction(function (transaction) {
-      return transaction.get(ref).then(function (snapshot) {
-        var remote = snapshot.exists ? snapshot.data() : {};
-        if (remote.status === 'closed') throw new Error('التحضير مغلق لهذا اليوم');
-        var records = Object.assign({}, remote.records || {});
-        Object.keys(changes).forEach(function (studentId) {
-          var status = changes[studentId];
-          if (!status || status === 'none') delete records[studentId];
-          else {
-            records[studentId] = {
-              status: status,
-              by: (supervisor || getSupervisor() || '').trim(),
-              at: Date.now()
-            };
-          }
+    return chainWrite(highWriteChain, date, function () {
+      return db.runTransaction(function (transaction) {
+        return transaction.get(ref).then(function (snapshot) {
+          var remote = snapshot.exists ? snapshot.data() : {};
+          if (remote.status === 'closed') throw new Error('التحضير مغلق لهذا اليوم');
+          var records = Object.assign({}, remote.records || {});
+          intents.forEach(function (it) {
+            if (it.rec) records[it.studentId] = it.rec;
+            else delete records[it.studentId];
+          });
+          transaction.set(ref, {
+            records: records,
+            summary: computeHighAttendanceSummary(records),
+            status: remote.status || 'active',
+            updatedAt: Date.now()
+          }, { merge: true });
         });
-        transaction.set(ref, {
-          records: records,
-          summary: computeHighAttendanceSummary(records),
-          status: remote.status || 'active',
-          updatedAt: Date.now()
-        }, { merge: true });
+      }).then(function () {
+        intents.forEach(function (it) { clearPendingIntent(pendingHigh, date, it); });
+      }).catch(function (error) {
+        if (error && /مغلق/.test(error.message || '')) {
+          intents.forEach(function (it) {
+            revertHighIntentLocal(date, it);
+            clearPendingIntent(pendingHigh, date, it);
+          });
+          if (state.highAttendance[date]) {
+            state.highAttendance[date].summary = computeHighAttendanceSummary(state.highAttendance[date].records);
+          }
+          commit();
+          notifySaveError('لم يُحفظ تحضير الثانوية: اليوم مغلق ومعتمد');
+          return null;
+        }
+        // انقطاع/تزاحم: كتابة النيّة عبر مسارات الحقول (تُخزَّن محليًا وتُزامَن لاحقًا)
+        var day = state.highAttendance[date];
+        var upd = { updatedAt: Date.now(), summary: computeHighAttendanceSummary((day && day.records) || {}) };
+        intents.forEach(function (it) {
+          upd['records.' + it.studentId] = it.rec ? it.rec : fsDelete();
+        });
+        var batch = db.batch();
+        batch.set(ref, { status: (day && day.status) || 'active' }, { merge: true });
+        batch.update(ref, upd);
+        var fb = batch.commit();
+        intents.forEach(function (it) { clearPendingIntent(pendingHigh, date, it); });
+        return fb.catch(function () {
+          notifySaveError('تعذّر حفظ تحضير الثانوية — أعد المحاولة');
+          return null;
+        });
       });
-    }).catch(function (error) {
-      if (error && /مغلق/.test(error.message || '')) throw error;
-      var offlineError = !error || !error.code ||
-        error.code === 'unavailable' || error.code === 'deadline-exceeded' || error.code === 'failed-precondition';
-      if (!offlineError) throw error;
-      // عند انقطاع الاتصال تحفظ نسخة اليوم محليًا وتُرسل ككتابة عادية عند عودة الشبكة.
-      if (localDay) {
-        return ref.set({
-          records: localDay.records,
-          summary: localDay.summary,
-          status: localDay.status || 'active',
-          updatedAt: Date.now()
-        }, { merge: true });
-      }
-      throw error;
     });
   }
 
@@ -1383,45 +1533,36 @@
     requireHighAttendanceAccess();
     if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
     if (!getHighStudent(studentId)) throw new Error('الطالب غير موجود');
-    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
-    var records = state.highAttendance[date].records;
-    if (!status || status === 'none') delete records[studentId];
-    else {
-      records[studentId] = {
-        status: status,
-        by: (supervisor || getSupervisor() || '').trim(),
-        at: Date.now()
-      };
-    }
-    state.highAttendance[date].summary = computeHighAttendanceSummary(records);
+    var sup = (supervisor || getSupervisor() || '').trim();
+    var intent = buildHighIntent(date, studentId, status, sup);
+    if (!intent) return Promise.resolve();
+    if (db) setPendingIntent(pendingHigh, date, intent);
+    applyHighIntentLocal(date, intent);
+    state.highAttendance[date].summary = computeHighAttendanceSummary(state.highAttendance[date].records);
     commit();
-    var changes = {};
-    changes[studentId] = status;
-    return writeHighAttendanceTransaction(date, changes, supervisor);
+    if (!db) return Promise.resolve();
+    return writeHighAttendance(date, [intent], sup);
   }
 
   function setBulkHighAttendance(date, studentIds, status, supervisor) {
     requireHighAttendanceAccess();
     if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
     if (!Array.isArray(studentIds) || !studentIds.length) throw new Error('حدد طالبًا واحدًا على الأقل');
-    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
-    var records = state.highAttendance[date].records;
-    var changes = {};
+    var sup = (supervisor || getSupervisor() || '').trim();
+    var intents = [];
     studentIds.forEach(function (studentId) {
       if (!getHighStudent(studentId)) return;
-      changes[studentId] = status;
-      if (!status || status === 'none') delete records[studentId];
-      else {
-        records[studentId] = {
-          status: status,
-          by: (supervisor || getSupervisor() || '').trim(),
-          at: Date.now()
-        };
-      }
+      var intent = buildHighIntent(date, studentId, status, sup);
+      if (!intent) return;
+      if (db) setPendingIntent(pendingHigh, date, intent);
+      applyHighIntentLocal(date, intent);
+      intents.push(intent);
     });
-    state.highAttendance[date].summary = computeHighAttendanceSummary(records);
+    if (!intents.length) return Promise.resolve();
+    state.highAttendance[date].summary = computeHighAttendanceSummary(state.highAttendance[date].records);
     commit();
-    return writeHighAttendanceTransaction(date, changes, supervisor);
+    if (!db) return Promise.resolve();
+    return writeHighAttendance(date, intents, sup);
   }
 
   function closeHighAttendance(date, supervisor) {
@@ -2374,7 +2515,8 @@
     belongsToStage: belongsToStage,
     hasPermission: hasPermission,
     setTeacherPermission: setTeacherPermission,
-    changeOwnPassword: changeOwnPassword
+    changeOwnPassword: changeOwnPassword,
+    onSaveError: onSaveError
   };
 })(window);
 

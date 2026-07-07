@@ -790,5 +790,7 @@
   if (requireAccess()) {
     switchTab('attendance');
     Store.subscribe(render);
+    // إظهار أي فشل حفظ للمعلم بدل الفشل الصامت
+    if (Store.onSaveError) Store.onSaveError(function (msg) { showToast(msg, true); });
   }
 })();
