@@ -13,6 +13,7 @@
   var currentFilter = 'all';   // فلتر حالة التحضير
   var trackFilter = 'all';     // فلتر صفحة المتابعة
   var currentTab = 'attendance';
+  var closingHighAttendance = false;
 
   function copyToClipboard(text, okMsg) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -197,6 +198,7 @@
     var day = Store.getHighAttendance(date);
     var closed = Store.isHighAttendanceClosed(date);
     var canClose = Store.hasPermission('closeAttendance');
+    var isSaving = Store.hasPendingAttendanceWrites && Store.hasPendingAttendanceWrites('high', date);
     var box = $('#highDayStatus');
     var clubNotice = Store.isClubDay(date) ? '' :
       '<div class="bg-amber-50/80 border border-amber-200 text-amber-800 rounded-xl p-3 flex items-center gap-2 text-xs font-bold mb-2">' +
@@ -212,6 +214,10 @@
         '<span class="font-medium">يمكنك تسجيل الحالات وتعديلها.</span></div></div>';
     }
     $('#closeHighAttendanceButton').hidden = closed || !canClose;
+    $('#closeHighAttendanceButton').disabled = !!(closingHighAttendance || isSaving);
+    $('#closeHighAttendanceButton').style.opacity = (closingHighAttendance || isSaving) ? '0.65' : '';
+    $('#closeHighAttendanceButton').style.cursor = (closingHighAttendance || isSaving) ? 'wait' : '';
+    $('#closeHighAttendanceButton').textContent = closingHighAttendance ? '⏳ جاري الاعتماد...' : (isSaving ? '⏳ جاري الحفظ...' : '🔒 إغلاق واعتماد');
     $('#reopenHighAttendanceButton').hidden = !closed || !canClose;
     $('#highBulkBar').style.opacity = (closed || isAdmin()) ? '0.5' : '1';
     $('#highBulkBar').style.pointerEvents = (closed || isAdmin()) ? 'none' : 'auto';
@@ -727,7 +733,28 @@
     });
   });
 
+  $('#closeHighAttendanceButton').addEventListener('click', function (event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (closingHighAttendance) return;
+    showConfirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟ سيتم انتظار أي حفظ معلّق قبل الاعتماد.', function (ok) {
+      if (!ok) return;
+      closingHighAttendance = true;
+      render();
+      showToast('جاري حفظ التحضير ثم الاعتماد...');
+      Promise.resolve(Store.closeHighAttendance(dateValue(), Store.getLoggedInTeacher())).then(function () {
+        showToast('تم إغلاق واعتماد التحضير');
+      }).catch(function (e) {
+        showToast((e && e.message) || 'تعذّر اعتماد التحضير — أعد المحاولة', true);
+      }).then(function () {
+        closingHighAttendance = false;
+        render();
+      });
+    });
+  }, true);
+
   $('#closeHighAttendanceButton').addEventListener('click', function () {
+    if (closingHighAttendance) return;
     showConfirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟', function (ok) {
       if (!ok) return;
       try { Store.closeHighAttendance(dateValue(), Store.getLoggedInTeacher()); showToast('تم إغلاق واعتماد التحضير'); render(); }

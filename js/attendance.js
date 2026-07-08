@@ -66,6 +66,7 @@
   var logsViewMode = 'days'; // 'days' | 'statistics'
   var filterGroup = 'all';
   var selectedDate = todayStr();
+  var closingAttendance = false;
   var searchQuery = '';
   var filtersExpanded = false; // كرت الخيارات مطوي افتراضياً لحفظ مساحة الشاشة في الهواتف
 
@@ -207,6 +208,8 @@
     var user = Store.getCurrentUser();
     var isAdmin = user && user.role === 'admin';
     var isReadOnly = isClosed || isAdmin;
+    var isSavingAttendance = Store.hasPendingAttendanceWrites && Store.hasPendingAttendanceWrites('middle', selectedDate);
+    var closeButtonLabel = closingAttendance ? '⏳ جاري الاعتماد...' : (isSavingAttendance ? '⏳ جاري الحفظ...' : '🔒 إغلاق واعتماد');
     var ap = Store.getAttendancePoints();
     var sum = Store.getAttendanceSummary(selectedDate);
     var students = visibleStudents();
@@ -228,6 +231,13 @@
           '<div class="flex items-center gap-1.5"><span class="text-emerald-600">🟢 التحضير مفتوح حالياً</span></div>' +
           (Store.hasPermission('closeAttendance') ? '<button onclick="manuallyCloseAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-transform active:scale-95 shadow-sm">🔒 إغلاق واعتماد</button>' : '') +
         '</div>');
+      var closeButton = bannerContainer.querySelector('[onclick="manuallyCloseAttendance()"]');
+      if (closeButton) {
+        closeButton.disabled = !!(closingAttendance || isSavingAttendance);
+        closeButton.style.opacity = (closingAttendance || isSavingAttendance) ? '0.65' : '';
+        closeButton.style.cursor = (closingAttendance || isSavingAttendance) ? 'wait' : '';
+        closeButton.textContent = closeButtonLabel;
+      }
     }
 
     // 2. إحصاءات اليوم ونقاطه (تصميم زجاجي أبيض خفيف وناعم)
@@ -341,12 +351,25 @@
   };
 
   window.manuallyCloseAttendance = function () {
+    if (closingAttendance) return;
     if (!Store.hasPermission('closeAttendance')) {
       toast('عذراً، ليس لديك صلاحية قفل واعتماد التحضير ⚠️', 'err');
       return;
     }
     showConfirm('هل أنت متأكد من قفل واعتماد تحضير اليوم؟ لن يتمكن المعلمون من التعديل.', function (confirmed) {
       if (!confirmed) return;
+      closingAttendance = true;
+      render();
+      toast('جاري حفظ التحضير ثم الاعتماد...', 'ok');
+      Promise.resolve(Store.closeAttendance(selectedDate, Store.getSupervisor())).then(function () {
+        toast('تم حفظ واعتماد تحضير اليوم بنجاح 🔒', 'ok');
+      }).catch(function (e) {
+        toast((e && e.message) || 'تعذّر اعتماد التحضير — أعد المحاولة', 'err');
+      }).then(function () {
+        closingAttendance = false;
+        render();
+      });
+      return;
       Store.closeAttendance(selectedDate, Store.getSupervisor());
       toast('تم قفل واعتماد تحضير اليوم بنجاح 🔒', 'ok');
     });

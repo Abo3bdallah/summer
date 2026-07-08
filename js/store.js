@@ -532,6 +532,16 @@
     return next;
   }
 
+  function hasPendingIntents(map, date) {
+    var bucket = map && map[date];
+    return !!(bucket && Object.keys(bucket).length);
+  }
+
+  function hasPendingAttendanceWrites(stage, date) {
+    if (stage === 'high') return hasPendingIntents(pendingHigh, date);
+    return hasPendingIntents(pendingMiddle, date);
+  }
+
   function recordAudit(action, subject, details) {
     var entry = {
       id: uid(),
@@ -957,7 +967,57 @@
     return date < todayStr();
   }
 
+  function closeAttendanceSafely(date, supervisor) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
+      throw new Error('لا تملك صلاحية إغلاق تحضير المرحلة المتوسطة');
+    }
+    var sup = (supervisor || state.supervisor || '').trim();
+    var doClose = function () {
+      if (!state.attendance[date]) {
+        state.attendance[date] = { records: {}, status: 'active' };
+      }
+      var day = state.attendance[date];
+      var prev = {
+        status: day.status,
+        closedAt: day.closedAt || null,
+        closedBy: day.closedBy || null
+      };
+      var closedAt = Date.now();
+      day.status = 'closed';
+      day.closedAt = closedAt;
+      day.closedBy = sup;
+      commit();
+
+      if (!db) {
+        recordAudit('close_attendance', 'المتوسطة · ' + date, 'إغلاق واعتماد التحضير');
+        commit();
+        return Promise.resolve({ closed: true, stage: 'middle', date: date });
+      }
+
+      return db.collection('attendance').doc(date).set({
+        status: 'closed',
+        closedAt: closedAt,
+        closedBy: sup
+      }, { merge: true }).then(function () {
+        recordAudit('close_attendance', 'المتوسطة · ' + date, 'إغلاق واعتماد التحضير');
+        commit();
+        return { closed: true, stage: 'middle', date: date };
+      }).catch(function (error) {
+        day.status = prev.status || 'active';
+        day.closedAt = prev.closedAt;
+        day.closedBy = prev.closedBy;
+        commit();
+        notifySaveError('تعذّر إغلاق التحضير — أعد المحاولة' + (error && error.message ? ' (' + error.message + ')' : ''));
+        throw error;
+      });
+    };
+
+    if (!db) return doClose();
+    return chainWrite(middleWriteChain, date, doClose);
+  }
+
   function closeAttendance(date, supervisor) {
+    return closeAttendanceSafely(date, supervisor);
     if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
       throw new Error('لا تملك صلاحية إغلاق تحضير المرحلة المتوسطة');
     }
@@ -1563,7 +1623,60 @@
     return writeHighAttendance(date, intents, sup);
   }
 
+  function closeHighAttendanceSafely(date, supervisor) {
+    if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
+      throw new Error('لا تملك صلاحية إغلاق تحضير الثانوية');
+    }
+    var sup = (supervisor || getSupervisor() || '').trim();
+    var doClose = function () {
+      if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
+      var day = state.highAttendance[date];
+      var prev = {
+        status: day.status,
+        closedAt: day.closedAt || null,
+        closedBy: day.closedBy || null,
+        summary: day.summary || null
+      };
+      var closedAt = Date.now();
+      day.status = 'closed';
+      day.closedAt = closedAt;
+      day.closedBy = sup;
+      day.summary = computeHighAttendanceSummary(day.records);
+      commit();
+
+      var collection = highAttendanceCollection();
+      if (!collection) {
+        recordAudit('close_attendance', 'الثانوية · ' + date, 'إغلاق واعتماد التحضير');
+        commit();
+        return Promise.resolve({ closed: true, stage: 'high', date: date });
+      }
+
+      return collection.doc(date).set({
+        status: 'closed',
+        closedAt: closedAt,
+        closedBy: sup,
+        summary: day.summary
+      }, { merge: true }).then(function () {
+        recordAudit('close_attendance', 'الثانوية · ' + date, 'إغلاق واعتماد التحضير');
+        commit();
+        return { closed: true, stage: 'high', date: date };
+      }).catch(function (error) {
+        day.status = prev.status || 'active';
+        day.closedAt = prev.closedAt;
+        day.closedBy = prev.closedBy;
+        day.summary = prev.summary;
+        commit();
+        notifySaveError('تعذّر إغلاق تحضير الثانوية — أعد المحاولة' + (error && error.message ? ' (' + error.message + ')' : ''));
+        throw error;
+      });
+    };
+
+    if (!db) return doClose();
+    return chainWrite(highWriteChain, date, doClose);
+  }
+
   function closeHighAttendance(date, supervisor) {
+    return closeHighAttendanceSafely(date, supervisor);
     if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
       throw new Error('لا تملك صلاحية إغلاق تحضير الثانوية');
     }
@@ -2457,6 +2570,7 @@
     getAttendance: getAttendance,
     getStudentAttendance: getStudentAttendance,
     getStudentAttendanceDetails: getStudentAttendanceDetails,
+    hasPendingAttendanceWrites: hasPendingAttendanceWrites,
     isAttendanceClosed: isAttendanceClosed,
     closeAttendance: closeAttendance,
     reopenAttendance: reopenAttendance,
