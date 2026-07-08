@@ -1,44 +1,63 @@
 rules_version = '2';
 
 // ============================================================
-// قواعد أمان Firestore — قفل خفيف لمنع مسح البيانات بالخطأ
+// قواعد أمان Firestore — قفل البيانات المعتمدة + منع المسح العرضي
 // ------------------------------------------------------------
 // الاستخدام داخلي (بلا Firebase Auth حاليًا)، لذا القراءة/الكتابة مفتوحة،
-// لكن نحمي أثمن وثيقة (settings/config التي تحوي كل الحسابات والمجموعات)
-// من الحذف نهائيًا، ونحصر الكتابة في الكولكشنات المعروفة فقط.
+// مع حمايتين صلبتين على مستوى الخادم:
+//   ١) settings/config (الحسابات والمجموعات) لا تُحذف أبدًا.
+//   ٢) يوم تحضير «مغلق ومعتمد» لا يقبل أي تعديل على سجلات الطلاب —
+//      مهما كان مصدر الكتابة (صفحة قديمة مخبأة، طابور كتابات معلّقة،
+//      جهاز بساعة خاطئة). يُسمح فقط بتغيير حالة اليوم (إعادة فتح/إغلاق)
+//      أو حذفه بالكامل من لوحة المالك.
 //
 // كيفية التطبيق:
 //   Firebase Console → مشروع rhhal-6de3d → Build → Firestore Database
 //   → تبويب Rules → الصق هذا الملف بالكامل → Publish.
 //
-// ⚠️ ملاحظة صريحة: هذا «حاجز أمان» ضد الحذف والعبث العرضي، وليس جدارًا
-//    كاملًا. أي شخص يملك إعدادات المشروع (وهي داخل ملفات الموقع) يستطيع
-//    كتابة بيانات صحيحة الشكل. للحماية الحقيقية يلزم تفعيل Firebase Auth
-//    (مؤجّل بقرار تشغيلي).
+// ⚠️ هذا حاجز ضد الحذف والعبث العرضي، وليس جدار مصادقة كاملًا.
 // ============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // 🔒 الإعدادات: تحوي كل حسابات المعلمين والمجموعات ونقاط التحضير.
-    //    تُقرأ وتُنشأ وتُحدَّث، لكن لا تُحذف أبدًا (أخطر عملية مسح).
     match /settings/{docId} {
       allow read, create, update: if true;
       allow delete: if false;
     }
 
-    // بيانات المرحلة المتوسطة والبيانات العامة — مفتوحة (استخدام داخلي).
+    // 🔒 تحضير المتوسطة: يوم مغلق = سجلاته مجمّدة على الخادم.
+    //    - أي تعديل على يوم غير مغلق: مسموح.
+    //    - على يوم مغلق: يُسمح فقط بتعديل حقول الحالة (إعادة الفتح من صاحب الصلاحية).
+    //    - الحذف الكامل متاح (زر حذف اليوم في لوحة المالك).
+    match /attendance/{date} {
+      allow read, create, delete: if true;
+      allow update: if resource.data.status != 'closed'
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'closedAt', 'closedBy', 'updatedAt']);
+    }
+
+    // بيانات المرحلة المتوسطة والبيانات العامة.
     match /students/{id}   { allow read, write: if true; }
     match /logs/{id}       { allow read, write: if true; }
-    match /attendance/{id} { allow read, write: if true; }
     match /memos/{id}      { allow read, write: if true; }
     match /auditLogs/{id}  { allow read, write: if true; }
     match /migrations/{id} { allow read, write: if true; }
 
-    // بيانات المراحل الهرمية (الثانوية والمتوسطة) وكل وثائقها الفرعية.
-    match /stages/{stage}/{document=**} { allow read, write: if true; }
+    // 🔒 تحضير الثانوية: نفس تجميد اليوم المغلق.
+    match /stages/{stage}/attendance/{date} {
+      allow read, create, delete: if true;
+      allow update: if resource.data.status != 'closed'
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'closedAt', 'closedBy', 'updatedAt', 'summary']);
+    }
 
-    // أي كولكشن غير معروف: مقفل افتراضيًا (يمنع إنشاء بيانات عشوائية خارج البنية).
-    // ملاحظة: إن أضفت كولكشن جديدًا للتطبيق مستقبلًا، أضِف له سطرًا هنا.
+    // بقية وثائق المراحل — مسارات صريحة (لا wildcard حتى لا يتجاوز قفل التحضير،
+    // لأن القواعد المتداخلة في Firestore تعمل بمنطق «أو»).
+    match /stages/{stage}/students/{id} { allow read, write: if true; }
+    match /stages/{stage}/logs/{id}     { allow read, write: if true; }
+
+    // أي كولكشن غير معروف: مقفل افتراضيًا.
   }
 }

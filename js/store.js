@@ -952,14 +952,9 @@
     if (dbStatus === 'closed') return true;
     if (dbStatus === 'active') return false;
 
-    // الإغلاق التلقائي:
-    var today = todayStr();
-    if (date < today) return true; // الأيام السابقة تغلق تلقائياً
-    if (date === today) {
-      var hr = new Date().getHours();
-      if (hr >= 21) return true; // بعد الـ 9:00 مساءً يغلق تلقائياً
-    }
-    return false;
+    // الإغلاق التلقائي: عند منتصف الليل فقط (بمجرد أن يصبح التاريخ يومًا ماضيًا).
+    // أُزيل بند الساعة 9 مساءً — كان يسبب اختلاف الأجهزة حول حالة اليوم.
+    return date < todayStr();
   }
 
   function closeAttendance(date, supervisor) {
@@ -1112,7 +1107,6 @@
   // ولا حذف إلا إذا كانت النيّة إلغاء التحديد.
   function fallbackMiddleAttendance(date, intents, sup) {
     var attRef = db.collection('attendance').doc(date);
-    var day = state.attendance[date];
     var attUpdate = {};
     var batch = db.batch();
     intents.forEach(function (it) {
@@ -1122,7 +1116,10 @@
         batch.set(db.collection('logs').doc(entry.id), entry);
       }
     });
-    batch.set(attRef, { status: (day && day.status) || 'active' }, { merge: true });
+    // لا نكتب status من الذاكرة المحلية أبدًا — نسخة محلية قديمة كانت تعيد
+    // فتح يوم معتمد ثم تمسحه. ننشئ الوثيقة (إن لزم) بحقل زمني محايد فقط،
+    // وقواعد الخادم ترفض تعديل سجلات يوم مغلق فيصل الإشعار للمعلم.
+    batch.set(attRef, { updatedAt: Date.now() }, { merge: true });
     batch.update(attRef, attUpdate);
     var writes = [batch.commit()];
     intents.forEach(function (it) {
@@ -1517,7 +1514,8 @@
           upd['records.' + it.studentId] = it.rec ? it.rec : fsDelete();
         });
         var batch = db.batch();
-        batch.set(ref, { status: (day && day.status) || 'active' }, { merge: true });
+        // لا نكتب status من المحلي (كان يعيد فتح يوم معتمد) — حقل زمني محايد فقط
+        batch.set(ref, { updatedAt: Date.now() }, { merge: true });
         batch.update(ref, upd);
         var fb = batch.commit();
         intents.forEach(function (it) { clearPendingIntent(pendingHigh, date, it); });
