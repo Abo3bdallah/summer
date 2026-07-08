@@ -223,6 +223,11 @@ assert.throws(
   assert.equal(missingDeleteResult.deleted, false);
   assert.throws(() => Store.deleteAttendanceDay('unknown', middleDate), /المرحلة/);
 
+  assert.throws(() => Store.clearLog(), /سجل النقاط/);
+  const logsBeforeResetWithClearRequest = Store.getLog().length;
+  Store.resetPoints(true);
+  assert.equal(Store.getLog().length, logsBeforeResetWithClearRequest, 'resetting points must preserve the full point log');
+
   Store.setClubDays([0, 1, 2, 3]);
   console.log('store account tests passed');
 })().catch(function (error) {

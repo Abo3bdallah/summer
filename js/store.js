@@ -332,7 +332,7 @@
     });
 
     // 3. سجل العمليات
-    db.collection('logs').orderBy('timestamp', 'desc').limit(150).onSnapshot(function (snap) {
+    db.collection('logs').orderBy('timestamp', 'desc').onSnapshot(function (snap) {
       applyingRemote = true;
       var log = [];
       snap.forEach(function (doc) {
@@ -432,7 +432,7 @@
     });
 
     // 8. سجل العمليات الإدارية الحساسة
-    db.collection('auditLogs').orderBy('at', 'desc').limit(200).onSnapshot(function (snap) {
+    db.collection('auditLogs').orderBy('at', 'desc').onSnapshot(function (snap) {
       applyingRemote = true;
       var auditLogs = [];
       snap.forEach(function (doc) {
@@ -552,7 +552,6 @@
       at: Date.now()
     };
     state.auditLogs.unshift(entry);
-    if (state.auditLogs.length > 200) state.auditLogs = state.auditLogs.slice(0, 200);
     if (db) db.collection('auditLogs').doc(entry.id).set(entry).catch(function () {});
     return entry;
   }
@@ -811,23 +810,14 @@
   }
 
   function clearLog() {
-    state.log = [];
-    if (db) {
-      db.collection('logs').get().then(function (snap) {
-        var batch = db.batch();
-        snap.forEach(function (doc) { batch.delete(doc.ref); });
-        batch.commit().catch(function() {});
-      }).catch(function() {});
-    }
-    commit();
+    throw new Error('سجل النقاط محفوظ بالكامل ولا يمكن مسحه');
   }
 
   // بدء جولة/موسم جديد: تصفير نقاط جميع الطلاب (مع خيار مسح السجل)
   function resetPoints(clearLogToo) {
-    recordAudit('reset_points', 'المرحلة المتوسطة', clearLogToo ? 'تصفير النقاط ومسح السجل' : 'تصفير النقاط مع إبقاء السجل');
+    recordAudit('reset_points', 'المرحلة المتوسطة', clearLogToo ? 'تصفير النقاط مع إبقاء السجل الدائم' : 'تصفير النقاط مع إبقاء السجل');
     state.students.forEach(function (s) { s.points = 0; });
     state.attendance = {}; // تصفير التحضير مع الجولة الجديدة
-    if (clearLogToo) state.log = [];
 
     if (db) {
       db.collection('students').get().then(function (snap) {
@@ -841,13 +831,6 @@
         snap.forEach(function (doc) { batch.delete(doc.ref); });
         batch.commit().catch(function() {});
       }).catch(function() {});
-      if (clearLogToo) {
-        db.collection('logs').get().then(function (snap) {
-          var batch = db.batch();
-          snap.forEach(function (doc) { batch.delete(doc.ref); });
-          batch.commit().catch(function() {});
-        }).catch(function() {});
-      }
     }
     commit();
   }

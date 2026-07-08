@@ -804,10 +804,10 @@
     });
   }
 
-  $('#logClear').addEventListener('click', function () {
+  if ($('#logClear')) $('#logClear').addEventListener('click', function () {
     showConfirm('مسح كامل سجل العمليات؟ لا يمكن التراجع.', function (confirmed) {
       if (!confirmed) return;
-      Store.clearLog();
+      try { Store.clearLog(); } catch (e) { toast(e.message, 'err'); return; }
       toast('تم مسح السجل', 'ok');
     });
   });
@@ -1011,10 +1011,10 @@
       toast('تم تصفير النقاط', 'ok');
     });
   });
-  $('#setResetPointsLog').addEventListener('click', function () {
+  if ($('#setResetPointsLog')) $('#setResetPointsLog').addEventListener('click', function () {
     showConfirm('تصفير نقاط جميع الطلاب ومسح السجل؟ لا يمكن التراجع.', function (confirmed) {
       if (!confirmed) return;
-      Store.resetPoints(true);
+      Store.resetPoints(false);
       toast('تم بدء جولة جديدة', 'ok');
     });
   });
