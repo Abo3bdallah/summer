@@ -41,7 +41,7 @@ function createFakeDb(delayMs) {
   const snapshotFor = (segments) => {
     const key = keyOf(segments);
     const data = docs.get(key);
-    return { exists: !!data, data: () => Object.assign({}, data || {}) };
+    return { exists: !!data, data: () => Object.assign({}, data || {}), metadata: { fromCache: false } };
   };
   const makeDocRef = (segments) => ({
     set(data, options) {
@@ -57,7 +57,8 @@ function createFakeDb(delayMs) {
     collection(name) {
       return makeCollection(segments.concat(name));
     },
-    onSnapshot(cb) {
+    onSnapshot(a, b) {
+      const cb = typeof a === 'function' ? a : b;
       setTimeout(() => cb(snapshotFor(segments)), 0);
       return function () {};
     }
@@ -66,10 +67,12 @@ function createFakeDb(delayMs) {
     doc(id) {
       return makeDocRef(segments.concat(id));
     },
-    onSnapshot(cb) {
+    onSnapshot(a, b) {
+      const cb = typeof a === 'function' ? a : b;
       setTimeout(() => cb({
         forEach() {},
-        size: 0
+        size: 0,
+        metadata: { fromCache: false }
       }), 0);
       return function () {};
     },

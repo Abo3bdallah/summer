@@ -67,6 +67,51 @@
 
   var listeners = [];
 
+  /* ============================================================
+     الاتصال بالخادم — النظام سحابي مباشر: الحفظ يتطلب اتصالًا مؤكَّدًا.
+     - browserOnline: من متصفح الجهاز (navigator).
+     - serverConnected: من بيانات لقطة الخادم (metadata.fromCache=false يعني
+       أن اللقطة أتت من الخادم فعلًا لا من ذاكرة مؤقتة). نبدأ متفائلين ثم نصحّح.
+     ============================================================ */
+  var browserOnline = (typeof global.navigator !== 'undefined' && global.navigator) ? global.navigator.onLine !== false : true;
+  var serverConnected = true;
+  var connectivityListeners = [];
+
+  function isOnline() {
+    if (!global.db) return true; // بلا Firebase (اختبار/تطوير): لا بوابة
+    return browserOnline && serverConnected;
+  }
+  function requireOnline() {
+    if (global.db && !isOnline()) {
+      throw new Error('لا يوجد اتصال بالإنترنت — تعذّر الحفظ. انتظر عودة الاتصال ثم أعد المحاولة.');
+    }
+  }
+  function notifyConnectivity() {
+    var on = isOnline();
+    for (var i = 0; i < connectivityListeners.length; i++) {
+      try { connectivityListeners[i](on); } catch (e) {}
+    }
+  }
+  function onConnectivity(fn) {
+    connectivityListeners.push(fn);
+    try { fn(isOnline()); } catch (e) {}
+    return function () { connectivityListeners = connectivityListeners.filter(function (f) { return f !== fn; }); };
+  }
+  function setBrowserOnline(v) {
+    if (browserOnline === v) return;
+    browserOnline = v;
+    notifyConnectivity();
+  }
+  function setServerConnected(v) {
+    if (serverConnected === v) return;
+    serverConnected = v;
+    notifyConnectivity();
+  }
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('online', function () { setBrowserOnline(true); });
+    global.addEventListener('offline', function () { setBrowserOnline(false); });
+  }
+
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
@@ -241,8 +286,22 @@
 
   var state = load();
 
+  // نحفظ محليًا فقط ما يلزم لإقلاع الجلسة والصلاحيات فورًا (إعدادات/حسابات).
+  // البيانات المتغيّرة (طلاب، تحضير، نقاط، سجل، الثانوية) لا تُحفظ محليًا إطلاقًا —
+  // مصدرها الوحيد هو لقطات الخادم، فلا تظهر بيانات قديمة أبدًا بعد إعادة التحميل.
   function persist() {
-    try { global.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+    try {
+      var slim = {
+        teachers: state.teachers,
+        groups: state.groups,
+        attendancePoints: state.attendancePoints,
+        fastReasons: state.fastReasons,
+        highGroups: state.highGroups,
+        clubDays: state.clubDays,
+        supervisor: state.supervisor
+      };
+      global.localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
+    } catch (e) {}
   }
 
   // إشعار المستمعين محليًا + إرسال للنوافذ الأخرى
@@ -255,19 +314,20 @@
     }
   }
 
-  // عند وصول رسالة من نافذة أخرى: أعد التحميل من التخزين وحدّث
+  // مع وجود خادم، اللقطات هي مصدر المزامنة الوحيد بين النوافذ — لا نعيد التحميل
+  // المحلي (الذي أصبح إعدادات فقط) كي لا نمسح البيانات المتغيّرة في الذاكرة.
   if (channel) {
     channel.onmessage = function () {
+      if (global.db) { emit(false); return; }
       state = load();
       emit(false);
     };
   }
-  // احتياط للمتصفحات بلا BroadcastChannel: حدث storage
   global.addEventListener('storage', function (e) {
-    if (e.key === STORAGE_KEY) {
-      state = load();
-      emit(false);
-    }
+    if (e.key !== STORAGE_KEY) return;
+    if (global.db) { emit(false); return; }
+    state = load();
+    emit(false);
   });
 
   /* ---------------- مزامنة Firebase / Firestore (عبر الأجهزة) ---------------- */
@@ -277,8 +337,10 @@
   if (db) {
     applyingRemote = true;
 
-    // 1. الإعدادات والمجموعات
-    db.collection('settings').doc('config').onSnapshot(function (snap) {
+    // 1. الإعدادات والمجموعات (+ كشف الاتصال الفعلي بالخادم عبر metadata)
+    db.collection('settings').doc('config').onSnapshot({ includeMetadataChanges: true }, function (snap) {
+      // fromCache=false يعني أن اللقطة مؤكَّدة من الخادم → متصلون فعلًا
+      setServerConnected(!(snap.metadata && snap.metadata.fromCache));
       if (snap.exists) {
         applyingRemote = true;
         var data = snap.data();
@@ -724,6 +786,7 @@
     if (!st) throw new Error('الطالب غير موجود');
     amount = parseInt(amount, 10);
     if (isNaN(amount) || amount <= 0) throw new Error('أدخل عددًا صحيحًا أكبر من صفر');
+    requireOnline();
 
     var before = st.points || 0;
     var after;
@@ -954,6 +1017,7 @@
     if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
       throw new Error('لا تملك صلاحية إغلاق تحضير المرحلة المتوسطة');
     }
+    requireOnline();
     var sup = (supervisor || state.supervisor || '').trim();
     var doClose = function () {
       if (!state.attendance[date]) {
@@ -1010,6 +1074,7 @@
     if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
       throw new Error('لا تملك صلاحية إعادة فتح تحضير المرحلة المتوسطة');
     }
+    requireOnline();
     if (!state.attendance[date]) {
       state.attendance[date] = { records: {}, status: 'active' };
     }
@@ -1199,6 +1264,7 @@
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
+    requireOnline();
     var sup = (supervisor || state.supervisor || '').trim();
     var intent = buildMiddleIntent(date, studentId, status, sup);
     if (!intent) return; // طالب غير موجود أو لا تغيير
@@ -1217,6 +1283,7 @@
     if (isAttendanceClosed(date)) {
       throw new Error('التحضير مغلق لهذا اليوم ولا يمكن تعديله');
     }
+    requireOnline();
     var sup = (supervisor || state.supervisor || '').trim();
     var intents = [];
     (studentIds || []).forEach(function (studentId) {
@@ -1557,6 +1624,7 @@
     requireHighAttendanceAccess();
     if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
     if (!getHighStudent(studentId)) throw new Error('الطالب غير موجود');
+    requireOnline();
     var sup = (supervisor || getSupervisor() || '').trim();
     var intent = buildHighIntent(date, studentId, status, sup);
     if (!intent) return Promise.resolve();
@@ -1572,6 +1640,7 @@
     requireHighAttendanceAccess();
     if (isHighAttendanceClosed(date)) throw new Error('تحضير الثانوية مغلق لهذا اليوم');
     if (!Array.isArray(studentIds) || !studentIds.length) throw new Error('حدد طالبًا واحدًا على الأقل');
+    requireOnline();
     var sup = (supervisor || getSupervisor() || '').trim();
     var intents = [];
     studentIds.forEach(function (studentId) {
@@ -1593,6 +1662,7 @@
     if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
       throw new Error('لا تملك صلاحية إغلاق تحضير الثانوية');
     }
+    requireOnline();
     var sup = (supervisor || getSupervisor() || '').trim();
     var doClose = function () {
       if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
@@ -1650,6 +1720,7 @@
     if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
       throw new Error('لا تملك صلاحية إعادة فتح تحضير الثانوية');
     }
+    requireOnline();
     if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
     state.highAttendance[date].status = 'active';
     recordAudit('reopen_attendance', 'الثانوية · ' + date, 'إعادة فتح التحضير');
@@ -2575,7 +2646,9 @@
     hasPermission: hasPermission,
     setTeacherPermission: setTeacherPermission,
     changeOwnPassword: changeOwnPassword,
-    onSaveError: onSaveError
+    onSaveError: onSaveError,
+    isOnline: isOnline,
+    onConnectivity: onConnectivity
   };
 })(window);
 

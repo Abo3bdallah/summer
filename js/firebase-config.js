@@ -24,10 +24,9 @@
   try {
     global.firebase.initializeApp(firebaseConfig);
     global.db = global.firebase.firestore();
-    // تخزين محلي لـ Firestore ليعمل عند انقطاع الإنترنت ثم يزامن لاحقًا
-    try {
-      global.db.enablePersistence({ synchronizeTabs: true }).catch(function () {});
-    } catch (e) {}
+    // ملاحظة: أُلغي enablePersistence عمدًا. النظام أصبح «سحابيًا مباشرًا» —
+    // لا طابور كتابات محلي يُنفَّذ لاحقًا (كان مصدر اختفاء التحضير والنقاط)،
+    // والحفظ يتطلب اتصالًا مؤكَّدًا بالخادم وإلا يُرفض فورًا.
   } catch (e) {
     if (global.console) console.warn('تعذّرت تهيئة Firebase:', e && e.message);
     global.db = null;

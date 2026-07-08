@@ -23,7 +23,9 @@
       "Bash(node --check js/owner.js)",
       "Bash(node \"C:\\\\Users\\\\HUAWEI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-HUAWEI-OneDrive-----------GitHub-summer\\\\7f3ba51a-2697-4528-a9a1-b36966ee781d\\\\scratchpad\\\\verify_reliability.cjs\")",
       "Bash(node tests/attendance-close-race.test.cjs)",
-      "Bash(node --check js/attendance.js)"
+      "Bash(node --check js/attendance.js)",
+      "Bash(awk -F'\",\"' '{gsub\\(/\"/,\"\",$2\\); pts[$2]+=$5} END{for\\(n in pts\\) printf \"%s|%d\\\\n\", n, pts[n]}')",
+      "Bash(node --check js/firebase-config.js)"
     ]
   }
 }

@@ -7,6 +7,33 @@
   'use strict';
   if (!window.Store || typeof Store.getCurrentUser !== 'function') return;
 
+  /* ---------- شريط انقطاع الاتصال (النظام سحابي مباشر) ---------- */
+  (function connectivityBanner() {
+    if (typeof Store.onConnectivity !== 'function') return;
+    var bar = null;
+    function ensureBar() {
+      if (bar) return bar;
+      var s = document.createElement('style');
+      s.textContent =
+        '#netOfflineBar{position:fixed;top:0;left:0;right:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:8px;' +
+        'padding:9px 14px;background:linear-gradient(90deg,#e11d48,#b91c1c);color:#fff;font-family:"Tajawal","Segoe UI",sans-serif;' +
+        'font-weight:800;font-size:13px;box-shadow:0 4px 16px rgba(190,18,60,.35);direction:rtl;transform:translateY(-100%);transition:transform .25s ease;}' +
+        '#netOfflineBar.show{transform:translateY(0);}' +
+        '#netOfflineBar .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:netBlink 1s infinite;}' +
+        '@keyframes netBlink{50%{opacity:.25;}}';
+      document.head.appendChild(s);
+      bar = document.createElement('div');
+      bar.id = 'netOfflineBar';
+      bar.innerHTML = '<span class="dot"></span><span>لا يوجد اتصال بالإنترنت — الحفظ والتحضير معطّلان حتى عودة الاتصال</span>';
+      (document.body || document.documentElement).appendChild(bar);
+      return bar;
+    }
+    Store.onConnectivity(function (online) {
+      var b = ensureBar();
+      b.classList.toggle('show', !online);
+    });
+  })();
+
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
