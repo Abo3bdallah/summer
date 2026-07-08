@@ -733,9 +733,7 @@
     });
   });
 
-  $('#closeHighAttendanceButton').addEventListener('click', function (event) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
+  $('#closeHighAttendanceButton').addEventListener('click', function () {
     if (closingHighAttendance) return;
     showConfirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟ سيتم انتظار أي حفظ معلّق قبل الاعتماد.', function (ok) {
       if (!ok) return;
@@ -750,15 +748,6 @@
         closingHighAttendance = false;
         render();
       });
-    });
-  }, true);
-
-  $('#closeHighAttendanceButton').addEventListener('click', function () {
-    if (closingHighAttendance) return;
-    showConfirm('هل تريد إغلاق واعتماد تحضير هذا اليوم؟', function (ok) {
-      if (!ok) return;
-      try { Store.closeHighAttendance(dateValue(), Store.getLoggedInTeacher()); showToast('تم إغلاق واعتماد التحضير'); render(); }
-      catch (e) { showToast(e.message, true); }
     });
   });
   $('#reopenHighAttendanceButton').addEventListener('click', function () {

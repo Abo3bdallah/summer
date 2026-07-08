@@ -369,9 +369,6 @@
         closingAttendance = false;
         render();
       });
-      return;
-      Store.closeAttendance(selectedDate, Store.getSupervisor());
-      toast('تم قفل واعتماد تحضير اليوم بنجاح 🔒', 'ok');
     });
   };
 

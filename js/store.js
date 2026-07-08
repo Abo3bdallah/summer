@@ -999,27 +999,10 @@
     return chainWrite(middleWriteChain, date, doClose);
   }
 
+  // يمر عبر السلسلة الآمنة: ينتظر أي عمليات حفظ تحضير معلّقة لنفس اليوم قبل
+  // الإغلاق، ويرتد محليًا ويُبلغ المعلم إن فشلت الكتابة على الخادم.
   function closeAttendance(date, supervisor) {
     return closeAttendanceSafely(date, supervisor);
-    if (!hasPermission('closeAttendance') || !belongsToStage('middle')) {
-      throw new Error('لا تملك صلاحية إغلاق تحضير المرحلة المتوسطة');
-    }
-    if (!state.attendance[date]) {
-      state.attendance[date] = { records: {}, status: 'active' };
-    }
-    state.attendance[date].status = 'closed';
-    state.attendance[date].closedAt = Date.now();
-    state.attendance[date].closedBy = (supervisor || state.supervisor || '').trim();
-    recordAudit('close_attendance', 'المتوسطة · ' + date, 'إغلاق واعتماد التحضير');
-
-    if (db) {
-      db.collection('attendance').doc(date).set({
-        status: 'closed',
-        closedAt: state.attendance[date].closedAt,
-        closedBy: state.attendance[date].closedBy
-      }, { merge: true }).catch(function() {});
-    }
-    commit();
   }
 
   // إعادة فتح التحضير
@@ -1658,28 +1641,9 @@
     return chainWrite(highWriteChain, date, doClose);
   }
 
+  // نفس مبدأ closeAttendance: ينتظر عمليات الحفظ المعلّقة لليوم قبل الإغلاق.
   function closeHighAttendance(date, supervisor) {
     return closeHighAttendanceSafely(date, supervisor);
-    if (!hasPermission('closeAttendance') || !belongsToStage('high')) {
-      throw new Error('لا تملك صلاحية إغلاق تحضير الثانوية');
-    }
-    if (!state.highAttendance[date]) state.highAttendance[date] = { records: {}, status: 'active' };
-    var day = state.highAttendance[date];
-    day.status = 'closed';
-    day.closedAt = Date.now();
-    day.closedBy = (supervisor || getSupervisor() || '').trim();
-    day.summary = computeHighAttendanceSummary(day.records);
-    recordAudit('close_attendance', 'الثانوية · ' + date, 'إغلاق واعتماد التحضير');
-    var collection = highAttendanceCollection();
-    if (collection) {
-      collection.doc(date).set({
-        status: 'closed',
-        closedAt: day.closedAt,
-        closedBy: day.closedBy,
-        summary: day.summary
-      }, { merge: true }).catch(function () {});
-    }
-    commit();
   }
 
   function reopenHighAttendance(date) {

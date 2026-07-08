@@ -21,7 +21,9 @@
       "Bash(echo \"exit: $?\")",
       "Bash(node --check js/account-widget.js)",
       "Bash(node --check js/owner.js)",
-      "Bash(node \"C:\\\\Users\\\\HUAWEI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-HUAWEI-OneDrive-----------GitHub-summer\\\\7f3ba51a-2697-4528-a9a1-b36966ee781d\\\\scratchpad\\\\verify_reliability.cjs\")"
+      "Bash(node \"C:\\\\Users\\\\HUAWEI\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-HUAWEI-OneDrive-----------GitHub-summer\\\\7f3ba51a-2697-4528-a9a1-b36966ee781d\\\\scratchpad\\\\verify_reliability.cjs\")",
+      "Bash(node tests/attendance-close-race.test.cjs)",
+      "Bash(node --check js/attendance.js)"
     ]
   }
 }
